@@ -1,0 +1,20 @@
+node_modules
+.idea
+.DS_Store
+
+#Hardhat files
+cache
+artifacts
+
+abi
+coverage
+coverage.json
+
+.openzeppelin
+.env
+env
+*.py
+*.sh
+logs
+tmp
+deployments/localhost
