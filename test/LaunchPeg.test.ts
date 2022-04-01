@@ -1,23 +1,41 @@
-import { config, ethers, network } from 'hardhat'
+import { config as hardhatConfig, ethers, network } from 'hardhat'
 import { expect } from 'chai'
 import { advanceTimeAndBlock, latest, duration } from './utils/time'
+import { initializePhases, LAUNCHPEG_CONFIG } from './utils/helpers'
+import { ContractFactory, Contract } from 'ethers'
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
-describe('LaunchPeg', function () {
-  before(async function () {
-    this.LaunchPegCF = await ethers.getContractFactory('LaunchPeg')
+describe('LaunchPeg', () => {
+  let launchPegCF: ContractFactory
+  let launchPeg: Contract
 
-    this.signers = await ethers.getSigners()
-    this.dev = this.signers[0]
-    this.alice = this.signers[1]
-    this.bob = this.signers[2]
-    this.carol = this.signers[3]
+  let config = LAUNCHPEG_CONFIG
+  let maxBatchSize = 5
+  let collectionSize = 9000
+  let amountForAuctionAndDev = 8000
+  let amountForDevs = 50
+
+  let signers: SignerWithAddress[]
+  let dev: SignerWithAddress
+  let alice: SignerWithAddress
+  let bob: SignerWithAddress
+  let carol: SignerWithAddress
+
+  before(async () => {
+    launchPegCF = await ethers.getContractFactory('LaunchPeg')
+
+    signers = await ethers.getSigners()
+    dev = signers[0]
+    alice = signers[1]
+    bob = signers[2]
+    carol = signers[3]
 
     await network.provider.request({
       method: 'hardhat_reset',
       params: [
         {
           forking: {
-            jsonRpcUrl: (config as any).networks.avalanche.url,
+            jsonRpcUrl: (hardhatConfig as any).networks.avalanche.url,
           },
           live: false,
           saveDeployments: true,
@@ -27,119 +45,113 @@ describe('LaunchPeg', function () {
     })
   })
 
-  beforeEach(async function () {
-    this.startPrice = ethers.utils.parseUnits('1', 18)
-    this.maxBatchSize = 5
-    this.collectionSize = 9000
-    this.amountForAuctionAndDev = 8000
-    this.amountForDevs = 50
-    this.launchPeg = await this.LaunchPegCF.deploy(
-      'JoePEG',
-      'JOEPEG',
-      this.maxBatchSize,
-      this.collectionSize,
-      this.amountForAuctionAndDev,
-      this.amountForDevs
-    )
+  beforeEach(async () => {
+    launchPeg = await launchPegCF.deploy('JoePEG', 'JOEPEG', maxBatchSize, collectionSize, amountForAuctionAndDev, amountForDevs)
   })
 
-  describe('Dutch auction phase', function () {
-    it('NFT price decreases at correct pace', async function () {
+  describe('Dutch auction phase', () => {
+    it('NFT price decreases at correct pace', async () => {
       // Start auction
       const saleStartTime = await latest()
-      this.launchPeg.setAuctionSaleStartTime(saleStartTime)
+      initializePhases(launchPeg, saleStartTime)
 
       // Verify start price
-      var auctionPrice = await this.launchPeg.getAuctionPrice(saleStartTime)
-      expect(auctionPrice).to.be.equal(this.startPrice)
+      var auctionPrice = await launchPeg.getAuctionPrice(saleStartTime)
+      expect(auctionPrice).to.be.equal(config.startPrice)
 
       // 110 minutes later
       await advanceTimeAndBlock(duration.minutes(110))
 
       // Verify discounted price
-      auctionPrice = await this.launchPeg.getAuctionPrice(saleStartTime)
+      auctionPrice = await launchPeg.getAuctionPrice(saleStartTime)
       const discount = ethers.utils.parseUnits('0.05', 18).mul(5)
-      expect(auctionPrice).to.be.equal(this.startPrice.sub(discount))
+      expect(auctionPrice).to.be.equal(config.startPrice.sub(discount))
 
       // Sale ends after 340 minutes
       await advanceTimeAndBlock(duration.minutes(240))
 
       // Verify floor price
-      auctionPrice = await this.launchPeg.getAuctionPrice(saleStartTime)
+      auctionPrice = await launchPeg.getAuctionPrice(saleStartTime)
       const floorPrice = ethers.utils.parseUnits('0.15', 18)
       expect(auctionPrice).to.be.equal(floorPrice)
     })
 
-    it('Mint reverts when sale start date not set', async function () {
-      await expect(this.launchPeg.auctionMint(1)).to.be.revertedWith('sale has not started yet')
+    it('Mint reverts when sale start date not set', async () => {
+      await expect(launchPeg.auctionMint(1)).to.be.revertedWith('LaunchPeg: wrong phase')
     })
 
-    it('Mint reverts when sale has not started yet', async function () {
-      const saleStartTime = await latest()
-      this.launchPeg.setAuctionSaleStartTime(saleStartTime.add(60))
+    it('Mint reverts when sale has not started yet', async () => {
+      const saleStartTime = (await latest()).add(duration.minutes(10))
+      initializePhases(launchPeg, saleStartTime)
 
-      await expect(this.launchPeg.auctionMint(1)).to.be.revertedWith('sale has not started yet')
+      await expect(launchPeg.auctionMint(1)).to.be.revertedWith('LaunchPeg: wrong phase')
     })
 
-    it('NFT are transfered to sender when user has enough AVAX', async function () {
+    it('NFT are transfered to sender when user has enough AVAX', async () => {
       const saleStartTime = await latest()
-      this.launchPeg.setAuctionSaleStartTime(saleStartTime)
+      initializePhases(launchPeg, saleStartTime)
 
-      const totalPrice = this.startPrice.mul(this.maxBatchSize)
-      await this.dev.sendTransaction({
-        to: this.alice.address,
+      const totalPrice = config.startPrice.mul(maxBatchSize)
+      await dev.sendTransaction({
+        to: alice.address,
         value: totalPrice,
       })
 
-      expect(await this.launchPeg.balanceOf(this.alice.address)).to.equal(0)
-      await this.launchPeg.connect(this.alice).auctionMint(this.maxBatchSize, { value: totalPrice })
-      expect(await this.launchPeg.balanceOf(this.alice.address)).to.equal(this.maxBatchSize)
+      expect(await launchPeg.balanceOf(alice.address)).to.equal(0)
+      await launchPeg.connect(alice).auctionMint(maxBatchSize, { value: totalPrice })
+      expect(await launchPeg.balanceOf(alice.address)).to.equal(maxBatchSize)
     })
 
-    it('Refund caller when too much AVAX sent', async function () {
+    it('Refund caller when too much AVAX sent', async () => {
       const saleStartTime = await latest()
-      this.launchPeg.setAuctionSaleStartTime(saleStartTime)
+      initializePhases(launchPeg, saleStartTime)
 
       const buySize = 2
-      const totalPrice = this.startPrice.mul(buySize + 1)
-      const aliceInitialBalance = await ethers.provider.getBalance(this.alice.address)
-      await this.dev.sendTransaction({
-        to: this.alice.address,
+      const totalPrice = config.startPrice.mul(buySize + 1)
+      const aliceInitialBalance = await ethers.provider.getBalance(alice.address)
+      await dev.sendTransaction({
+        to: alice.address,
         value: totalPrice,
       })
 
-      await this.launchPeg.connect(this.alice).auctionMint(buySize, { value: totalPrice })
-      expect(await this.launchPeg.balanceOf(this.alice.address)).to.equal(buySize)
-      expect(await ethers.provider.getBalance(this.alice.address)).to.be.closeTo(
-        aliceInitialBalance.add(this.startPrice),
+      await launchPeg.connect(alice).auctionMint(buySize, { value: totalPrice })
+      expect(await launchPeg.balanceOf(alice.address)).to.equal(buySize)
+      expect(await ethers.provider.getBalance(alice.address)).to.be.closeTo(
+        aliceInitialBalance.add(config.startPrice),
         ethers.utils.parseUnits('0.01', 18)
       )
     })
   })
 
-  describe('Allowlist sale phase', function () {
-    async function startAllowlistMintPhase(launchPeg: any) {
-      const publicSaleStartTime = (await latest()).add(60)
-      launchPeg.endAuctionAndSetupNonAuctionSaleInfo(ethers.utils.parseUnits('0.5', 18), ethers.utils.parseUnits('0.1', 18), publicSaleStartTime)
-    }
+  describe('Allowlist sale phase', () => {
+    it('Mint revers when not started yet', async () => {
+      const saleStartTime = await latest()
+      initializePhases(launchPeg, saleStartTime)
 
-    it('Mint revers when not started yet', async function () {
-      await expect(this.launchPeg.connect(this.bob).allowlistMint()).to.be.revertedWith('allowlist sale has not begun yet')
+      await expect(launchPeg.connect(bob).allowlistMint()).to.be.revertedWith('LaunchPeg: wrong phase')
     })
 
-    it('Mint reverts when the caller is not on allowlist during mint phase', async function () {
-      await startAllowlistMintPhase(this.launchPeg)
-      await expect(this.launchPeg.connect(this.bob).allowlistMint()).to.be.revertedWith('not eligible for allowlist mint')
+    it('Mint reverts when the caller is not on allowlist during mint phase', async () => {
+      const saleStartTime = await latest()
+      initializePhases(launchPeg, saleStartTime)
+
+      await advanceTimeAndBlock(duration.minutes(10))
+
+      await expect(launchPeg.connect(bob).allowlistMint()).to.be.revertedWith('not eligible for allowlist mint')
     })
 
-    it("Mint reverts when the caller didn't send enough AVAX", async function () {
-      await startAllowlistMintPhase(this.launchPeg)
-      await this.launchPeg.seedAllowlist([this.alice.address], [1])
-      await expect(this.launchPeg.connect(this.alice).allowlistMint()).to.be.revertedWith('Need to send more AVAX.')
+    it("Mint reverts when the caller didn't send enough AVAX", async () => {
+      const saleStartTime = await latest()
+      initializePhases(launchPeg, saleStartTime)
+
+      await advanceTimeAndBlock(duration.minutes(10))
+
+      await launchPeg.seedAllowlist([alice.address], [1])
+      await expect(launchPeg.connect(alice).allowlistMint()).to.be.revertedWith('Need to send more AVAX.')
     })
   })
 
-  after(async function () {
+  after(async () => {
     await network.provider.request({
       method: 'hardhat_reset',
       params: [],

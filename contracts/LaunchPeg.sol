@@ -8,23 +8,43 @@ import "erc721a/contracts/extensions/ERC721AOwnersExplicit.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 
 contract LaunchPeg is Ownable, ERC721AOwnersExplicit, ReentrancyGuard {
-    uint256 public immutable maxPerAddressDuringMint;
+    enum Phase {
+        NotStarted,
+        DutchAuction,
+        Mintlist,
+        PublicSale
+    }
+
     uint256 public immutable amountForDevs;
     uint256 public immutable amountForAuctionAndDev;
+    uint256 public immutable maxPerAddressDuringMint;
     uint256 public immutable maxBatchSize;
     uint256 public immutable collectionSize;
 
-    struct SaleConfig {
-        uint32 auctionSaleStartTime;
-        uint32 publicSaleStartTime;
-        uint64 mintlistPrice;
-        uint64 publicPrice;
-        uint32 publicSaleKey;
-    }
+    uint32 public auctionSaleStartTime;
+    uint256 public auctionStartPrice;
+    uint256 public auctionEndPrice;
+    uint256 public auctionPriceCurveLength;
+    uint256 public auctionDropInterval;
+    uint256 public auctionDropPerStep;
 
-    SaleConfig public saleConfig;
+    uint32 public mintlistStartTime;
+    uint256 public mintlistPrice;
+
+    uint32 public publicSaleStartTime;
+    uint256 public publicSalePrice;
 
     mapping(address => uint256) public allowlist;
+
+    modifier atPhase(Phase _phase) {
+        _atPhase(_phase);
+        _;
+    }
+
+    modifier callerIsUser() {
+        require(tx.origin == msg.sender, "The caller is another contract");
+        _;
+    }
 
     constructor(
         string memory name_,
@@ -45,133 +65,44 @@ contract LaunchPeg is Ownable, ERC721AOwnersExplicit, ReentrancyGuard {
         );
     }
 
-    modifier callerIsUser() {
-        require(tx.origin == msg.sender, "The caller is another contract");
-        _;
-    }
-
-    function auctionMint(uint256 quantity) external payable callerIsUser {
-        uint256 _saleStartTime = uint256(saleConfig.auctionSaleStartTime);
+    function initializePhases(
+        uint32 auctionSaleStartTime_,
+        uint256 auctionStartPrice_,
+        uint256 auctionEndPrice_,
+        uint256 auctionPriceCurveLength_,
+        uint256 auctionDropInterval_,
+        uint32 mintlistStartTime_,
+        uint256 mintlistPrice_,
+        uint32 publicSaleStartTime_,
+        uint256 publicSalePrice_
+    ) external atPhase(Phase.NotStarted) {
+        require(auctionSaleStartTime == 0, "auction already initialized");
+        auctionSaleStartTime = auctionSaleStartTime_;
+        auctionStartPrice = auctionStartPrice_;
+        auctionEndPrice = auctionEndPrice_;
+        auctionPriceCurveLength = auctionPriceCurveLength_;
+        auctionDropInterval = auctionDropInterval_;
         require(
-            _saleStartTime != 0 && block.timestamp >= _saleStartTime,
-            "sale has not started yet"
+            auctionStartPrice_ > auctionEndPrice_,
+            "auction start price lower than end price"
         );
+        auctionDropPerStep =
+            (auctionStartPrice_ - auctionEndPrice_) /
+            (auctionPriceCurveLength_ / auctionDropInterval_);
+
+        mintlistStartTime = mintlistStartTime_;
+        mintlistPrice = mintlistPrice_;
         require(
-            totalSupply() + quantity <= amountForAuctionAndDev,
-            "not enough remaining reserved for auction to support desired mint amount"
+            mintlistStartTime_ > auctionSaleStartTime,
+            "mintlist phase must be after auction sale"
         );
+
+        publicSaleStartTime = publicSaleStartTime_;
+        publicSalePrice = publicSalePrice_;
         require(
-            numberMinted(msg.sender) + quantity <= maxPerAddressDuringMint,
-            "can not mint this many"
+            publicSaleStartTime_ > mintlistStartTime_,
+            "public sale must be after mintlist"
         );
-        uint256 totalCost = getAuctionPrice(_saleStartTime) * quantity;
-        _safeMint(msg.sender, quantity);
-        refundIfOver(totalCost);
-    }
-
-    function allowlistMint() external payable callerIsUser {
-        uint256 price = uint256(saleConfig.mintlistPrice);
-        require(price != 0, "allowlist sale has not begun yet");
-        require(allowlist[msg.sender] > 0, "not eligible for allowlist mint");
-        require(totalSupply() + 1 <= collectionSize, "reached max supply");
-        allowlist[msg.sender]--;
-        _safeMint(msg.sender, 1);
-        refundIfOver(price);
-    }
-
-    function publicSaleMint(uint256 quantity, uint256 callerPublicSaleKey)
-        external
-        payable
-        callerIsUser
-    {
-        SaleConfig memory config = saleConfig;
-        uint256 publicSaleKey = uint256(config.publicSaleKey);
-        uint256 publicPrice = uint256(config.publicPrice);
-        uint256 publicSaleStartTime = uint256(config.publicSaleStartTime);
-        require(
-            publicSaleKey == callerPublicSaleKey,
-            "called with incorrect public sale key"
-        );
-
-        require(
-            isPublicSaleOn(publicPrice, publicSaleKey, publicSaleStartTime),
-            "public sale has not begun yet"
-        );
-        require(
-            totalSupply() + quantity <= collectionSize,
-            "reached max supply"
-        );
-        require(
-            numberMinted(msg.sender) + quantity <= maxPerAddressDuringMint,
-            "can not mint this many"
-        );
-        _safeMint(msg.sender, quantity);
-        refundIfOver(publicPrice * quantity);
-    }
-
-    function refundIfOver(uint256 price) private {
-        require(msg.value >= price, "Need to send more AVAX.");
-        if (msg.value > price) {
-            payable(msg.sender).transfer(msg.value - price);
-        }
-    }
-
-    function isPublicSaleOn(
-        uint256 publicPriceWei,
-        uint256 publicSaleKey,
-        uint256 publicSaleStartTime
-    ) public view returns (bool) {
-        return
-            publicPriceWei != 0 &&
-            publicSaleKey != 0 &&
-            block.timestamp >= publicSaleStartTime;
-    }
-
-    uint256 public constant AUCTION_START_PRICE = 1 ether;
-    uint256 public constant AUCTION_END_PRICE = 0.15 ether;
-    uint256 public constant AUCTION_PRICE_CURVE_LENGTH = 340 minutes;
-    uint256 public constant AUCTION_DROP_INTERVAL = 20 minutes;
-    uint256 public constant AUCTION_DROP_PER_STEP =
-        (AUCTION_START_PRICE - AUCTION_END_PRICE) /
-            (AUCTION_PRICE_CURVE_LENGTH / AUCTION_DROP_INTERVAL);
-
-    function getAuctionPrice(uint256 _saleStartTime)
-        public
-        view
-        returns (uint256)
-    {
-        if (block.timestamp < _saleStartTime) {
-            return AUCTION_START_PRICE;
-        }
-        if (block.timestamp - _saleStartTime >= AUCTION_PRICE_CURVE_LENGTH) {
-            return AUCTION_END_PRICE;
-        } else {
-            uint256 steps = (block.timestamp - _saleStartTime) /
-                AUCTION_DROP_INTERVAL;
-            return AUCTION_START_PRICE - (steps * AUCTION_DROP_PER_STEP);
-        }
-    }
-
-    function endAuctionAndSetupNonAuctionSaleInfo(
-        uint64 mintlistPriceWei,
-        uint64 publicPriceWei,
-        uint32 publicSaleStartTime
-    ) external onlyOwner {
-        saleConfig = SaleConfig(
-            0,
-            publicSaleStartTime,
-            mintlistPriceWei,
-            publicPriceWei,
-            saleConfig.publicSaleKey
-        );
-    }
-
-    function setAuctionSaleStartTime(uint32 timestamp) external onlyOwner {
-        saleConfig.auctionSaleStartTime = timestamp;
-    }
-
-    function setPublicSaleKey(uint32 key) external onlyOwner {
-        saleConfig.publicSaleKey = key;
     }
 
     function seedAllowlist(
@@ -185,6 +116,108 @@ contract LaunchPeg is Ownable, ERC721AOwnersExplicit, ReentrancyGuard {
         for (uint256 i = 0; i < addresses.length; i++) {
             allowlist[addresses[i]] = numSlots[i];
         }
+    }
+
+    function auctionMint(uint256 quantity)
+        external
+        payable
+        callerIsUser
+        atPhase(Phase.DutchAuction)
+    {
+        uint256 _saleStartTime = uint256(auctionSaleStartTime);
+        require(
+            totalSupply() + quantity <= amountForAuctionAndDev,
+            "not enough remaining reserved for auction to support desired mint amount"
+        );
+        require(
+            numberMinted(msg.sender) + quantity <= maxPerAddressDuringMint,
+            "can not mint this many"
+        );
+        uint256 totalCost = getAuctionPrice(_saleStartTime) * quantity;
+        _safeMint(msg.sender, quantity);
+        refundIfOver(totalCost);
+    }
+
+    function allowlistMint()
+        external
+        payable
+        callerIsUser
+        atPhase(Phase.Mintlist)
+    {
+        uint256 price = uint256(mintlistPrice);
+        require(allowlist[msg.sender] > 0, "not eligible for allowlist mint");
+        require(totalSupply() + 1 <= collectionSize, "reached max supply");
+        allowlist[msg.sender]--;
+        _safeMint(msg.sender, 1);
+        refundIfOver(price);
+    }
+
+    function publicSaleMint(uint256 quantity)
+        external
+        payable
+        callerIsUser
+        atPhase(Phase.PublicSale)
+    {
+        require(
+            totalSupply() + quantity <= collectionSize,
+            "reached max supply"
+        );
+        require(
+            numberMinted(msg.sender) + quantity <= maxPerAddressDuringMint,
+            "can not mint this many"
+        );
+        _safeMint(msg.sender, quantity);
+        refundIfOver(publicSalePrice * quantity);
+    }
+
+    function refundIfOver(uint256 price) private {
+        require(msg.value >= price, "Need to send more AVAX.");
+        if (msg.value > price) {
+            payable(msg.sender).transfer(msg.value - price);
+        }
+    }
+
+    function getAuctionPrice(uint256 _saleStartTime)
+        public
+        view
+        returns (uint256)
+    {
+        if (block.timestamp < _saleStartTime) {
+            return auctionStartPrice;
+        }
+        if (block.timestamp - _saleStartTime >= auctionPriceCurveLength) {
+            return auctionEndPrice;
+        } else {
+            uint256 steps = (block.timestamp - _saleStartTime) /
+                auctionDropInterval;
+            return auctionStartPrice - (steps * auctionDropPerStep);
+        }
+    }
+
+    function currentPhase() public view returns (Phase) {
+        if (
+            auctionSaleStartTime == 0 ||
+            mintlistStartTime == 0 ||
+            publicSaleStartTime == 0 ||
+            block.timestamp < auctionSaleStartTime
+        ) {
+            return Phase.NotStarted;
+        } else if (
+            block.timestamp >= auctionSaleStartTime &&
+            block.timestamp < mintlistStartTime
+        ) {
+            return Phase.DutchAuction;
+        } else if (
+            block.timestamp >= mintlistStartTime &&
+            block.timestamp < publicSaleStartTime
+        ) {
+            return Phase.Mintlist;
+        }
+        return Phase.PublicSale;
+    }
+
+    function _atPhase(Phase _phase) internal view {
+        require(currentPhase() == _phase, "LaunchPeg: wrong phase");
     }
 
     // For marketing etc.
