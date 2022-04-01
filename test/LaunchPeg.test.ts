@@ -123,8 +123,43 @@ describe('LaunchPeg', () => {
     })
   })
 
-  describe('Allowlist sale phase', () => {
-    it('Mint revers when not started yet', async () => {
+  describe('Mintlist phase', () => {
+    it('One NFT is transfered when user is on allowlist', async () => {
+      const saleStartTime = await latest()
+      initializePhases(launchPeg, saleStartTime)
+      await advanceTimeAndBlock(duration.minutes(10))
+
+      const totalPrice = config.mintlistPrice
+      await dev.sendTransaction({
+        to: bob.address,
+        value: totalPrice,
+      })
+
+      await launchPeg.seedAllowlist([bob.address], [1])
+      await launchPeg.connect(bob).allowlistMint({ value: config.mintlistPrice })
+      expect(await launchPeg.balanceOf(bob.address)).to.equal(1)      
+    })
+
+    it('Mint reverts when user tries to mint more NFTs than allowed', async () => {
+      const saleStartTime = await latest()
+      initializePhases(launchPeg, saleStartTime)
+      await advanceTimeAndBlock(duration.minutes(10))
+
+      const price = config.mintlistPrice
+      const totalPrice = price.mul(2)
+      await dev.sendTransaction({
+        to: bob.address,
+        value: totalPrice,
+      })
+
+      await launchPeg.seedAllowlist([bob.address], [2])
+      await launchPeg.connect(bob).allowlistMint({ value: totalPrice }) // intentionally sending more AVAX to test refund
+      await launchPeg.connect(bob).allowlistMint({ value: price })
+      await expect(launchPeg.connect(bob).allowlistMint({ value: price })).to.be.revertedWith('not eligible for allowlist mint')
+      expect(await launchPeg.balanceOf(bob.address)).to.equal(2) 
+    })
+
+    it('Mint reverts when not started yet', async () => {
       const saleStartTime = await latest()
       initializePhases(launchPeg, saleStartTime)
 
@@ -134,7 +169,6 @@ describe('LaunchPeg', () => {
     it('Mint reverts when the caller is not on allowlist during mint phase', async () => {
       const saleStartTime = await latest()
       initializePhases(launchPeg, saleStartTime)
-
       await advanceTimeAndBlock(duration.minutes(10))
 
       await expect(launchPeg.connect(bob).allowlistMint()).to.be.revertedWith('not eligible for allowlist mint')
@@ -143,11 +177,19 @@ describe('LaunchPeg', () => {
     it("Mint reverts when the caller didn't send enough AVAX", async () => {
       const saleStartTime = await latest()
       initializePhases(launchPeg, saleStartTime)
-
       await advanceTimeAndBlock(duration.minutes(10))
 
       await launchPeg.seedAllowlist([alice.address], [1])
       await expect(launchPeg.connect(alice).allowlistMint()).to.be.revertedWith('Need to send more AVAX.')
+    })
+
+    it("Mint reverts during public sale", async () => {
+      const saleStartTime = await latest()
+      initializePhases(launchPeg, saleStartTime)
+      await advanceTimeAndBlock(duration.minutes(20))
+
+      await launchPeg.seedAllowlist([alice.address], [1])
+      await expect(launchPeg.connect(alice).allowlistMint()).to.be.revertedWith('LaunchPeg: wrong phase')
     })
   })
 
