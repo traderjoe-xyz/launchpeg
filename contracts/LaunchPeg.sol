@@ -144,12 +144,11 @@ contract LaunchPeg is Ownable, ERC721AOwnersExplicit, ReentrancyGuard {
         callerIsUser
         atPhase(Phase.Mintlist)
     {
-        uint256 price = uint256(mintlistPrice);
         require(allowlist[msg.sender] > 0, "not eligible for allowlist mint");
         require(totalSupply() + 1 <= collectionSize, "reached max supply");
         allowlist[msg.sender]--;
         _safeMint(msg.sender, 1);
-        refundIfOver(price);
+        refundIfOver(mintlistPrice);
     }
 
     function publicSaleMint(uint256 quantity)
