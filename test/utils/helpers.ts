@@ -1,6 +1,7 @@
 import { ethers } from 'hardhat'
 import { BigNumber, Contract } from 'ethers'
 import { duration } from './time'
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
 export const LAUNCHPEG_CONFIG = {
   startPrice: ethers.utils.parseUnits('1', 18),
@@ -23,4 +24,12 @@ export const initializePhases = (launchPeg: Contract, auctionStartTime: BigNumbe
     auctionStartTime.add(duration.minutes(20)),
     LAUNCHPEG_CONFIG.publicSalePrice
   )
+}
+
+export const fundAddressForMint = async (address: string, quantity: number, price: BigNumber, dev: SignerWithAddress) => {
+  const totalPrice = price.mul(quantity)
+  await dev.sendTransaction({
+    to: address,
+    value: totalPrice,
+  })
 }
