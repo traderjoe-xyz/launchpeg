@@ -36,6 +36,8 @@ contract LaunchPeg is Ownable, ERC721AOwnersExplicit, ReentrancyGuard {
 
     mapping(address => uint256) public allowlist;
 
+    address public projectOwner;
+
     string private _baseTokenURI;
 
     modifier atPhase(Phase phase_) {
@@ -48,14 +50,24 @@ contract LaunchPeg is Ownable, ERC721AOwnersExplicit, ReentrancyGuard {
         _;
     }
 
+    modifier onlyProjectOwner() {
+        require(
+            projectOwner == msg.sender,
+            "The caller is not the project owner"
+        );
+        _;
+    }
+
     constructor(
         string memory name_,
         string memory symbol_,
+        address projectOwner_,
         uint256 maxBatchSize_,
         uint256 collectionSize_,
         uint256 amountForAuctionAndDev_,
         uint256 amountForDevs_
     ) ERC721A(name_, symbol_) {
+        projectOwner = projectOwner_;
         collectionSize = collectionSize_;
         maxBatchSize = maxBatchSize_;
         maxPerAddressDuringMint = maxBatchSize_;
@@ -217,7 +229,11 @@ contract LaunchPeg is Ownable, ERC721AOwnersExplicit, ReentrancyGuard {
         return Phase.PublicSale;
     }
 
-    function devMint(uint256 quantity) external onlyOwner {
+    function setProjectOwner(address projectOwner_) external onlyOwner {
+        projectOwner = projectOwner_;
+    }
+
+    function devMint(uint256 quantity) external onlyProjectOwner {
         require(
             totalSupply() + quantity <= amountForDevs,
             "too many already minted before dev mint"

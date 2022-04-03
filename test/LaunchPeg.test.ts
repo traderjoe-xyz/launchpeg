@@ -19,6 +19,7 @@ describe('LaunchPeg', () => {
   let dev: SignerWithAddress
   let alice: SignerWithAddress
   let bob: SignerWithAddress
+  let projectOwner: SignerWithAddress
 
   before(async () => {
     launchPegCF = await ethers.getContractFactory('LaunchPeg')
@@ -27,6 +28,7 @@ describe('LaunchPeg', () => {
     dev = signers[0]
     alice = signers[1]
     bob = signers[2]
+    projectOwner = signers[3]
 
     await network.provider.request({
       method: 'hardhat_reset',
@@ -47,6 +49,7 @@ describe('LaunchPeg', () => {
     launchPeg = await launchPegCF.deploy(
       'JoePEG',
       'JOEPEG',
+      projectOwner.address,
       maxBatchSize,
       collectionSize,
       amountForAuctionAndDev,
@@ -299,6 +302,26 @@ describe('LaunchPeg', () => {
       await launchPeg.connect(alice).publicSaleMint(5, { value })
       await expect(launchPeg.connect(alice).publicSaleMint(5, { value })).to.be.revertedWith('can not mint this many')
       expect(await launchPeg.balanceOf(alice.address)).to.equal(5)
+    })
+  })
+
+  describe('Project owner mint', () => {
+    it('Mint up to max limit', async () => {
+      await launchPeg.connect(projectOwner).devMint(amountForDevs)
+      await expect(launchPeg.connect(projectOwner).devMint(1)).to.be.revertedWith(
+        'too many already minted before dev mint'
+      )
+      expect(await launchPeg.balanceOf(projectOwner.address)).to.equal(amountForDevs)
+    })
+
+    it('Only dev can mint', async () => {
+      await expect(launchPeg.connect(alice).devMint(1)).to.be.revertedWith('The caller is not the project owner')
+    })
+
+    it('Mint after project owner changes', async () => {
+      await launchPeg.connect(dev).setProjectOwner(alice.address)
+      await launchPeg.connect(alice).devMint(amountForDevs)
+      expect(await launchPeg.balanceOf(alice.address)).to.equal(amountForDevs)
     })
   })
 
