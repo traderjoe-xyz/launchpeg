@@ -1,6 +1,6 @@
 import { ethers } from 'hardhat'
 import { BigNumber, Contract } from 'ethers'
-import { duration } from './time'
+import { duration, advanceTimeAndBlock } from './time'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
 export const LAUNCHPEG_CONFIG = {
@@ -12,7 +12,13 @@ export const LAUNCHPEG_CONFIG = {
   publicSalePrice: ethers.utils.parseUnits('0.1', 18),
 }
 
-export const initializePhases = (launchPeg: Contract, auctionStartTime: BigNumber) => {
+export enum Phase {
+  DutchAuction,
+  Mintlist,
+  PublicSale,
+}
+
+export const initializePhases = async (launchPeg: Contract, auctionStartTime: BigNumber, currentPhase: Phase) => {
   launchPeg.initializePhases(
     auctionStartTime,
     LAUNCHPEG_CONFIG.startPrice,
@@ -24,6 +30,20 @@ export const initializePhases = (launchPeg: Contract, auctionStartTime: BigNumbe
     auctionStartTime.add(duration.minutes(20)),
     LAUNCHPEG_CONFIG.publicSalePrice
   )
+  await advanceTimeAndBlockToPhase(currentPhase)
+}
+
+const advanceTimeAndBlockToPhase = async (phase: Phase) => {
+  switch (phase) {
+    case Phase.DutchAuction:
+      break
+    case Phase.Mintlist:
+      await advanceTimeAndBlock(duration.minutes(10))
+      break
+    case Phase.PublicSale:
+      await advanceTimeAndBlock(duration.minutes(20))
+      break
+  }
 }
 
 export const fundAddressForMint = async (address: string, quantity: number, price: BigNumber, dev: SignerWithAddress) => {
