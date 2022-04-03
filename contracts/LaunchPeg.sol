@@ -2,10 +2,10 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "erc721a/contracts/extensions/ERC721AOwnersExplicit.sol";
+import "erc721a/contracts/ERC721A.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 
-contract LaunchPeg is Ownable, ERC721AOwnersExplicit, ReentrancyGuard {
+contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
     enum Phase {
         NotStarted,
         DutchAuction,
@@ -261,14 +261,6 @@ contract LaunchPeg is Ownable, ERC721AOwnersExplicit, ReentrancyGuard {
     function withdrawMoney() external onlyOwner nonReentrant {
         (bool success, ) = msg.sender.call{value: address(this).balance}("");
         require(success, "Transfer failed.");
-    }
-
-    function setOwnersExplicit(uint256 quantity)
-        external
-        onlyOwner
-        nonReentrant
-    {
-        _setOwnersExplicit(quantity);
     }
 
     function numberMinted(address owner) public view returns (uint256) {
