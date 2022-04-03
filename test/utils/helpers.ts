@@ -19,7 +19,7 @@ export enum Phase {
 }
 
 export const initializePhases = async (launchPeg: Contract, auctionStartTime: BigNumber, currentPhase: Phase) => {
-  launchPeg.initializePhases(
+  await launchPeg.initializePhases(
     auctionStartTime,
     LAUNCHPEG_CONFIG.startPrice,
     LAUNCHPEG_CONFIG.endPrice,
