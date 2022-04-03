@@ -16,7 +16,8 @@ contract LaunchPeg is Ownable, ERC721AOwnersExplicit, ReentrancyGuard {
     }
 
     uint256 public immutable amountForDevs;
-    uint256 public immutable amountForAuctionAndDev;
+    uint256 public immutable amountForAuction;
+    uint256 public immutable amountForMintlist;
     uint256 public immutable maxPerAddressDuringMint;
     uint256 public immutable maxBatchSize;
     uint256 public immutable collectionSize;
@@ -64,17 +65,20 @@ contract LaunchPeg is Ownable, ERC721AOwnersExplicit, ReentrancyGuard {
         address projectOwner_,
         uint256 maxBatchSize_,
         uint256 collectionSize_,
-        uint256 amountForAuctionAndDev_,
+        uint256 amountForAuction_,
+        uint256 amountForMintlist_,
         uint256 amountForDevs_
     ) ERC721A(name_, symbol_) {
         projectOwner = projectOwner_;
         collectionSize = collectionSize_;
         maxBatchSize = maxBatchSize_;
         maxPerAddressDuringMint = maxBatchSize_;
-        amountForAuctionAndDev = amountForAuctionAndDev_;
+        amountForAuction = amountForAuction_;
+        amountForMintlist = amountForMintlist_;
         amountForDevs = amountForDevs_;
         require(
-            amountForAuctionAndDev_ <= collectionSize_,
+            amountForAuction_ + amountForMintlist_ + amountForDevs_ <=
+                collectionSize_,
             "larger collection size needed"
         );
     }
@@ -140,7 +144,7 @@ contract LaunchPeg is Ownable, ERC721AOwnersExplicit, ReentrancyGuard {
     {
         uint256 _saleStartTime = uint256(auctionSaleStartTime);
         require(
-            totalSupply() + quantity <= amountForAuctionAndDev,
+            totalSupply() + quantity <= amountForAuction + amountForDevs,
             "not enough remaining reserved for auction to support desired mint amount"
         );
         require(
