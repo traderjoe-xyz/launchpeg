@@ -19,7 +19,6 @@ describe('LaunchPeg', () => {
   let dev: SignerWithAddress
   let alice: SignerWithAddress
   let bob: SignerWithAddress
-  let carol: SignerWithAddress
 
   before(async () => {
     launchPegCF = await ethers.getContractFactory('LaunchPeg')
@@ -28,7 +27,6 @@ describe('LaunchPeg', () => {
     dev = signers[0]
     alice = signers[1]
     bob = signers[2]
-    carol = signers[3]
 
     await network.provider.request({
       method: 'hardhat_reset',
@@ -46,7 +44,14 @@ describe('LaunchPeg', () => {
   })
 
   beforeEach(async () => {
-    launchPeg = await launchPegCF.deploy('JoePEG', 'JOEPEG', maxBatchSize, collectionSize, amountForAuctionAndDev, amountForDevs)
+    launchPeg = await launchPegCF.deploy(
+      'JoePEG',
+      'JOEPEG',
+      maxBatchSize,
+      collectionSize,
+      amountForAuctionAndDev,
+      amountForDevs
+    )
   })
 
   describe('Dutch auction phase', () => {
@@ -138,7 +143,9 @@ describe('LaunchPeg', () => {
       await launchPeg.seedAllowlist([bob.address], [2])
       await launchPeg.connect(bob).allowlistMint({ value: price.mul(2) }) // intentionally sending more AVAX to test refund
       await launchPeg.connect(bob).allowlistMint({ value: price })
-      await expect(launchPeg.connect(bob).allowlistMint({ value: price })).to.be.revertedWith('not eligible for allowlist mint')
+      await expect(launchPeg.connect(bob).allowlistMint({ value: price })).to.be.revertedWith(
+        'not eligible for allowlist mint'
+      )
       expect(await launchPeg.balanceOf(bob.address)).to.equal(2)
     })
 
@@ -170,6 +177,12 @@ describe('LaunchPeg', () => {
 
       await launchPeg.seedAllowlist([alice.address], [1])
       await expect(launchPeg.connect(alice).allowlistMint()).to.be.revertedWith('LaunchPeg: wrong phase')
+    })
+
+    it('Seed allowlist reverts when addresses does not match numSlots length', async () => {
+      await expect(launchPeg.seedAllowlist([alice.address, bob.address], [1])).to.be.revertedWith(
+        'addresses does not match numSlots length'
+      )
     })
   })
 

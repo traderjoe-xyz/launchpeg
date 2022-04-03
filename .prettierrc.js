@@ -14,7 +14,7 @@ module.exports = {
     {
       files: "*.ts",
       options: {
-        printWidth: 145,
+        printWidth: 120,
         singleQuote: true,
         semi: false,
         trailingComma: "es5",
