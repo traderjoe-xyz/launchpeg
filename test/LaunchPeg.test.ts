@@ -93,9 +93,9 @@ describe('LaunchPeg', () => {
           config.auctionPriceCurveLength,
           config.auctionDropInterval,
           saleStartTime.add(duration.minutes(10)),
-          config.mintlistPrice,
+          config.mintlistDiscount,
           saleStartTime.add(duration.minutes(20)),
-          config.publicSalePrice
+          config.publicSaleDiscount
         )
       ).to.be.revertedWith('auction start price lower than end price')
     })
@@ -110,9 +110,9 @@ describe('LaunchPeg', () => {
           config.auctionPriceCurveLength,
           config.auctionDropInterval,
           saleStartTime.sub(duration.minutes(10)),
-          config.mintlistPrice,
+          config.mintlistDiscount,
           saleStartTime.add(duration.minutes(20)),
-          config.publicSalePrice
+          config.publicSaleDiscount
         )
       ).to.be.revertedWith('mintlist phase must be after auction sale')
     })
@@ -127,9 +127,9 @@ describe('LaunchPeg', () => {
           config.auctionPriceCurveLength,
           config.auctionDropInterval,
           saleStartTime.add(duration.minutes(10)),
-          config.mintlistPrice,
+          config.mintlistDiscount,
           saleStartTime.sub(duration.minutes(20)),
-          config.publicSalePrice
+          config.publicSaleDiscount
         )
       ).to.be.revertedWith('public sale must be after mintlist')
     })
@@ -217,7 +217,7 @@ describe('LaunchPeg', () => {
       await initializePhases(launchPeg, saleStartTime, Phase.Mintlist)
 
       await launchPeg.seedAllowlist([bob.address], [1])
-      await launchPeg.connect(bob).allowlistMint({ value: config.mintlistPrice })
+      await launchPeg.connect(bob).allowlistMint({ value: config.startPrice.sub(config.mintlistDiscount) })
       expect(await launchPeg.balanceOf(bob.address)).to.equal(1)
     })
 
@@ -225,7 +225,7 @@ describe('LaunchPeg', () => {
       const saleStartTime = await latest()
       await initializePhases(launchPeg, saleStartTime, Phase.Mintlist)
 
-      const price = config.mintlistPrice
+      const price = config.startPrice.sub(config.mintlistDiscount)
 
       await launchPeg.seedAllowlist([bob.address], [2])
       await launchPeg.connect(bob).allowlistMint({ value: price.mul(2) }) // intentionally sending more AVAX to test refund
@@ -280,7 +280,9 @@ describe('LaunchPeg', () => {
       await initializePhases(launchPeg, saleStartTime, Phase.PublicSale)
 
       const quantity = 2
-      await launchPeg.connect(bob).publicSaleMint(quantity, { value: config.publicSalePrice.mul(quantity) })
+      await launchPeg
+        .connect(bob)
+        .publicSaleMint(quantity, { value: config.startPrice.sub(config.publicSaleDiscount).mul(quantity) })
       expect(await launchPeg.balanceOf(bob.address)).to.equal(2)
     })
 
@@ -316,7 +318,7 @@ describe('LaunchPeg', () => {
       const saleStartTime = await latest()
       await initializePhases(launchPeg, saleStartTime, Phase.PublicSale)
 
-      const value = config.publicSalePrice.mul(5)
+      const value = config.startPrice.sub(config.publicSaleDiscount).mul(5)
       await launchPeg.connect(alice).publicSaleMint(5, { value })
       await expect(launchPeg.connect(alice).publicSaleMint(5, { value })).to.be.revertedWith('can not mint this many')
       expect(await launchPeg.balanceOf(alice.address)).to.equal(5)
