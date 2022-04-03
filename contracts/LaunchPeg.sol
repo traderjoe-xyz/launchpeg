@@ -21,17 +21,18 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
     uint256 public immutable collectionSize;
 
     uint32 public auctionSaleStartTime;
+    uint32 public mintlistStartTime;
+    uint32 public publicSaleStartTime;
+
     uint256 public auctionStartPrice;
     uint256 public auctionEndPrice;
     uint256 public auctionPriceCurveLength;
     uint256 public auctionDropInterval;
     uint256 public auctionDropPerStep;
 
-    uint32 public mintlistStartTime;
-    uint256 public mintlistPrice;
-
-    uint32 public publicSaleStartTime;
-    uint256 public publicSalePrice;
+    uint256 public lastAuctionPrice;
+    uint256 public mintlistDiscount;
+    uint256 public publicSaleDiscount;
 
     mapping(address => uint256) public allowlist;
 
@@ -88,13 +89,14 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
         uint256 auctionPriceCurveLength_,
         uint256 auctionDropInterval_,
         uint32 mintlistStartTime_,
-        uint256 mintlistPrice_,
+        uint256 mintlistDiscount_,
         uint32 publicSaleStartTime_,
-        uint256 publicSalePrice_
+        uint256 publicSaleDiscount_
     ) external atPhase(Phase.NotStarted) {
         require(auctionSaleStartTime == 0, "auction already initialized");
         auctionSaleStartTime = auctionSaleStartTime_;
         auctionStartPrice = auctionStartPrice_;
+        lastAuctionPrice = auctionStartPrice_;
         auctionEndPrice = auctionEndPrice_;
         auctionPriceCurveLength = auctionPriceCurveLength_;
         auctionDropInterval = auctionDropInterval_;
@@ -107,14 +109,14 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
             (auctionPriceCurveLength_ / auctionDropInterval_);
 
         mintlistStartTime = mintlistStartTime_;
-        mintlistPrice = mintlistPrice_;
+        mintlistDiscount = mintlistDiscount_;
         require(
             mintlistStartTime_ > auctionSaleStartTime,
             "mintlist phase must be after auction sale"
         );
 
         publicSaleStartTime = publicSaleStartTime_;
-        publicSalePrice = publicSalePrice_;
+        publicSaleDiscount = publicSaleDiscount_;
         require(
             publicSaleStartTime_ > mintlistStartTime_,
             "public sale must be after mintlist"
@@ -149,7 +151,8 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
             numberMinted(msg.sender) + quantity <= maxPerAddressDuringMint,
             "can not mint this many"
         );
-        uint256 totalCost = getAuctionPrice(_saleStartTime) * quantity;
+        lastAuctionPrice = getAuctionPrice(_saleStartTime);
+        uint256 totalCost = lastAuctionPrice * quantity;
         _safeMint(msg.sender, quantity);
         refundIfOver(totalCost);
     }
@@ -164,7 +167,11 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
         require(totalSupply() + 1 <= collectionSize, "reached max supply");
         allowlist[msg.sender]--;
         _safeMint(msg.sender, 1);
-        refundIfOver(mintlistPrice);
+        refundIfOver(getMintlistPrice());
+    }
+
+    function getMintlistPrice() public view returns (uint256) {
+        return lastAuctionPrice - mintlistDiscount;
     }
 
     function publicSaleMint(uint256 quantity)
@@ -182,7 +189,11 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
             "can not mint this many"
         );
         _safeMint(msg.sender, quantity);
-        refundIfOver(publicSalePrice * quantity);
+        refundIfOver(getPublicSalePrice() * quantity);
+    }
+
+    function getPublicSalePrice() public view returns (uint256) {
+        return lastAuctionPrice - publicSaleDiscount;
     }
 
     function refundIfOver(uint256 price) private {

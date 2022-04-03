@@ -7,8 +7,8 @@ export const LAUNCHPEG_CONFIG = {
   endPrice: ethers.utils.parseUnits('0.15', 18),
   auctionPriceCurveLength: duration.minutes(340),
   auctionDropInterval: duration.minutes(20),
-  mintlistPrice: ethers.utils.parseUnits('0.12', 18),
-  publicSalePrice: ethers.utils.parseUnits('0.1', 18),
+  mintlistDiscount: ethers.utils.parseUnits('0.05', 18),
+  publicSaleDiscount: ethers.utils.parseUnits('0.08', 18),
 }
 
 export enum Phase {
@@ -25,9 +25,9 @@ export const initializePhases = async (launchPeg: Contract, auctionStartTime: Bi
     LAUNCHPEG_CONFIG.auctionPriceCurveLength,
     LAUNCHPEG_CONFIG.auctionDropInterval,
     auctionStartTime.add(duration.minutes(10)),
-    LAUNCHPEG_CONFIG.mintlistPrice,
+    LAUNCHPEG_CONFIG.mintlistDiscount,
     auctionStartTime.add(duration.minutes(20)),
-    LAUNCHPEG_CONFIG.publicSalePrice
+    LAUNCHPEG_CONFIG.publicSaleDiscount
   )
   await advanceTimeAndBlockToPhase(currentPhase)
 }
