@@ -1,7 +1,6 @@
 import { ethers } from 'hardhat'
 import { BigNumber, Contract } from 'ethers'
 import { duration, advanceTimeAndBlock } from './time'
-import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
 export const LAUNCHPEG_CONFIG = {
   startPrice: ethers.utils.parseUnits('1', 18),
@@ -44,17 +43,4 @@ const advanceTimeAndBlockToPhase = async (phase: Phase) => {
       await advanceTimeAndBlock(duration.minutes(20))
       break
   }
-}
-
-export const fundAddressForMint = async (
-  address: string,
-  quantity: number,
-  price: BigNumber,
-  dev: SignerWithAddress
-) => {
-  const totalPrice = price.mul(quantity)
-  await dev.sendTransaction({
-    to: address,
-    value: totalPrice,
-  })
 }
