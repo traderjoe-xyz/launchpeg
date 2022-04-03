@@ -46,7 +46,12 @@ const advanceTimeAndBlockToPhase = async (phase: Phase) => {
   }
 }
 
-export const fundAddressForMint = async (address: string, quantity: number, price: BigNumber, dev: SignerWithAddress) => {
+export const fundAddressForMint = async (
+  address: string,
+  quantity: number,
+  price: BigNumber,
+  dev: SignerWithAddress
+) => {
   const totalPrice = price.mul(quantity)
   await dev.sendTransaction({
     to: address,

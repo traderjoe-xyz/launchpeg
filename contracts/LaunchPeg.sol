@@ -36,8 +36,10 @@ contract LaunchPeg is Ownable, ERC721AOwnersExplicit, ReentrancyGuard {
 
     mapping(address => uint256) public allowlist;
 
-    modifier atPhase(Phase _phase) {
-        _atPhase(_phase);
+    string private _baseTokenURI;
+
+    modifier atPhase(Phase phase_) {
+        require(currentPhase() == phase_, "LaunchPeg: wrong phase");
         _;
     }
 
@@ -215,11 +217,6 @@ contract LaunchPeg is Ownable, ERC721AOwnersExplicit, ReentrancyGuard {
         return Phase.PublicSale;
     }
 
-    function _atPhase(Phase _phase) internal view {
-        require(currentPhase() == _phase, "LaunchPeg: wrong phase");
-    }
-
-    // For marketing etc.
     function devMint(uint256 quantity) external onlyOwner {
         require(
             totalSupply() + quantity <= amountForDevs,
@@ -234,9 +231,6 @@ contract LaunchPeg is Ownable, ERC721AOwnersExplicit, ReentrancyGuard {
             _safeMint(msg.sender, maxBatchSize);
         }
     }
-
-    // // metadata URI
-    string private _baseTokenURI;
 
     function _baseURI() internal view virtual override returns (string memory) {
         return _baseTokenURI;
