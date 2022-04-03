@@ -54,11 +54,72 @@ describe('LaunchPeg', () => {
     )
   })
 
+  describe('Phases initialization', () => {
+    it('Phases can be initialized only once', async () => {
+      const saleStartTime = (await latest()).add(duration.minutes(10))
+      await initializePhases(launchPeg, saleStartTime, Phase.DutchAuction)
+      await expect(initializePhases(launchPeg, saleStartTime, Phase.DutchAuction)).to.be.revertedWith(
+        'auction already initialized'
+      )
+    })
+
+    it('Call reverts when auctionStartPrice lower than auctionEndPrice', async () => {
+      const saleStartTime = await latest()
+      await expect(
+        launchPeg.initializePhases(
+          saleStartTime,
+          ethers.utils.parseEther('1'), // start price
+          ethers.utils.parseEther('1.5'), // end prices
+          config.auctionPriceCurveLength,
+          config.auctionDropInterval,
+          saleStartTime.add(duration.minutes(10)),
+          config.mintlistPrice,
+          saleStartTime.add(duration.minutes(20)),
+          config.publicSalePrice
+        )
+      ).to.be.revertedWith('auction start price lower than end price')
+    })
+
+    it('Call reverts when mintlist start > auction start', async () => {
+      const saleStartTime = await latest()
+      await expect(
+        launchPeg.initializePhases(
+          saleStartTime,
+          config.startPrice,
+          config.endPrice,
+          config.auctionPriceCurveLength,
+          config.auctionDropInterval,
+          saleStartTime.sub(duration.minutes(10)),
+          config.mintlistPrice,
+          saleStartTime.add(duration.minutes(20)),
+          config.publicSalePrice
+        )
+      ).to.be.revertedWith('mintlist phase must be after auction sale')
+    })
+
+    it('Call reverts when public sale start > mintlist start', async () => {
+      const saleStartTime = await latest()
+      await expect(
+        launchPeg.initializePhases(
+          saleStartTime,
+          config.startPrice,
+          config.endPrice,
+          config.auctionPriceCurveLength,
+          config.auctionDropInterval,
+          saleStartTime.add(duration.minutes(10)),
+          config.mintlistPrice,
+          saleStartTime.sub(duration.minutes(20)),
+          config.publicSalePrice
+        )
+      ).to.be.revertedWith('public sale must be after mintlist')
+    })
+  })
+
   describe('Dutch auction phase', () => {
     it('NFT price decreases at correct pace', async () => {
       // Start auction
       const saleStartTime = await latest()
-      initializePhases(launchPeg, saleStartTime, Phase.DutchAuction)
+      await initializePhases(launchPeg, saleStartTime, Phase.DutchAuction)
 
       // Verify start price
       var auctionPrice = await launchPeg.getAuctionPrice(saleStartTime)
@@ -87,14 +148,14 @@ describe('LaunchPeg', () => {
 
     it('Mint reverts when sale has not started yet', async () => {
       const saleStartTime = (await latest()).add(duration.minutes(10))
-      initializePhases(launchPeg, saleStartTime, Phase.DutchAuction)
+      await initializePhases(launchPeg, saleStartTime, Phase.DutchAuction)
 
       await expect(launchPeg.auctionMint(1)).to.be.revertedWith('LaunchPeg: wrong phase')
     })
 
     it('NFT are transfered to sender when user has enough AVAX', async () => {
       const saleStartTime = await latest()
-      initializePhases(launchPeg, saleStartTime, Phase.DutchAuction)
+      await initializePhases(launchPeg, saleStartTime, Phase.DutchAuction)
 
       await fundAddressForMint(alice.address, maxBatchSize, config.startPrice, dev)
 
@@ -105,7 +166,7 @@ describe('LaunchPeg', () => {
 
     it('Refund caller when too much AVAX sent', async () => {
       const saleStartTime = await latest()
-      initializePhases(launchPeg, saleStartTime, Phase.DutchAuction)
+      await initializePhases(launchPeg, saleStartTime, Phase.DutchAuction)
 
       const quantity = 2
       const aliceInitialBalance = await ethers.provider.getBalance(alice.address)
@@ -123,7 +184,7 @@ describe('LaunchPeg', () => {
   describe('Mintlist phase', () => {
     it('One NFT is transfered when user is on allowlist', async () => {
       const saleStartTime = await latest()
-      initializePhases(launchPeg, saleStartTime, Phase.Mintlist)
+      await initializePhases(launchPeg, saleStartTime, Phase.Mintlist)
 
       await fundAddressForMint(bob.address, 1, config.mintlistPrice, dev)
 
@@ -134,7 +195,7 @@ describe('LaunchPeg', () => {
 
     it('Mint reverts when user tries to mint more NFTs than allowed', async () => {
       const saleStartTime = await latest()
-      initializePhases(launchPeg, saleStartTime, Phase.Mintlist)
+      await initializePhases(launchPeg, saleStartTime, Phase.Mintlist)
 
       const quantity = 2
       const price = config.mintlistPrice
@@ -151,21 +212,21 @@ describe('LaunchPeg', () => {
 
     it('Mint reverts when not started yet', async () => {
       const saleStartTime = await latest()
-      initializePhases(launchPeg, saleStartTime, Phase.DutchAuction)
+      await initializePhases(launchPeg, saleStartTime, Phase.DutchAuction)
 
       await expect(launchPeg.connect(bob).allowlistMint()).to.be.revertedWith('LaunchPeg: wrong phase')
     })
 
     it('Mint reverts when the caller is not on allowlist during mint phase', async () => {
       const saleStartTime = await latest()
-      initializePhases(launchPeg, saleStartTime, Phase.Mintlist)
+      await initializePhases(launchPeg, saleStartTime, Phase.Mintlist)
 
       await expect(launchPeg.connect(bob).allowlistMint()).to.be.revertedWith('not eligible for allowlist mint')
     })
 
     it("Mint reverts when the caller didn't send enough AVAX", async () => {
       const saleStartTime = await latest()
-      initializePhases(launchPeg, saleStartTime, Phase.Mintlist)
+      await initializePhases(launchPeg, saleStartTime, Phase.Mintlist)
 
       await launchPeg.seedAllowlist([alice.address], [1])
       await expect(launchPeg.connect(alice).allowlistMint()).to.be.revertedWith('Need to send more AVAX.')
@@ -173,7 +234,7 @@ describe('LaunchPeg', () => {
 
     it('Mint reverts during public sale', async () => {
       const saleStartTime = await latest()
-      initializePhases(launchPeg, saleStartTime, Phase.PublicSale)
+      await initializePhases(launchPeg, saleStartTime, Phase.PublicSale)
 
       await launchPeg.seedAllowlist([alice.address], [1])
       await expect(launchPeg.connect(alice).allowlistMint()).to.be.revertedWith('LaunchPeg: wrong phase')
@@ -189,7 +250,7 @@ describe('LaunchPeg', () => {
   describe('Public sale phase', () => {
     it('The correct amount of NFTs is transfered when the user mints', async () => {
       const saleStartTime = await latest()
-      initializePhases(launchPeg, saleStartTime, Phase.PublicSale)
+      await initializePhases(launchPeg, saleStartTime, Phase.PublicSale)
 
       const quantity = 2
       await fundAddressForMint(bob.address, quantity, config.publicSalePrice, dev)
@@ -200,28 +261,28 @@ describe('LaunchPeg', () => {
 
     it('Mint reverts during dutch auction', async () => {
       const saleStartTime = await latest()
-      initializePhases(launchPeg, saleStartTime, Phase.DutchAuction)
+      await initializePhases(launchPeg, saleStartTime, Phase.DutchAuction)
 
       await expect(launchPeg.connect(alice).publicSaleMint(1)).to.be.revertedWith('LaunchPeg: wrong phase')
     })
 
     it('Mint reverts during mintlist phase', async () => {
       const saleStartTime = await latest()
-      initializePhases(launchPeg, saleStartTime, Phase.Mintlist)
+      await initializePhases(launchPeg, saleStartTime, Phase.Mintlist)
 
       await expect(launchPeg.connect(alice).publicSaleMint(1)).to.be.revertedWith('LaunchPeg: wrong phase')
     })
 
     it('Mint reverts when buy size > max allowed', async () => {
       const saleStartTime = await latest()
-      initializePhases(launchPeg, saleStartTime, Phase.PublicSale)
+      await initializePhases(launchPeg, saleStartTime, Phase.PublicSale)
 
       await expect(launchPeg.connect(alice).publicSaleMint(6)).to.be.revertedWith('can not mint this many')
     })
 
     it('Mint reverts when not enough AVAX sent', async () => {
       const saleStartTime = await latest()
-      initializePhases(launchPeg, saleStartTime, Phase.PublicSale)
+      await initializePhases(launchPeg, saleStartTime, Phase.PublicSale)
 
       await fundAddressForMint(alice.address, 1, config.publicSalePrice, dev)
 
@@ -230,7 +291,7 @@ describe('LaunchPeg', () => {
 
     it('Mint reverts when the user already minted max amount', async () => {
       const saleStartTime = await latest()
-      initializePhases(launchPeg, saleStartTime, Phase.PublicSale)
+      await initializePhases(launchPeg, saleStartTime, Phase.PublicSale)
 
       await fundAddressForMint(alice.address, 10, config.publicSalePrice, dev)
 
