@@ -206,8 +206,21 @@ describe('LaunchPeg', () => {
       await launchPeg.connect(projectOwner).devMint(5)
       await launchPeg.connect(alice).auctionMint(5, { value: config.startPrice.mul(5) })
       await expect(launchPeg.connect(bob).auctionMint(5, { value: config.startPrice.mul(5) })).to.be.revertedWith(
-        'not enough remaining reserved for auction to support desired mint amount'
+        'auction sold out'
       )
+    })
+
+    it('Can buy when desired quantity is greater than remaining supply', async () => {
+      launchPeg = await launchPegCF.deploy('JoePEG', 'JOEPEG', projectOwner.address, maxBatchSize, 15, 5, 5, 5)
+
+      const saleStartTime = await latest()
+      await initializePhases(launchPeg, saleStartTime, Phase.DutchAuction)
+
+      await launchPeg.connect(projectOwner).devMint(5)
+      await launchPeg.connect(alice).auctionMint(4, { value: config.startPrice.mul(5) })
+      await launchPeg.connect(bob).auctionMint(5, { value: config.startPrice.mul(5) })
+      expect(await launchPeg.balanceOf(alice.address)).to.eq(4)
+      expect(await launchPeg.balanceOf(bob.address)).to.eq(1)
     })
   })
 

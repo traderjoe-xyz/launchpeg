@@ -144,10 +144,11 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
         atPhase(Phase.DutchAuction)
     {
         uint256 _saleStartTime = uint256(auctionSaleStartTime);
-        require(
-            totalSupply() + quantity <= amountForAuction + amountForDevs,
-            "not enough remaining reserved for auction to support desired mint amount"
-        );
+        uint256 _remainingSupply = amountForAuction + amountForDevs - totalSupply();
+        require(_remainingSupply > 0, "auction sold out");
+        if (_remainingSupply < quantity) {
+            quantity = _remainingSupply;
+        }
         require(
             numberMinted(msg.sender) + quantity <= maxPerAddressDuringMint,
             "can not mint this many"
