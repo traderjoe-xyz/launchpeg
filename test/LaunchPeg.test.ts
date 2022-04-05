@@ -177,9 +177,9 @@ describe('LaunchPeg', () => {
       const saleStartTime = await latest()
       await initializePhases(launchPeg, saleStartTime, Phase.DutchAuction)
 
-      expect(await launchPeg.balanceOf(alice.address)).to.equal(0)
+      expect(await launchPeg.balanceOf(alice.address)).to.eq(0)
       await launchPeg.connect(alice).auctionMint(maxBatchSize, { value: config.startPrice.mul(maxBatchSize) })
-      expect(await launchPeg.balanceOf(alice.address)).to.equal(maxBatchSize)
+      expect(await launchPeg.balanceOf(alice.address)).to.eq(maxBatchSize)
     })
 
     it('Refund caller when too much AVAX sent', async () => {
@@ -190,7 +190,7 @@ describe('LaunchPeg', () => {
       const aliceInitialBalance = await ethers.provider.getBalance(alice.address)
 
       await launchPeg.connect(alice).auctionMint(quantity, { value: config.startPrice.mul(quantity + 1) })
-      expect(await launchPeg.balanceOf(alice.address)).to.equal(quantity)
+      expect(await launchPeg.balanceOf(alice.address)).to.eq(quantity)
       expect(await ethers.provider.getBalance(alice.address)).to.be.closeTo(
         aliceInitialBalance.sub(config.startPrice.mul(quantity)),
         ethers.utils.parseUnits('0.01', 18)
@@ -231,7 +231,7 @@ describe('LaunchPeg', () => {
 
       await launchPeg.seedAllowlist([bob.address], [1])
       await launchPeg.connect(bob).allowlistMint({ value: config.startPrice.sub(config.mintlistDiscount) })
-      expect(await launchPeg.balanceOf(bob.address)).to.equal(1)
+      expect(await launchPeg.balanceOf(bob.address)).to.eq(1)
     })
 
     it('Mint reverts when user tries to mint more NFTs than allowed', async () => {
@@ -247,7 +247,7 @@ describe('LaunchPeg', () => {
       await expect(launchPeg.connect(bob).allowlistMint({ value: price })).to.be.revertedWith(
         'not eligible for allowlist mint'
       )
-      expect(await launchPeg.balanceOf(bob.address)).to.equal(2)
+      expect(await launchPeg.balanceOf(bob.address)).to.eq(2)
     })
 
     it('Mint reverts when not started yet', async () => {
@@ -296,7 +296,7 @@ describe('LaunchPeg', () => {
       await launchPeg
         .connect(bob)
         .publicSaleMint(quantity, { value: config.startPrice.sub(config.publicSaleDiscount).mul(quantity) })
-      expect(await launchPeg.balanceOf(bob.address)).to.equal(2)
+      expect(await launchPeg.balanceOf(bob.address)).to.eq(2)
     })
 
     it('Mint reverts during dutch auction', async () => {
@@ -334,7 +334,7 @@ describe('LaunchPeg', () => {
       const value = config.startPrice.sub(config.publicSaleDiscount).mul(5)
       await launchPeg.connect(alice).publicSaleMint(5, { value })
       await expect(launchPeg.connect(alice).publicSaleMint(5, { value })).to.be.revertedWith('can not mint this many')
-      expect(await launchPeg.balanceOf(alice.address)).to.equal(5)
+      expect(await launchPeg.balanceOf(alice.address)).to.eq(5)
     })
 
     it('User can only mint up to maxPerAddressDuringMint', async () => {
@@ -359,7 +359,7 @@ describe('LaunchPeg', () => {
       await expect(launchPeg.connect(projectOwner).devMint(1)).to.be.revertedWith(
         'too many already minted before dev mint'
       )
-      expect(await launchPeg.balanceOf(projectOwner.address)).to.equal(amountForDevs)
+      expect(await launchPeg.balanceOf(projectOwner.address)).to.eq(amountForDevs)
     })
 
     it('Only dev can mint', async () => {
@@ -369,7 +369,7 @@ describe('LaunchPeg', () => {
     it('Mint after project owner changes', async () => {
       await launchPeg.connect(dev).setProjectOwner(alice.address)
       await launchPeg.connect(alice).devMint(amountForDevs)
-      expect(await launchPeg.balanceOf(alice.address)).to.equal(amountForDevs)
+      expect(await launchPeg.balanceOf(alice.address)).to.eq(amountForDevs)
     })
   })
 

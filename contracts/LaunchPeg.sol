@@ -94,7 +94,10 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
         uint32 publicSaleStartTime_,
         uint256 publicSaleDiscount_
     ) external atPhase(Phase.NotStarted) {
-        require(auctionSaleStartTime == 0 && auctionSaleStartTime_ != 0, "auction already initialized");
+        require(
+            auctionSaleStartTime == 0 && auctionSaleStartTime_ != 0,
+            "auction already initialized"
+        );
         auctionSaleStartTime = auctionSaleStartTime_;
         auctionStartPrice = auctionStartPrice_;
         lastAuctionPrice = auctionStartPrice_;
