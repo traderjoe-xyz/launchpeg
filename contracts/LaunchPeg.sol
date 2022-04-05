@@ -98,33 +98,34 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
             auctionSaleStartTime == 0 && _auctionSaleStartTime != 0,
             "auction already initialized"
         );
+        require(
+            _auctionStartPrice > _auctionEndPrice,
+            "auction start price lower than end price"
+        );
+        require(
+            _mintlistStartTime > _auctionSaleStartTime,
+            "mintlist phase must be after auction sale"
+        );
+        require(
+            _publicSaleStartTime > _mintlistStartTime,
+            "public sale must be after mintlist"
+        );
+
         auctionSaleStartTime = _auctionSaleStartTime;
         auctionStartPrice = _auctionStartPrice;
         lastAuctionPrice = _auctionStartPrice;
         auctionEndPrice = _auctionEndPrice;
         auctionSaleDuration = _auctionSaleDuration;
         auctionDropInterval = _auctionDropInterval;
-        require(
-            _auctionStartPrice > _auctionEndPrice,
-            "auction start price lower than end price"
-        );
         auctionDropPerStep =
             (_auctionStartPrice - _auctionEndPrice) /
             (_auctionSaleDuration / _auctionDropInterval);
 
         mintlistStartTime = _mintlistStartTime;
         mintlistDiscount = _mintlistDiscount;
-        require(
-            _mintlistStartTime > auctionSaleStartTime,
-            "mintlist phase must be after auction sale"
-        );
 
         publicSaleStartTime = _publicSaleStartTime;
         publicSaleDiscount = _publicSaleDiscount;
-        require(
-            _publicSaleStartTime > _mintlistStartTime,
-            "public sale must be after mintlist"
-        );
     }
 
     function seedAllowlist(
