@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.4;
 
 import "erc721a/contracts/ERC721A.sol";
+import "./LaunchPegErrors.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
@@ -42,20 +43,23 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
     string private _baseTokenURI;
 
     modifier atPhase(Phase _phase) {
-        require(currentPhase() == _phase, "LaunchPeg: wrong phase");
+        if (currentPhase() != _phase) {
+            revert LaunchPeg__WrongPhase();
+        }
         _;
     }
 
     modifier isEOA() {
-        require(tx.origin == msg.sender, "The caller is another contract");
+        if (tx.origin != msg.sender) {
+            revert LaunchPeg__Unauthorized();
+        }
         _;
     }
 
     modifier onlyProjectOwner() {
-        require(
-            projectOwner == msg.sender,
-            "The caller is not the project owner"
-        );
+        if (projectOwner != msg.sender) {
+            revert LaunchPeg__Unauthorized();
+        }
         _;
     }
 
@@ -69,11 +73,13 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
         uint256 _amountForMintlist,
         uint256 _amountForDevs
     ) ERC721A(_name, _symbol) {
-        require(
-            _amountForAuction + _amountForMintlist + _amountForDevs <=
-                _collectionSize,
-            "larger collection size needed"
-        );
+        if (
+            _amountForAuction + _amountForMintlist + _amountForDevs >
+            _collectionSize
+        ) {
+            revert LaunchPeg__LargerCollectionSizeNeeded();
+        }
+
         projectOwner = _projectOwner;
         collectionSize = _collectionSize;
         maxBatchSize = _maxBatchSize;
@@ -94,22 +100,21 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
         uint32 _publicSaleStartTime,
         uint256 _publicSaleDiscount
     ) external atPhase(Phase.NotStarted) {
-        require(
-            auctionSaleStartTime == 0 && _auctionSaleStartTime != 0,
-            "auction already initialized"
-        );
-        require(
-            _auctionStartPrice > _auctionEndPrice,
-            "auction start price lower than end price"
-        );
-        require(
-            _mintlistStartTime > _auctionSaleStartTime,
-            "mintlist phase must be after auction sale"
-        );
-        require(
-            _publicSaleStartTime > _mintlistStartTime,
-            "public sale must be after mintlist"
-        );
+        if (auctionSaleStartTime != 0) {
+            revert LaunchPeg__AuctionAlreadyInitialized();
+        }
+        if (_auctionSaleStartTime == 0) {
+            revert LaunchPeg__InvalidAuctionStartTime();
+        }
+        if (_auctionStartPrice <= _auctionEndPrice) {
+            revert LaunchPeg__EndPriceGreaterThanStartPrice();
+        }
+        if (_mintlistStartTime <= _auctionSaleStartTime) {
+            revert LaunchPeg__MintlistBeforeAuction();
+        }
+        if (_publicSaleStartTime <= _mintlistStartTime) {
+            revert LaunchPeg__PublicSaleBeforeMintlist();
+        }
 
         auctionSaleStartTime = _auctionSaleStartTime;
         auctionStartPrice = _auctionStartPrice;
@@ -132,10 +137,9 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
         address[] memory _addresses,
         uint256[] memory _numSlots
     ) external onlyOwner {
-        require(
-            _addresses.length == _numSlots.length,
-            "addresses does not match numSlots length"
-        );
+        if (_addresses.length != _numSlots.length) {
+            revert LaunchPeg__WrongAddressesAndNumSlotsLength();
+        }
         for (uint256 i = 0; i < _addresses.length; i++) {
             allowlist[_addresses[i]] = _numSlots[i];
         }
@@ -150,14 +154,15 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
         uint256 _remainingSupply = amountForAuction +
             amountForDevs -
             totalSupply();
-        require(_remainingSupply > 0, "auction sold out");
+        if (_remainingSupply == 0) {
+            revert LaunchPeg__MaxSupplyReached();
+        }
         if (_remainingSupply < _quantity) {
             _quantity = _remainingSupply;
         }
-        require(
-            numberMinted(msg.sender) + _quantity <= maxPerAddressDuringMint,
-            "can not mint this many"
-        );
+        if (numberMinted(msg.sender) + _quantity > maxPerAddressDuringMint) {
+            revert LaunchPeg__CanNotMintThisMany();
+        }
         lastAuctionPrice = getAuctionPrice(auctionSaleStartTime);
         uint256 totalCost = lastAuctionPrice * _quantity;
         _safeMint(msg.sender, _quantity);
@@ -165,8 +170,12 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
     }
 
     function allowlistMint() external payable isEOA atPhase(Phase.Mintlist) {
-        require(allowlist[msg.sender] > 0, "not eligible for allowlist mint");
-        require(totalSupply() + 1 <= collectionSize, "reached max supply");
+        if (allowlist[msg.sender] <= 0) {
+            revert LaunchPeg__NotEligibleForAllowlistMint();
+        }
+        if (totalSupply() + 1 > collectionSize) {
+            revert LaunchPeg__MaxSupplyReached();
+        }
         allowlist[msg.sender]--;
         _safeMint(msg.sender, 1);
         refundIfOver(getMintlistPrice());
@@ -182,14 +191,12 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
         isEOA
         atPhase(Phase.PublicSale)
     {
-        require(
-            totalSupply() + _quantity <= collectionSize,
-            "reached max supply"
-        );
-        require(
-            numberMinted(msg.sender) + _quantity <= maxPerAddressDuringMint,
-            "can not mint this many"
-        );
+        if (totalSupply() + _quantity > collectionSize) {
+            revert LaunchPeg__MaxSupplyReached();
+        }
+        if (numberMinted(msg.sender) + _quantity > maxPerAddressDuringMint) {
+            revert LaunchPeg__CanNotMintThisMany();
+        }
         _safeMint(msg.sender, _quantity);
         refundIfOver(getPublicSalePrice() * _quantity);
     }
@@ -199,12 +206,16 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
     }
 
     function refundIfOver(uint256 _price) private {
-        require(msg.value >= _price, "Need to send more AVAX.");
+        if (msg.value < _price) {
+            revert LaunchPeg__NotEnoughAVAX(msg.value);
+        }
         if (msg.value > _price) {
-            (bool sent, ) = payable(msg.sender).call{value: msg.value - _price}(
-                ""
-            );
-            require(sent, "refund failed");
+            (bool success, ) = payable(msg.sender).call{
+                value: msg.value - _price
+            }("");
+            if (!success) {
+                revert LaunchPeg__TransferFailed();
+            }
         }
     }
 
@@ -252,14 +263,12 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
     }
 
     function devMint(uint256 quantity) external onlyProjectOwner {
-        require(
-            totalSupply() + quantity <= amountForDevs,
-            "too many already minted before dev mint"
-        );
-        require(
-            quantity % maxBatchSize == 0,
-            "can only mint a multiple of the maxBatchSize"
-        );
+        if (totalSupply() + quantity > amountForDevs) {
+            revert LaunchPeg__MaxSupplyReached();
+        }
+        if (quantity % maxBatchSize != 0) {
+            revert LaunchPeg__CanOnlyMintMultipleOfMaxBatchSize();
+        }
         uint256 numChunks = quantity / maxBatchSize;
         for (uint256 i = 0; i < numChunks; i++) {
             _safeMint(msg.sender, maxBatchSize);
@@ -276,7 +285,9 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
 
     function withdrawMoney() external onlyOwner nonReentrant {
         (bool success, ) = msg.sender.call{value: address(this).balance}("");
-        require(success, "Transfer failed.");
+        if (!success) {
+            revert LaunchPeg__TransferFailed();
+        }
     }
 
     function numberMinted(address owner) public view returns (uint256) {
