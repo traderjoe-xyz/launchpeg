@@ -200,7 +200,10 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
     function refundIfOver(uint256 _price) private {
         require(msg.value >= _price, "Need to send more AVAX.");
         if (msg.value > _price) {
-            payable(msg.sender).transfer(msg.value - _price);
+            (bool sent, ) = payable(msg.sender).call{value: msg.value - _price}(
+                ""
+            );
+            require(sent, "refund failed");
         }
     }
 
