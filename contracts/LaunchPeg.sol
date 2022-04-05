@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+import "erc721a/contracts/ERC721A.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "erc721a/contracts/ERC721A.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 
 contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
@@ -21,13 +21,13 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
     uint256 public immutable maxBatchSize;
     uint256 public immutable collectionSize;
 
-    uint32 public auctionSaleStartTime;
-    uint32 public mintlistStartTime;
-    uint32 public publicSaleStartTime;
+    uint256 public auctionSaleStartTime;
+    uint256 public mintlistStartTime;
+    uint256 public publicSaleStartTime;
 
     uint256 public auctionStartPrice;
     uint256 public auctionEndPrice;
-    uint256 public auctionPriceCurveLength;
+    uint256 public auctionSaleDuration;
     uint256 public auctionDropInterval;
     uint256 public auctionDropPerStep;
 
@@ -41,12 +41,12 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
 
     string private _baseTokenURI;
 
-    modifier atPhase(Phase phase_) {
-        require(currentPhase() == phase_, "LaunchPeg: wrong phase");
+    modifier atPhase(Phase _phase) {
+        require(currentPhase() == _phase, "LaunchPeg: wrong phase");
         _;
     }
 
-    modifier callerIsUser() {
+    modifier isEOA() {
         require(tx.origin == msg.sender, "The caller is another contract");
         _;
     }
@@ -60,114 +60,110 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
     }
 
     constructor(
-        string memory name_,
-        string memory symbol_,
-        address projectOwner_,
-        uint256 maxBatchSize_,
-        uint256 collectionSize_,
-        uint256 amountForAuction_,
-        uint256 amountForMintlist_,
-        uint256 amountForDevs_
-    ) ERC721A(name_, symbol_) {
-        projectOwner = projectOwner_;
-        collectionSize = collectionSize_;
-        maxBatchSize = maxBatchSize_;
-        maxPerAddressDuringMint = maxBatchSize_;
-        amountForAuction = amountForAuction_;
-        amountForMintlist = amountForMintlist_;
-        amountForDevs = amountForDevs_;
+        string memory _name,
+        string memory _symbol,
+        address _projectOwner,
+        uint256 _maxBatchSize,
+        uint256 _collectionSize,
+        uint256 _amountForAuction,
+        uint256 _amountForMintlist,
+        uint256 _amountForDevs
+    ) ERC721A(_name, _symbol) {
         require(
-            amountForAuction_ + amountForMintlist_ + amountForDevs_ <=
-                collectionSize_,
+            _amountForAuction + _amountForMintlist + _amountForDevs <=
+                _collectionSize,
             "larger collection size needed"
         );
+        projectOwner = _projectOwner;
+        collectionSize = _collectionSize;
+        maxBatchSize = _maxBatchSize;
+        maxPerAddressDuringMint = _maxBatchSize;
+        amountForAuction = _amountForAuction;
+        amountForMintlist = _amountForMintlist;
+        amountForDevs = _amountForDevs;
     }
 
     function initializePhases(
-        uint32 auctionSaleStartTime_,
-        uint256 auctionStartPrice_,
-        uint256 auctionEndPrice_,
-        uint256 auctionPriceCurveLength_,
-        uint256 auctionDropInterval_,
-        uint32 mintlistStartTime_,
-        uint256 mintlistDiscount_,
-        uint32 publicSaleStartTime_,
-        uint256 publicSaleDiscount_
+        uint32 _auctionSaleStartTime,
+        uint256 _auctionStartPrice,
+        uint256 _auctionEndPrice,
+        uint256 _auctionSaleDuration,
+        uint256 _auctionDropInterval,
+        uint32 _mintlistStartTime,
+        uint256 _mintlistDiscount,
+        uint32 _publicSaleStartTime,
+        uint256 _publicSaleDiscount
     ) external atPhase(Phase.NotStarted) {
         require(
-            auctionSaleStartTime == 0 && auctionSaleStartTime_ != 0,
+            auctionSaleStartTime == 0 && _auctionSaleStartTime != 0,
             "auction already initialized"
         );
-        auctionSaleStartTime = auctionSaleStartTime_;
-        auctionStartPrice = auctionStartPrice_;
-        lastAuctionPrice = auctionStartPrice_;
-        auctionEndPrice = auctionEndPrice_;
-        auctionPriceCurveLength = auctionPriceCurveLength_;
-        auctionDropInterval = auctionDropInterval_;
+        auctionSaleStartTime = _auctionSaleStartTime;
+        auctionStartPrice = _auctionStartPrice;
+        lastAuctionPrice = _auctionStartPrice;
+        auctionEndPrice = _auctionEndPrice;
+        auctionSaleDuration = _auctionSaleDuration;
+        auctionDropInterval = _auctionDropInterval;
         require(
-            auctionStartPrice_ > auctionEndPrice_,
+            _auctionStartPrice > _auctionEndPrice,
             "auction start price lower than end price"
         );
         auctionDropPerStep =
-            (auctionStartPrice_ - auctionEndPrice_) /
-            (auctionPriceCurveLength_ / auctionDropInterval_);
+            (_auctionStartPrice - _auctionEndPrice) /
+            (_auctionSaleDuration / _auctionDropInterval);
 
-        mintlistStartTime = mintlistStartTime_;
-        mintlistDiscount = mintlistDiscount_;
+        mintlistStartTime = _mintlistStartTime;
+        mintlistDiscount = _mintlistDiscount;
         require(
-            mintlistStartTime_ > auctionSaleStartTime,
+            _mintlistStartTime > auctionSaleStartTime,
             "mintlist phase must be after auction sale"
         );
 
-        publicSaleStartTime = publicSaleStartTime_;
-        publicSaleDiscount = publicSaleDiscount_;
+        publicSaleStartTime = _publicSaleStartTime;
+        publicSaleDiscount = _publicSaleDiscount;
         require(
-            publicSaleStartTime_ > mintlistStartTime_,
+            _publicSaleStartTime > _mintlistStartTime,
             "public sale must be after mintlist"
         );
     }
 
     function seedAllowlist(
-        address[] memory addresses,
-        uint256[] memory numSlots
+        address[] memory _addresses,
+        uint256[] memory _numSlots
     ) external onlyOwner {
         require(
-            addresses.length == numSlots.length,
+            _addresses.length == _numSlots.length,
             "addresses does not match numSlots length"
         );
-        for (uint256 i = 0; i < addresses.length; i++) {
-            allowlist[addresses[i]] = numSlots[i];
+        for (uint256 i = 0; i < _addresses.length; i++) {
+            allowlist[_addresses[i]] = _numSlots[i];
         }
     }
 
-    function auctionMint(uint256 quantity)
+    function auctionMint(uint256 _quantity)
         external
         payable
-        callerIsUser
+        isEOA
         atPhase(Phase.DutchAuction)
     {
-        uint256 _saleStartTime = uint256(auctionSaleStartTime);
-        uint256 _remainingSupply = amountForAuction + amountForDevs - totalSupply();
+        uint256 _remainingSupply = amountForAuction +
+            amountForDevs -
+            totalSupply();
         require(_remainingSupply > 0, "auction sold out");
-        if (_remainingSupply < quantity) {
-            quantity = _remainingSupply;
+        if (_remainingSupply < _quantity) {
+            _quantity = _remainingSupply;
         }
         require(
-            numberMinted(msg.sender) + quantity <= maxPerAddressDuringMint,
+            numberMinted(msg.sender) + _quantity <= maxPerAddressDuringMint,
             "can not mint this many"
         );
-        lastAuctionPrice = getAuctionPrice(_saleStartTime);
-        uint256 totalCost = lastAuctionPrice * quantity;
-        _safeMint(msg.sender, quantity);
+        lastAuctionPrice = getAuctionPrice(auctionSaleStartTime);
+        uint256 totalCost = lastAuctionPrice * _quantity;
+        _safeMint(msg.sender, _quantity);
         refundIfOver(totalCost);
     }
 
-    function allowlistMint()
-        external
-        payable
-        callerIsUser
-        atPhase(Phase.Mintlist)
-    {
+    function allowlistMint() external payable isEOA atPhase(Phase.Mintlist) {
         require(allowlist[msg.sender] > 0, "not eligible for allowlist mint");
         require(totalSupply() + 1 <= collectionSize, "reached max supply");
         allowlist[msg.sender]--;
@@ -179,32 +175,32 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
         return lastAuctionPrice - mintlistDiscount;
     }
 
-    function publicSaleMint(uint256 quantity)
+    function publicSaleMint(uint256 _quantity)
         external
         payable
-        callerIsUser
+        isEOA
         atPhase(Phase.PublicSale)
     {
         require(
-            totalSupply() + quantity <= collectionSize,
+            totalSupply() + _quantity <= collectionSize,
             "reached max supply"
         );
         require(
-            numberMinted(msg.sender) + quantity <= maxPerAddressDuringMint,
+            numberMinted(msg.sender) + _quantity <= maxPerAddressDuringMint,
             "can not mint this many"
         );
-        _safeMint(msg.sender, quantity);
-        refundIfOver(getPublicSalePrice() * quantity);
+        _safeMint(msg.sender, _quantity);
+        refundIfOver(getPublicSalePrice() * _quantity);
     }
 
     function getPublicSalePrice() public view returns (uint256) {
         return lastAuctionPrice - publicSaleDiscount;
     }
 
-    function refundIfOver(uint256 price) private {
-        require(msg.value >= price, "Need to send more AVAX.");
-        if (msg.value > price) {
-            payable(msg.sender).transfer(msg.value - price);
+    function refundIfOver(uint256 _price) private {
+        require(msg.value >= _price, "Need to send more AVAX.");
+        if (msg.value > _price) {
+            payable(msg.sender).transfer(msg.value - _price);
         }
     }
 
@@ -216,7 +212,7 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
         if (block.timestamp < _saleStartTime) {
             return auctionStartPrice;
         }
-        if (block.timestamp - _saleStartTime >= auctionPriceCurveLength) {
+        if (block.timestamp - _saleStartTime >= auctionSaleDuration) {
             return auctionEndPrice;
         } else {
             uint256 steps = (block.timestamp - _saleStartTime) /
