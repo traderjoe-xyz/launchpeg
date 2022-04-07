@@ -165,8 +165,8 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
         }
         lastAuctionPrice = getAuctionPrice(auctionSaleStartTime);
         uint256 totalCost = lastAuctionPrice * _quantity;
-        _safeMint(msg.sender, _quantity);
         refundIfOver(totalCost);
+        _safeMint(msg.sender, _quantity);
     }
 
     function allowlistMint() external payable isEOA atPhase(Phase.Mintlist) {
@@ -177,8 +177,8 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
             revert LaunchPeg__MaxSupplyReached();
         }
         allowlist[msg.sender]--;
-        _safeMint(msg.sender, 1);
         refundIfOver(getMintlistPrice());
+        _safeMint(msg.sender, 1);
     }
 
     function getMintlistPrice() public view returns (uint256) {
@@ -197,8 +197,8 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
         if (numberMinted(msg.sender) + _quantity > maxPerAddressDuringMint) {
             revert LaunchPeg__CanNotMintThisMany();
         }
-        _safeMint(msg.sender, _quantity);
         refundIfOver(getPublicSalePrice() * _quantity);
+        _safeMint(msg.sender, _quantity);
     }
 
     function getPublicSalePrice() public view returns (uint256) {
