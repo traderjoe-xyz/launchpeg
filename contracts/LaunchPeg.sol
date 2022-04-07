@@ -33,8 +33,8 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
     uint256 public auctionDropPerStep;
 
     uint256 public lastAuctionPrice;
-    uint256 public mintlistDiscount;
-    uint256 public publicSaleDiscount;
+    uint256 public mintlistDiscountPercent;
+    uint256 public publicSaleDiscountPercent;
 
     mapping(address => uint256) public allowlist;
 
@@ -96,9 +96,9 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
         uint256 _auctionSaleDuration,
         uint256 _auctionDropInterval,
         uint32 _mintlistStartTime,
-        uint256 _mintlistDiscount,
+        uint256 _mintlistDiscountPercent,
         uint32 _publicSaleStartTime,
-        uint256 _publicSaleDiscount
+        uint256 _publicSaleDiscountPercent
     ) external atPhase(Phase.NotStarted) {
         if (auctionSaleStartTime != 0) {
             revert LaunchPeg__AuctionAlreadyInitialized();
@@ -127,10 +127,10 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
             (_auctionSaleDuration / _auctionDropInterval);
 
         mintlistStartTime = _mintlistStartTime;
-        mintlistDiscount = _mintlistDiscount;
+        mintlistDiscountPercent = _mintlistDiscountPercent;
 
         publicSaleStartTime = _publicSaleStartTime;
-        publicSaleDiscount = _publicSaleDiscount;
+        publicSaleDiscountPercent = _publicSaleDiscountPercent;
     }
 
     function seedAllowlist(
@@ -182,7 +182,10 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
     }
 
     function getMintlistPrice() public view returns (uint256) {
-        return lastAuctionPrice - mintlistDiscount;
+        return
+            lastAuctionPrice -
+            (lastAuctionPrice * mintlistDiscountPercent) /
+            10000;
     }
 
     function publicSaleMint(uint256 _quantity)
@@ -202,7 +205,10 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
     }
 
     function getPublicSalePrice() public view returns (uint256) {
-        return lastAuctionPrice - publicSaleDiscount;
+        return
+            lastAuctionPrice -
+            (lastAuctionPrice * publicSaleDiscountPercent) /
+            10000;
     }
 
     function refundIfOver(uint256 _price) private {
