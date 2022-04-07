@@ -230,7 +230,8 @@ describe('LaunchPeg', () => {
       await initializePhases(launchPeg, saleStartTime, Phase.Mintlist)
 
       await launchPeg.seedAllowlist([bob.address], [1])
-      await launchPeg.connect(bob).allowlistMint({ value: config.startPrice.sub(config.mintlistDiscount) })
+      const discount = config.startPrice.mul(config.mintlistDiscount).div(10000)
+      await launchPeg.connect(bob).allowlistMint({ value: config.startPrice.sub(discount) })
       expect(await launchPeg.balanceOf(bob.address)).to.eq(1)
     })
 
@@ -238,7 +239,8 @@ describe('LaunchPeg', () => {
       const saleStartTime = await latest()
       await initializePhases(launchPeg, saleStartTime, Phase.Mintlist)
 
-      const price = config.startPrice.sub(config.mintlistDiscount)
+      const discount = config.startPrice.mul(config.mintlistDiscount).div(10000)
+      const price = config.startPrice.sub(discount)
 
       await launchPeg.seedAllowlist([bob.address], [2])
       await launchPeg.connect(bob).allowlistMint({ value: price.mul(2) }) // intentionally sending more AVAX to test refund
@@ -287,6 +289,12 @@ describe('LaunchPeg', () => {
         'LaunchPeg__WrongAddressesAndNumSlotsLength()'
       )
     })
+
+    it('Mint price is discounted', async () => {
+      const saleStartTime = await latest()
+      await initializePhases(launchPeg, saleStartTime, Phase.Mintlist)
+      expect(await launchPeg.getMintlistPrice()).to.eq(ethers.utils.parseUnits('0.9', 18))
+    })
   })
 
   describe('Public sale phase', () => {
@@ -295,9 +303,9 @@ describe('LaunchPeg', () => {
       await initializePhases(launchPeg, saleStartTime, Phase.PublicSale)
 
       const quantity = 2
-      await launchPeg
-        .connect(bob)
-        .publicSaleMint(quantity, { value: config.startPrice.sub(config.publicSaleDiscount).mul(quantity) })
+      const discount = config.startPrice.mul(config.publicSaleDiscount).div(10000)
+      const price = config.startPrice.sub(discount)
+      await launchPeg.connect(bob).publicSaleMint(quantity, { value: price.mul(quantity) })
       expect(await launchPeg.balanceOf(bob.address)).to.eq(2)
     })
 
@@ -333,7 +341,9 @@ describe('LaunchPeg', () => {
       const saleStartTime = await latest()
       await initializePhases(launchPeg, saleStartTime, Phase.PublicSale)
 
-      const value = config.startPrice.sub(config.publicSaleDiscount).mul(5)
+      const discount = config.startPrice.mul(config.publicSaleDiscount).div(10000)
+      const price = config.startPrice.sub(discount)
+      const value = price.mul(5)
       await launchPeg.connect(alice).publicSaleMint(5, { value })
       await expect(launchPeg.connect(alice).publicSaleMint(5, { value })).to.be.revertedWith(
         'LaunchPeg__CanNotMintThisMany()'
@@ -354,6 +364,12 @@ describe('LaunchPeg', () => {
       await expect(launchPeg.connect(alice).publicSaleMint(2, { value: config.startPrice.mul(2) })).to.be.revertedWith(
         'LaunchPeg__CanNotMintThisMany()'
       )
+    })
+
+    it('Public sale price is discounted', async () => {
+      const saleStartTime = await latest()
+      await initializePhases(launchPeg, saleStartTime, Phase.PublicSale)
+      expect(await launchPeg.getPublicSalePrice()).to.eq(ethers.utils.parseUnits('0.8', 18))
     })
   })
 

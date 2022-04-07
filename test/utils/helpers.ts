@@ -7,8 +7,8 @@ export const LAUNCHPEG_CONFIG = {
   endPrice: ethers.utils.parseUnits('0.15', 18),
   auctionPriceCurveLength: duration.minutes(340),
   auctionDropInterval: duration.minutes(20),
-  mintlistDiscount: ethers.utils.parseUnits('0.05', 18),
-  publicSaleDiscount: ethers.utils.parseUnits('0.08', 18),
+  mintlistDiscount: 0.1 * 10000,
+  publicSaleDiscount: 0.2 * 10000,
 }
 
 export enum Phase {
