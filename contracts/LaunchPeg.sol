@@ -22,6 +22,9 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
     uint256 public immutable maxBatchSize;
     uint256 public immutable collectionSize;
 
+    uint256 public amountMintedByDevs;
+    uint256 public amountMintedDuringAuction;
+
     uint256 public auctionSaleStartTime;
     uint256 public mintlistStartTime;
     uint256 public publicSaleStartTime;
@@ -151,8 +154,7 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
         isEOA
         atPhase(Phase.DutchAuction)
     {
-        uint256 _remainingSupply = amountForAuction +
-            amountForDevs -
+        uint256 _remainingSupply = (amountForAuction + amountMintedByDevs) -
             totalSupply();
         if (_remainingSupply == 0) {
             revert LaunchPeg__MaxSupplyReached();
@@ -167,13 +169,19 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
         uint256 totalCost = lastAuctionPrice * _quantity;
         refundIfOver(totalCost);
         _safeMint(msg.sender, _quantity);
+        amountMintedDuringAuction = amountMintedDuringAuction + _quantity;
     }
 
     function allowlistMint() external payable isEOA atPhase(Phase.Mintlist) {
         if (allowlist[msg.sender] <= 0) {
             revert LaunchPeg__NotEligibleForAllowlistMint();
         }
-        if (totalSupply() + 1 > collectionSize) {
+        uint256 _remainingAuctionSupply = amountForAuction -
+            amountMintedDuringAuction;
+        if (
+            totalSupply() + _remainingAuctionSupply + 1 >
+            amountForAuction + amountForMintlist + amountMintedByDevs
+        ) {
             revert LaunchPeg__MaxSupplyReached();
         }
         allowlist[msg.sender]--;
@@ -194,7 +202,10 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
         isEOA
         atPhase(Phase.PublicSale)
     {
-        if (totalSupply() + _quantity > collectionSize) {
+        if (
+            totalSupply() + _quantity >
+            collectionSize - (amountForDevs - amountMintedByDevs)
+        ) {
             revert LaunchPeg__MaxSupplyReached();
         }
         if (numberMinted(msg.sender) + _quantity > maxPerAddressDuringMint) {
@@ -269,7 +280,7 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
     }
 
     function devMint(uint256 quantity) external onlyProjectOwner {
-        if (totalSupply() + quantity > amountForDevs) {
+        if (amountMintedByDevs + quantity > amountForDevs) {
             revert LaunchPeg__MaxSupplyReached();
         }
         if (quantity % maxBatchSize != 0) {
@@ -279,6 +290,7 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
         for (uint256 i = 0; i < numChunks; i++) {
             _safeMint(msg.sender, maxBatchSize);
         }
+        amountMintedByDevs = amountMintedByDevs + quantity;
     }
 
     function _baseURI() internal view virtual override returns (string memory) {
