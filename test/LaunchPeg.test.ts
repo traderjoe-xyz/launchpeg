@@ -149,13 +149,13 @@ describe('LaunchPeg', () => {
       await initializePhases(launchPeg, config, Phase.DutchAuction)
 
       const quantity = 2
-      const aliceInitialBalance = await ethers.provider.getBalance(alice.address)
+      const aliceInitialBalance = await alice.getBalance()
 
       await launchPeg.connect(alice).auctionMint(quantity, { value: config.startPrice.mul(quantity + 1) })
       expect(await launchPeg.balanceOf(alice.address)).to.eq(quantity)
-      expect(await ethers.provider.getBalance(alice.address)).to.be.closeTo(
+      expect(await alice.getBalance()).to.be.closeTo(
         aliceInitialBalance.sub(config.startPrice.mul(quantity)),
-        ethers.utils.parseUnits('0.01', 18)
+        ethers.utils.parseEther('0.01')
       )
     })
 
@@ -353,6 +353,22 @@ describe('LaunchPeg', () => {
       await launchPeg.connect(dev).setProjectOwner(alice.address)
       await launchPeg.connect(alice).devMint(config.amountForDevs)
       expect(await launchPeg.balanceOf(alice.address)).to.eq(config.amountForDevs)
+    })
+  })
+
+  describe('Funds flow', () => {
+    it('Owner can withdraw money', async () => {
+      await initializePhases(launchPeg, config, Phase.DutchAuction)
+
+      await launchPeg.connect(alice).auctionMint(5, { value: config.startPrice.mul(5) })
+      await launchPeg.connect(bob).auctionMint(4, { value: config.startPrice.mul(4) })
+
+      const initialDevBalance = await dev.getBalance()
+      await launchPeg.connect(dev).withdrawMoney()
+      expect(await dev.getBalance()).to.be.closeTo(
+        initialDevBalance.add(config.startPrice.mul(9)),
+        ethers.utils.parseEther('0.01')
+      )
     })
   })
 
