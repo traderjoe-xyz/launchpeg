@@ -94,6 +94,39 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
 
     string private _baseTokenURI;
 
+    event Initialized(
+        string indexed name,
+        string indexed symbol,
+        address indexed projectOwner,
+        uint256 maxBatchSize,
+        uint256 collectionSize,
+        uint256 amountForAuction,
+        uint256 amountForMintlist,
+        uint256 amountForDevs,
+        uint256 auctionSaleStartTime,
+        uint256 auctionStartPrice,
+        uint256 auctionEndPrice,
+        uint256 auctionDropInterval,
+        uint256 mintlistStartTime,
+        uint256 mintlistDiscountPercent,
+        uint256 publicSaleStartTime,
+        uint256 publicSaleDiscountPercent
+    );
+
+    event Mint(
+        address indexed sender,
+        uint256 quantity,
+        uint256 price,
+        uint256 startTokenId,
+        Phase phase
+    );
+
+    event DevMint(address indexed sender, uint256 quantity);
+
+    event MoneyWithdraw(address indexed sender, uint256 amount);
+
+    event ProjectOwnerUpdated(address indexed owner);
+
     modifier atPhase(Phase _phase) {
         if (currentPhase() != _phase) {
             revert LaunchPeg__WrongPhase();
@@ -142,13 +175,13 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
     }
 
     function initializePhases(
-        uint32 _auctionSaleStartTime,
+        uint256 _auctionSaleStartTime,
         uint256 _auctionStartPrice,
         uint256 _auctionEndPrice,
         uint256 _auctionDropInterval,
-        uint32 _mintlistStartTime,
+        uint256 _mintlistStartTime,
         uint256 _mintlistDiscountPercent,
-        uint32 _publicSaleStartTime,
+        uint256 _publicSaleStartTime,
         uint256 _publicSaleDiscountPercent
     ) external atPhase(Phase.NotStarted) {
         if (auctionSaleStartTime != 0) {
@@ -182,6 +215,25 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
 
         publicSaleStartTime = _publicSaleStartTime;
         publicSaleDiscountPercent = _publicSaleDiscountPercent;
+
+        emit Initialized(
+            name(),
+            symbol(),
+            projectOwner,
+            maxBatchSize,
+            collectionSize,
+            amountForAuction,
+            amountForMintlist,
+            amountForDevs,
+            auctionSaleStartTime,
+            auctionStartPrice,
+            auctionEndPrice,
+            auctionDropInterval,
+            mintlistStartTime,
+            mintlistDiscountPercent,
+            publicSaleStartTime,
+            publicSaleDiscountPercent
+        );
     }
 
     function seedAllowlist(
@@ -218,6 +270,13 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
         refundIfOver(totalCost);
         _safeMint(msg.sender, _quantity);
         amountMintedDuringAuction = amountMintedDuringAuction + _quantity;
+        emit Mint(
+            msg.sender,
+            _quantity,
+            lastAuctionPrice,
+            _totalMinted() - _quantity,
+            Phase.DutchAuction
+        );
     }
 
     function allowlistMint() external payable isEOA atPhase(Phase.Mintlist) {
@@ -233,8 +292,10 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
             revert LaunchPeg__MaxSupplyReached();
         }
         allowlist[msg.sender]--;
-        refundIfOver(getMintlistPrice());
+        uint256 price = getMintlistPrice();
+        refundIfOver(price);
         _safeMint(msg.sender, 1);
+        emit Mint(msg.sender, 1, price, _totalMinted() - 1, Phase.Mintlist);
     }
 
     function getMintlistPrice() public view returns (uint256) {
@@ -259,8 +320,16 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
         if (numberMinted(msg.sender) + _quantity > maxPerAddressDuringMint) {
             revert LaunchPeg__CanNotMintThisMany();
         }
-        refundIfOver(getPublicSalePrice() * _quantity);
+        uint256 price = getPublicSalePrice();
+        refundIfOver(price * _quantity);
         _safeMint(msg.sender, _quantity);
+        emit Mint(
+            msg.sender,
+            _quantity,
+            price,
+            _totalMinted() - _quantity,
+            Phase.PublicSale
+        );
     }
 
     function getPublicSalePrice() public view returns (uint256) {
@@ -323,8 +392,9 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
         return Phase.PublicSale;
     }
 
-    function setProjectOwner(address projectOwner_) external onlyOwner {
-        projectOwner = projectOwner_;
+    function setProjectOwner(address _projectOwner) external onlyOwner {
+        projectOwner = _projectOwner;
+        emit ProjectOwnerUpdated(projectOwner);
     }
 
     function devMint(uint256 quantity) external onlyProjectOwner {
@@ -339,6 +409,7 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
             _safeMint(msg.sender, maxBatchSize);
         }
         amountMintedByDevs = amountMintedByDevs + quantity;
+        emit DevMint(msg.sender, quantity);
     }
 
     function _baseURI() internal view virtual override returns (string memory) {
@@ -350,10 +421,12 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
     }
 
     function withdrawMoney() external onlyOwner nonReentrant {
-        (bool success, ) = msg.sender.call{value: address(this).balance}("");
+        uint256 amount = address(this).balance;
+        (bool success, ) = msg.sender.call{value: amount}("");
         if (!success) {
             revert LaunchPeg__TransferFailed();
         }
+        emit MoneyWithdraw(msg.sender, amount);
     }
 
     function numberMinted(address owner) public view returns (uint256) {
