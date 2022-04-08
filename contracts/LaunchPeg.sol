@@ -96,7 +96,6 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
         uint32 _auctionSaleStartTime,
         uint256 _auctionStartPrice,
         uint256 _auctionEndPrice,
-        uint256 _auctionSaleDuration,
         uint256 _auctionDropInterval,
         uint32 _mintlistStartTime,
         uint256 _mintlistDiscountPercent,
@@ -123,11 +122,11 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
         auctionStartPrice = _auctionStartPrice;
         lastAuctionPrice = _auctionStartPrice;
         auctionEndPrice = _auctionEndPrice;
-        auctionSaleDuration = _auctionSaleDuration;
+        auctionSaleDuration = _mintlistStartTime - _auctionSaleStartTime;
         auctionDropInterval = _auctionDropInterval;
         auctionDropPerStep =
             (_auctionStartPrice - _auctionEndPrice) /
-            (_auctionSaleDuration / _auctionDropInterval);
+            (auctionSaleDuration / _auctionDropInterval);
 
         mintlistStartTime = _mintlistStartTime;
         mintlistDiscountPercent = _mintlistDiscountPercent;

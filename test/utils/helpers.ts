@@ -13,14 +13,13 @@ export interface LaunchPegConfig {
   amountForDevs: number
   startPrice: BigNumber
   endPrice: BigNumber
-  auctionPriceCurveLength: BigNumber
   auctionDropInterval: BigNumber
   mintlistDiscount: number
   publicSaleDiscount: number
 }
 
-const MINTLIST_START_OFFSET = 10
-const PUBLIC_SALE_START_OFFSET = 20
+const MINTLIST_START_OFFSET = 100
+const PUBLIC_SALE_START_OFFSET = 200
 
 export const getDefaultLaunchPegConfig = async (): Promise<LaunchPegConfig> => {
   const auctionStartTime = await latest()
@@ -35,7 +34,6 @@ export const getDefaultLaunchPegConfig = async (): Promise<LaunchPegConfig> => {
     amountForDevs: 100,
     startPrice: ethers.utils.parseUnits('1', 18),
     endPrice: ethers.utils.parseUnits('0.15', 18),
-    auctionPriceCurveLength: duration.minutes(340),
     auctionDropInterval: duration.minutes(20),
     mintlistDiscount: 0.1 * 10000,
     publicSaleDiscount: 0.2 * 10000,
@@ -53,7 +51,6 @@ export const initializePhases = async (launchPeg: Contract, config: LaunchPegCon
     config.auctionStartTime,
     config.startPrice,
     config.endPrice,
-    config.auctionPriceCurveLength,
     config.auctionDropInterval,
     config.mintlistStartTime,
     config.mintlistDiscount,

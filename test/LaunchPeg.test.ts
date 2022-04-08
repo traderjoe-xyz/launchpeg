@@ -108,20 +108,19 @@ describe('LaunchPeg', () => {
       var auctionPrice = await launchPeg.getAuctionPrice(saleStartTime)
       expect(auctionPrice).to.be.eq(config.startPrice)
 
-      // 110 minutes later
-      await advanceTimeAndBlock(duration.minutes(110))
+      // 50 minutes later
+      await advanceTimeAndBlock(duration.minutes(50))
 
       // Verify discounted price
       auctionPrice = await launchPeg.getAuctionPrice(saleStartTime)
-      const discount = ethers.utils.parseUnits('0.05', 18).mul(5)
-      expect(auctionPrice).to.be.eq(config.startPrice.sub(discount))
+      expect(auctionPrice).to.be.eq(ethers.utils.parseEther('0.66'))
 
-      // Sale ends after 340 minutes
-      await advanceTimeAndBlock(duration.minutes(240))
+      // 50 minutes later
+      await advanceTimeAndBlock(duration.minutes(50))
 
       // Verify floor price
       auctionPrice = await launchPeg.getAuctionPrice(saleStartTime)
-      const floorPrice = ethers.utils.parseUnits('0.15', 18)
+      const floorPrice = ethers.utils.parseEther('0.15')
       expect(auctionPrice).to.be.eq(floorPrice)
     })
 
@@ -313,7 +312,7 @@ describe('LaunchPeg', () => {
       await launchPeg.connect(alice).auctionMint(4, { value: config.startPrice.mul(4) })
 
       // mint 2 during public sale should revert
-      await advanceTimeAndBlock(duration.minutes(20))
+      await advanceTimeAndBlock(duration.minutes(200))
       await expect(launchPeg.connect(alice).publicSaleMint(2, { value: config.startPrice.mul(2) })).to.be.revertedWith(
         'LaunchPeg__CanNotMintThisMany()'
       )
