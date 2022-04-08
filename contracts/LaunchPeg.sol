@@ -7,6 +7,9 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 
+/// @title LaunchPeg
+/// @author Trader Joe
+/// @notice Implements a fair and gas efficient NFT launch mechanism. The sale takes place in 3 phases: dutch auction, allowlist mint, public sale.
 contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
     enum Phase {
         NotStarted,
@@ -15,30 +18,76 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
         PublicSale
     }
 
-    uint256 public immutable amountForDevs;
-    uint256 public immutable amountForAuction;
-    uint256 public immutable amountForMintlist;
-    uint256 public immutable maxPerAddressDuringMint;
-    uint256 public immutable maxBatchSize;
+    /// @notice The collection size (e.g 10000)
     uint256 public immutable collectionSize;
 
+    /// @notice Amount of NFTs reserved for `projectOwner` (e.g 200)
+    /// @dev It can be minted any time via `devMint`
+    uint256 public immutable amountForDevs;
+
+    /// @notice Amount of NFTs available for the auction (e.g 8000)
+    /// Unsold items are put up for sale during the public sale.
+    uint256 public immutable amountForAuction;
+
+    /// @notice Amount of NFTs available for the allowlist mint (e.g 1000)
+    /// Unsold items are put up for sale during the public sale.
+    uint256 public immutable amountForMintlist;
+
+    /// @notice Max amount of NFTs an address can mint
+    uint256 public immutable maxPerAddressDuringMint;
+
+    /// @notice Max amout of NFTs that can be minted at once
+    uint256 public immutable maxBatchSize;
+
+    /// @notice Tracks the amount of NFTs minted by `projectOwner`
     uint256 public amountMintedByDevs;
+
+    /// @notice Tracks the amount of NFTs minted during the dutch auction
     uint256 public amountMintedDuringAuction;
 
+    /// @notice Start time of the dutch auction in seconds
     uint256 public auctionSaleStartTime;
+
+    /// @notice Start time of the allowlist mint in seconds
+    /// @dev It must be greater than the dutch auction start
     uint256 public mintlistStartTime;
+
+    /// @notice Start time of the public sale in seconds
+    /// @dev It must be greater than the allowlist mint start
     uint256 public publicSaleStartTime;
 
+    /// @notice Auction start price in AVAX
+    /// @dev auctionStartPrice is scaled to 1e18
     uint256 public auctionStartPrice;
+
+    /// @notice Auction floor price in AVAX
+    /// @dev auctionEndPrice is scaled to 1e18
     uint256 public auctionEndPrice;
+
+    /// @notice Duration of the auction in seconds
+    /// @dev auctionSaleStartTime - mintlistStartTime
     uint256 public auctionSaleDuration;
+
+    /// @notice Time elapsed between each drop in price
+    /// @dev in seconds
     uint256 public auctionDropInterval;
+
+    /// @notice Amount in AVAX deducted at each interval
     uint256 public auctionDropPerStep;
 
+    /// @notice The price of the last NFT sold during the auction
+    /// @dev lastAuctionPrice is scaled to 1e18
     uint256 public lastAuctionPrice;
+
+    /// @notice The discount applied to the last auction price during the allowlist mint
+    /// @dev in basis points e.g 500 for 5%
     uint256 public mintlistDiscountPercent;
+
+    /// @notice The discount applied to the last auction price during the public sale
+    /// @dev in basis points e.g 2500 for 25%
     uint256 public publicSaleDiscountPercent;
 
+    /// @notice The amount of NFTs each allowed address can mint during the allowlist mint
     mapping(address => uint256) public allowlist;
 
     address public projectOwner;
