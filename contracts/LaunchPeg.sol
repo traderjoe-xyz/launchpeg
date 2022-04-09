@@ -46,14 +46,15 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
     uint256 public amountMintedDuringAuction;
 
     /// @notice Start time of the dutch auction in seconds
+    /// @dev Timestamp
     uint256 public auctionSaleStartTime;
 
     /// @notice Start time of the allowlist mint in seconds
-    /// @dev It must be greater than the dutch auction start
+    /// @dev A timestamp greater than the dutch auction start
     uint256 public mintlistStartTime;
 
     /// @notice Start time of the public sale in seconds
-    /// @dev It must be greater than the allowlist mint start
+    /// @dev A timestamp greater than the allowlist mint start
     uint256 public publicSaleStartTime;
 
     /// @notice Auction start price in AVAX
@@ -174,6 +175,16 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
         amountForDevs = _amountForDevs;
     }
 
+    /// @notice Initialize the three phases of the sale
+    /// @dev Can only be called once
+    /// @param _auctionSaleStartTime Auction start time in seconds
+    /// @param _auctionStartPrice Auction start price in AVAX
+    /// @param _auctionEndPrice Auction floor price in AVAX
+    /// @param _auctionDropInterval Time elapsed between each drop in price in seconds
+    /// @param _mintlistStartTime Allowlist mint start time in seconds
+    /// @param _mintlistDiscountPercent Discount applied to the last auction price during the allowlist mint
+    /// @param _publicSaleStartTime Public sale start time in seconds
+    /// @param _publicSaleDiscountPercent Discount applied to the last auction price during the public sale
     function initializePhases(
         uint256 _auctionSaleStartTime,
         uint256 _auctionStartPrice,
@@ -236,6 +247,10 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
         );
     }
 
+    /// @notice Seed the allowlist: each address can mint up to numSlot
+    /// @dev e.g _addresses: [0x1, 0x2, 0x3], _numSlots: [1, 1, 2]
+    /// @param _addresses Addresses allowed to mint during the allowlist phase
+    /// @param _numSlots Quantity of NFTs that an address can mint
     function seedAllowlist(
         address[] memory _addresses,
         uint256[] memory _numSlots
@@ -248,6 +263,9 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
         }
     }
 
+    /// @notice Mint NFTs during the dutch auction
+    /// The price decreases every `auctionDropInterval` by `auctionDropPerStep`
+    /// @param _quantity Quantity of NFTs to buy
     function auctionMint(uint256 _quantity)
         external
         payable
@@ -279,6 +297,8 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
         );
     }
 
+    /// @notice Mint NFTs during the allowlist mint
+    /// @dev One NFT at a time
     function allowlistMint() external payable isEOA atPhase(Phase.Mintlist) {
         if (allowlist[msg.sender] <= 0) {
             revert LaunchPeg__NotEligibleForAllowlistMint();
@@ -305,6 +325,8 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
             10000;
     }
 
+    /// @notice Mint NFTs during the public sale
+    /// @param _quantity Quantity of NFTs to mint
     function publicSaleMint(uint256 _quantity)
         external
         payable
@@ -392,11 +414,16 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
         return Phase.PublicSale;
     }
 
+    /// @notice Set the project owner
+    /// @dev The project owner can call `devMint` any time
     function setProjectOwner(address _projectOwner) external onlyOwner {
         projectOwner = _projectOwner;
         emit ProjectOwnerUpdated(projectOwner);
     }
 
+    /// @notice Mint NFTs to the project owner
+    /// @dev Can only mint up to ``amountForDevs`
+    /// @param quantity Quantity of NFTs to mint
     function devMint(uint256 quantity) external onlyProjectOwner {
         if (amountMintedByDevs + quantity > amountForDevs) {
             revert LaunchPeg__MaxSupplyReached();
@@ -420,6 +447,7 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
         _baseTokenURI = baseURI;
     }
 
+    /// @notice Withdraw money to the contract owner
     function withdrawMoney() external onlyOwner nonReentrant {
         uint256 amount = address(this).balance;
         (bool success, ) = msg.sender.call{value: amount}("");
