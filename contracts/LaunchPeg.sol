@@ -2,6 +2,7 @@
 pragma solidity ^0.8.4;
 
 import "erc721a/contracts/ERC721A.sol";
+import "./interfaces/ILaunchPeg.sol";
 import "./LaunchPegErrors.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
@@ -10,7 +11,7 @@ import "@openzeppelin/contracts/utils/Strings.sol";
 /// @title LaunchPeg
 /// @author Trader Joe
 /// @notice Implements a fair and gas efficient NFT launch mechanism. The sale takes place in 3 phases: dutch auction, allowlist mint, public sale.
-contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
+contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard, ILaunchPeg {
     enum Phase {
         NotStarted,
         DutchAuction,
@@ -93,52 +94,17 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
 
     /// @notice The fees collected by Joepeg on the sale benefits
     /// @dev in basis points e.g 100 for 1%
-    uint256 joeFeePercent;
+    uint256 public joeFeePercent;
 
     /// @notice The address to which the fees on the sale will be sent
-    address joeFeeCollector;
+    address public joeFeeCollector;
 
+    /// @notice The project owner
+    /// @dev We may own the contract during the launch: this address is allowed to call `devMint`
     address public projectOwner;
 
+    /// @notice Base token URI
     string private _baseTokenURI;
-
-    event Initialized(
-        string indexed name,
-        string indexed symbol,
-        address indexed projectOwner,
-        uint256 maxBatchSize,
-        uint256 collectionSize,
-        uint256 amountForAuction,
-        uint256 amountForMintlist,
-        uint256 amountForDevs,
-        uint256 auctionSaleStartTime,
-        uint256 auctionStartPrice,
-        uint256 auctionEndPrice,
-        uint256 auctionDropInterval,
-        uint256 mintlistStartTime,
-        uint256 mintlistDiscountPercent,
-        uint256 publicSaleStartTime,
-        uint256 publicSaleDiscountPercent
-    );
-
-    event JoeFeeInitialized(
-        uint256 feePercent, 
-        address feeCollector
-    );
-
-    event Mint(
-        address indexed sender,
-        uint256 quantity,
-        uint256 price,
-        uint256 startTokenId,
-        Phase phase
-    );
-
-    event DevMint(address indexed sender, uint256 quantity);
-
-    event MoneyWithdraw(address indexed sender, uint256 amount, uint256 fee);
-
-    event ProjectOwnerUpdated(address indexed owner);
 
     modifier atPhase(Phase _phase) {
         if (currentPhase() != _phase) {
@@ -187,16 +153,7 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
         amountForDevs = _amountForDevs;
     }
 
-    /// @notice Initialize the three phases of the sale
-    /// @dev Can only be called once
-    /// @param _auctionSaleStartTime Auction start time in seconds
-    /// @param _auctionStartPrice Auction start price in AVAX
-    /// @param _auctionEndPrice Auction floor price in AVAX
-    /// @param _auctionDropInterval Time elapsed between each drop in price in seconds
-    /// @param _mintlistStartTime Allowlist mint start time in seconds
-    /// @param _mintlistDiscountPercent Discount applied to the last auction price during the allowlist mint
-    /// @param _publicSaleStartTime Public sale start time in seconds
-    /// @param _publicSaleDiscountPercent Discount applied to the last auction price during the public sale
+    /// @inheritdoc ILaunchPeg
     function initializePhases(
         uint256 _auctionSaleStartTime,
         uint256 _auctionStartPrice,
@@ -206,7 +163,7 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
         uint256 _mintlistDiscountPercent,
         uint256 _publicSaleStartTime,
         uint256 _publicSaleDiscountPercent
-    ) external atPhase(Phase.NotStarted) {
+    ) external override atPhase(Phase.NotStarted) {
         if (auctionSaleStartTime != 0) {
             revert LaunchPeg__AuctionAlreadyInitialized();
         }
@@ -265,9 +222,10 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
         );
     }
 
-    /// @notice Initialize the percentage taken on the sale and collector address
+    /// @inheritdoc ILaunchPeg
     function initializeJoeFee(uint256 _joeFeePercent, address _joeFeeCollector)
         external
+        override
         onlyOwner
         atPhase(Phase.NotStarted)
     {
@@ -282,14 +240,11 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
         emit JoeFeeInitialized(_joeFeePercent, _joeFeeCollector);
     }
 
-    /// @notice Seed the allowlist: each address can mint up to numSlot
-    /// @dev e.g _addresses: [0x1, 0x2, 0x3], _numSlots: [1, 1, 2]
-    /// @param _addresses Addresses allowed to mint during the allowlist phase
-    /// @param _numSlots Quantity of NFTs that an address can mint
+    /// @inheritdoc ILaunchPeg
     function seedAllowlist(
         address[] memory _addresses,
         uint256[] memory _numSlots
-    ) external onlyOwner {
+    ) external override onlyOwner {
         if (_addresses.length != _numSlots.length) {
             revert LaunchPeg__WrongAddressesAndNumSlotsLength();
         }
@@ -298,12 +253,11 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
         }
     }
 
-    /// @notice Mint NFTs during the dutch auction
-    /// The price decreases every `auctionDropInterval` by `auctionDropPerStep`
-    /// @param _quantity Quantity of NFTs to buy
+    /// @inheritdoc ILaunchPeg
     function auctionMint(uint256 _quantity)
         external
         payable
+        override
         isEOA
         atPhase(Phase.DutchAuction)
     {
@@ -332,9 +286,14 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
         );
     }
 
-    /// @notice Mint NFTs during the allowlist mint
-    /// @dev One NFT at a time
-    function allowlistMint() external payable isEOA atPhase(Phase.Mintlist) {
+    /// @inheritdoc ILaunchPeg
+    function allowlistMint()
+        external
+        payable
+        override
+        isEOA
+        atPhase(Phase.Mintlist)
+    {
         if (allowlist[msg.sender] <= 0) {
             revert LaunchPeg__NotEligibleForAllowlistMint();
         }
@@ -353,18 +312,19 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
         emit Mint(msg.sender, 1, price, _totalMinted() - 1, Phase.Mintlist);
     }
 
-    function getMintlistPrice() public view returns (uint256) {
+    /// @inheritdoc ILaunchPeg
+    function getMintlistPrice() public view override returns (uint256) {
         return
             lastAuctionPrice -
             (lastAuctionPrice * mintlistDiscountPercent) /
             10000;
     }
 
-    /// @notice Mint NFTs during the public sale
-    /// @param _quantity Quantity of NFTs to mint
+    /// @inheritdoc ILaunchPeg
     function publicSaleMint(uint256 _quantity)
         external
         payable
+        override
         isEOA
         atPhase(Phase.PublicSale)
     {
@@ -389,13 +349,16 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
         );
     }
 
-    function getPublicSalePrice() public view returns (uint256) {
+    /// @inheritdoc ILaunchPeg
+    function getPublicSalePrice() public view override returns (uint256) {
         return
             lastAuctionPrice -
             (lastAuctionPrice * publicSaleDiscountPercent) /
             10000;
     }
 
+    /// @dev Verifies that enough AVAX has been sent by the sender and refunds the extra tokens if any
+    /// @param _price The price paid by the sender for minting NFTs
     function refundIfOver(uint256 _price) private {
         if (msg.value < _price) {
             revert LaunchPeg__NotEnoughAVAX(msg.value);
@@ -410,9 +373,11 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
         }
     }
 
+    /// @inheritdoc ILaunchPeg
     function getAuctionPrice(uint256 _saleStartTime)
         public
         view
+        override
         returns (uint256)
     {
         if (block.timestamp < _saleStartTime) {
@@ -427,7 +392,8 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
         }
     }
 
-    function currentPhase() public view returns (Phase) {
+    /// @inheritdoc ILaunchPeg
+    function currentPhase() public view override returns (Phase) {
         if (
             auctionSaleStartTime == 0 ||
             mintlistStartTime == 0 ||
@@ -449,17 +415,18 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
         return Phase.PublicSale;
     }
 
-    /// @notice Set the project owner
-    /// @dev The project owner can call `devMint` any time
-    function setProjectOwner(address _projectOwner) external onlyOwner {
+    /// @inheritdoc ILaunchPeg
+    function setProjectOwner(address _projectOwner)
+        external
+        override
+        onlyOwner
+    {
         projectOwner = _projectOwner;
         emit ProjectOwnerUpdated(projectOwner);
     }
 
-    /// @notice Mint NFTs to the project owner
-    /// @dev Can only mint up to ``amountForDevs`
-    /// @param quantity Quantity of NFTs to mint
-    function devMint(uint256 quantity) external onlyProjectOwner {
+    /// @inheritdoc ILaunchPeg
+    function devMint(uint256 quantity) external override onlyProjectOwner {
         if (amountMintedByDevs + quantity > amountForDevs) {
             revert LaunchPeg__MaxSupplyReached();
         }
@@ -474,16 +441,18 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
         emit DevMint(msg.sender, quantity);
     }
 
+    /// @dev Returns the base token URI
     function _baseURI() internal view virtual override returns (string memory) {
         return _baseTokenURI;
     }
 
-    function setBaseURI(string calldata baseURI) external onlyOwner {
+    /// @inheritdoc ILaunchPeg
+    function setBaseURI(string calldata baseURI) external override onlyOwner {
         _baseTokenURI = baseURI;
     }
 
-    /// @notice Withdraw money to the contract owner
-    function withdrawMoney() external onlyOwner nonReentrant {
+    /// @inheritdoc ILaunchPeg
+    function withdrawMoney() external override onlyOwner nonReentrant {
         uint256 amount = address(this).balance;
         uint256 fee = 0;
         bool sent = false;
@@ -506,13 +475,21 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
         emit MoneyWithdraw(msg.sender, amount, fee);
     }
 
-    function numberMinted(address owner) public view returns (uint256) {
+    /// @inheritdoc ILaunchPeg
+    function numberMinted(address owner)
+        public
+        view
+        override
+        returns (uint256)
+    {
         return _numberMinted(owner);
     }
 
+    /// @inheritdoc ILaunchPeg
     function getOwnershipData(uint256 tokenId)
         external
         view
+        override
         returns (TokenOwnership memory)
     {
         return _ownershipOf(tokenId);
