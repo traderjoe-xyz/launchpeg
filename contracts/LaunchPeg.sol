@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import "erc721a/contracts/ERC721A.sol";
-import "./interfaces/ILaunchPeg.sol";
-import "./LaunchPegErrors.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
+
+import "erc721a/contracts/ERC721A.sol";
+
+import "./interfaces/ILaunchPeg.sol";
+import "./LaunchPegErrors.sol";
 
 /// @title LaunchPeg
 /// @author Trader Joe
@@ -40,11 +42,11 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard, ILaunchPeg {
     /// @notice Max amout of NFTs that can be minted at once
     uint256 public immutable maxBatchSize;
 
-    /// @notice Tracks the amount of NFTs minted by `projectOwner`
-    uint256 public amountMintedByDevs;
+    /// @dev Tracks the amount of NFTs minted by `projectOwner`
+    uint256 private amountMintedByDevs;
 
-    /// @notice Tracks the amount of NFTs minted during the dutch auction
-    uint256 public amountMintedDuringAuction;
+    /// @dev Tracks the amount of NFTs minted during the dutch auction
+    uint256 private amountMintedDuringAuction;
 
     /// @notice Start time of the dutch auction in seconds
     /// @dev Timestamp
@@ -79,7 +81,7 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard, ILaunchPeg {
 
     /// @notice The price of the last NFT sold during the auction
     /// @dev lastAuctionPrice is scaled to 1e18
-    uint256 public lastAuctionPrice;
+    uint256 private lastAuctionPrice;
 
     /// @notice The discount applied to the last auction price during the allowlist mint
     /// @dev in basis points e.g 500 for 5%
@@ -103,7 +105,7 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard, ILaunchPeg {
     /// @dev We may own the contract during the launch: this address is allowed to call `devMint`
     address public projectOwner;
 
-    /// @notice Base token URI
+    /// @dev Base token URI
     string private _baseTokenURI;
 
     modifier atPhase(Phase _phase) {
