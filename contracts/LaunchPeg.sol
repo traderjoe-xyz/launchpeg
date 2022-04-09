@@ -217,6 +217,12 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
         if (_publicSaleStartTime <= _mintlistStartTime) {
             revert LaunchPeg__PublicSaleBeforeMintlist();
         }
+        if (
+            _mintlistDiscountPercent > 10000 ||
+            _publicSaleDiscountPercent > 10000
+        ) {
+            revert LaunchPeg__InvalidPercent();
+        }
 
         auctionSaleStartTime = _auctionSaleStartTime;
         auctionStartPrice = _auctionStartPrice;
