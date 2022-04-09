@@ -121,6 +121,11 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
         uint256 publicSaleDiscountPercent
     );
 
+    event JoeFeeInitialized(
+        uint256 feePercent, 
+        address feeCollector
+    );
+
     event Mint(
         address indexed sender,
         uint256 quantity,
@@ -260,6 +265,7 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
         );
     }
 
+    /// @notice Initialize the percentage taken on the sale and collector address
     function initializeJoeFee(uint256 _joeFeePercent, address _joeFeeCollector)
         external
         onlyOwner
@@ -273,6 +279,7 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
         }
         joeFeePercent = _joeFeePercent;
         joeFeeCollector = _joeFeeCollector;
+        emit JoeFeeInitialized(_joeFeePercent, _joeFeeCollector);
     }
 
     /// @notice Seed the allowlist: each address can mint up to numSlot
