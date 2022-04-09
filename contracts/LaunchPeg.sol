@@ -91,6 +91,13 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
     /// @notice The amount of NFTs each allowed address can mint during the allowlist mint
     mapping(address => uint256) public allowlist;
 
+    /// @notice The fees collected by Joepeg on the sale benefits
+    /// @dev in basis points e.g 100 for 1%
+    uint256 joeFeePercent;
+
+    /// @notice The address to which the fees on the sale will be sent
+    address joeFeeCollector;
+
     address public projectOwner;
 
     string private _baseTokenURI;
@@ -124,7 +131,7 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
 
     event DevMint(address indexed sender, uint256 quantity);
 
-    event MoneyWithdraw(address indexed sender, uint256 amount);
+    event MoneyWithdraw(address indexed sender, uint256 amount, uint256 fee);
 
     event ProjectOwnerUpdated(address indexed owner);
 
@@ -245,6 +252,21 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
             publicSaleStartTime,
             publicSaleDiscountPercent
         );
+    }
+
+    function initializeJoeFee(uint256 _joeFeePercent, address _joeFeeCollector)
+        external
+        onlyOwner
+        atPhase(Phase.NotStarted)
+    {
+        if (joeFeePercent > 10000) {
+            revert LaunchPeg__InvalidPercent();
+        }
+        if (_joeFeeCollector == address(0)) {
+            revert LaunchPeg__InvalidJoeFeeCollector();
+        }
+        joeFeePercent = _joeFeePercent;
+        joeFeeCollector = _joeFeeCollector;
     }
 
     /// @notice Seed the allowlist: each address can mint up to numSlot
@@ -450,11 +472,25 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard {
     /// @notice Withdraw money to the contract owner
     function withdrawMoney() external onlyOwner nonReentrant {
         uint256 amount = address(this).balance;
-        (bool success, ) = msg.sender.call{value: amount}("");
-        if (!success) {
+        uint256 fee = 0;
+        bool sent = false;
+
+        if (joeFeePercent > 0) {
+            fee = (amount * joeFeePercent) / 10000;
+            amount = amount - fee;
+
+            (sent, ) = joeFeeCollector.call{value: fee}("");
+            if (!sent) {
+                revert LaunchPeg__TransferFailed();
+            }
+        }
+
+        (sent, ) = msg.sender.call{value: amount}("");
+        if (!sent) {
             revert LaunchPeg__TransferFailed();
         }
-        emit MoneyWithdraw(msg.sender, amount);
+
+        emit MoneyWithdraw(msg.sender, amount, fee);
     }
 
     function numberMinted(address owner) public view returns (uint256) {

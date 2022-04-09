@@ -6,6 +6,8 @@ error LaunchPeg__CanNotMintThisMany();
 error LaunchPeg__CanOnlyMintMultipleOfMaxBatchSize();
 error LaunchPeg__EndPriceGreaterThanStartPrice();
 error LaunchPeg__InvalidAuctionStartTime();
+error LaunchPeg__InvalidJoeFeeCollector();
+error LaunchPeg__InvalidPercent();
 error LaunchPeg__LargerCollectionSizeNeeded();
 error LaunchPeg__MaxSupplyReached();
 error LaunchPeg__MintlistBeforeAuction();
