@@ -370,6 +370,26 @@ describe('LaunchPeg', () => {
         ethers.utils.parseEther('0.01')
       )
     })
+
+    it('Fee correctly sent to collector address', async () => {
+      const feePercent = 200
+      const feeCollector = bob
+      await launchPeg.initializeJoeFee(feePercent, feeCollector.address)
+      await initializePhases(launchPeg, config, Phase.DutchAuction)
+
+      const total = config.startPrice.mul(5)
+      await launchPeg.connect(alice).auctionMint(5, { value: total })
+
+      const fee = total.mul(feePercent).div(10000)
+      const initialDevBalance = await dev.getBalance()
+      const initialFeeCollectorBalance = await feeCollector.getBalance()
+      await launchPeg.connect(dev).withdrawMoney()
+      expect(await dev.getBalance()).to.be.closeTo(
+        initialDevBalance.add(total.sub(fee)),
+        ethers.utils.parseEther('0.01')
+      )
+      expect(await feeCollector.getBalance()).to.be.eq(initialFeeCollectorBalance.add(fee))
+    })
   })
 
   after(async () => {
