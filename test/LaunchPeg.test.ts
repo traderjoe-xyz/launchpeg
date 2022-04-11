@@ -50,7 +50,8 @@ describe('LaunchPeg', () => {
       config.collectionSize,
       config.amountForAuction,
       config.amountForMintlist,
-      config.amountForDevs
+      config.amountForDevs,
+      config.batchRevealSize
     )
   }
 
