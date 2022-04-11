@@ -16,6 +16,7 @@ export interface LaunchPegConfig {
   auctionDropInterval: BigNumber
   mintlistDiscount: number
   publicSaleDiscount: number
+  batchRevealSize: number
 }
 
 const MINTLIST_START_OFFSET = 100
@@ -37,6 +38,7 @@ export const getDefaultLaunchPegConfig = async (): Promise<LaunchPegConfig> => {
     auctionDropInterval: duration.minutes(20),
     mintlistDiscount: 0.1 * 10000,
     publicSaleDiscount: 0.2 * 10000,
+    batchRevealSize: 1000,
   }
 }
 
