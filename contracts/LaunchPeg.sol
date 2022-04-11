@@ -10,10 +10,21 @@ import "erc721a/contracts/ERC721A.sol";
 import "./interfaces/ILaunchPeg.sol";
 import "./LaunchPegErrors.sol";
 
+import "./BatchReveal.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
+
 /// @title LaunchPeg
 /// @author Trader Joe
 /// @notice Implements a fair and gas efficient NFT launch mechanism. The sale takes place in 3 phases: dutch auction, allowlist mint, public sale.
-contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard, ILaunchPeg {
+contract LaunchPeg is
+    Ownable,
+    ERC721A,
+    ReentrancyGuard,
+    ILaunchPeg,
+    BatchReveal
+{
+    using Strings for uint256;
+
     enum Phase {
         NotStarted,
         DutchAuction,
@@ -108,6 +119,9 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard, ILaunchPeg {
     /// @dev Base token URI
     string private _baseTokenURI;
 
+    /// @dev Unrevealed token URI
+    string public unrevealedURI = "unrevealed";
+
     modifier atPhase(Phase _phase) {
         if (currentPhase() != _phase) {
             revert LaunchPeg__WrongPhase();
@@ -137,7 +151,8 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard, ILaunchPeg {
         uint256 _collectionSize,
         uint256 _amountForAuction,
         uint256 _amountForMintlist,
-        uint256 _amountForDevs
+        uint256 _amountForDevs,
+        uint256 _batchRevealSize
     ) ERC721A(_name, _symbol) {
         if (
             _amountForAuction + _amountForMintlist + _amountForDevs >
@@ -153,6 +168,12 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard, ILaunchPeg {
         amountForAuction = _amountForAuction;
         amountForMintlist = _amountForMintlist;
         amountForDevs = _amountForDevs;
+
+        // BatchReveal initialisation
+        REVEAL_BATCH_SIZE = _batchRevealSize;
+        TOKEN_LIMIT = _collectionSize;
+        RANGE_LENGTH = (_collectionSize / _batchRevealSize) * 2;
+        intTOKEN_LIMIT = int128(int256(_collectionSize));
     }
 
     /// @inheritdoc ILaunchPeg
@@ -278,6 +299,7 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard, ILaunchPeg {
         uint256 totalCost = lastAuctionPrice * _quantity;
         refundIfOver(totalCost);
         _safeMint(msg.sender, _quantity);
+        _revealBatch();
         amountMintedDuringAuction = amountMintedDuringAuction + _quantity;
         emit Mint(
             msg.sender,
@@ -311,6 +333,7 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard, ILaunchPeg {
         uint256 price = getMintlistPrice();
         refundIfOver(price);
         _safeMint(msg.sender, 1);
+        _revealBatch();
         emit Mint(msg.sender, 1, price, _totalMinted() - 1, Phase.Mintlist);
     }
 
@@ -342,6 +365,7 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard, ILaunchPeg {
         uint256 price = getPublicSalePrice();
         refundIfOver(price * _quantity);
         _safeMint(msg.sender, _quantity);
+        _revealBatch();
         emit Mint(
             msg.sender,
             _quantity,
@@ -438,6 +462,7 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard, ILaunchPeg {
         uint256 numChunks = quantity / maxBatchSize;
         for (uint256 i = 0; i < numChunks; i++) {
             _safeMint(msg.sender, maxBatchSize);
+            _revealBatch();
         }
         amountMintedByDevs = amountMintedByDevs + quantity;
         emit DevMint(msg.sender, quantity);
@@ -495,5 +520,45 @@ contract LaunchPeg is Ownable, ERC721A, ReentrancyGuard, ILaunchPeg {
         returns (TokenOwnership memory)
     {
         return _ownershipOf(tokenId);
+    }
+
+    function _revealBatch() internal {
+        if (totalSupply() >= (lastTokenRevealed + REVEAL_BATCH_SIZE)) {
+            setBatchSeed(
+                uint256(
+                    keccak256(
+                        abi.encode(
+                            msg.sender,
+                            tx.gasprice,
+                            block.number,
+                            block.timestamp,
+                            block.difficulty,
+                            blockhash(block.number - 1),
+                            address(this),
+                            totalSupply()
+                        )
+                    )
+                )
+            );
+        }
+    }
+
+    function tokenURI(uint256 id)
+        public
+        view
+        override(ERC721A, IERC721Metadata)
+        returns (string memory)
+    {
+        if (id >= lastTokenRevealed) {
+            return unrevealedURI;
+        } else {
+            return
+                string(
+                    abi.encodePacked(
+                        _baseTokenURI,
+                        getShuffledTokenId(id).toString()
+                    )
+                );
+        }
     }
 }
