@@ -98,7 +98,9 @@ interface ILaunchPeg is IERC721, IERC721Metadata {
         uint256 _mintlistStartTime,
         uint256 _mintlistDiscountPercent,
         uint256 _publicSaleStartTime,
-        uint256 _publicSaleDiscountPercent
+        uint256 _publicSaleDiscountPercent,
+        uint256 _revealTimestamp,
+        uint256 _revealInterval
     ) external;
 
     /// @notice Initialize the percentage taken on the sale and collector address

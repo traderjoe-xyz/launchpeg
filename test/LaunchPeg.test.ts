@@ -400,16 +400,30 @@ describe('LaunchPeg', () => {
     })
 
     it('First NFTs should be revealed gradually', async () => {
-      // For quicker minting
-      config.amountForDevs = config.collectionSize
-      config.amountForAuction = 0
-      config.amountForMintlist = 0
-      await deployLaunchPeg()
+      await initializePhases(launchPeg, config, Phase.Reveal)
+
+      console.log('Premier reveal')
+
+      await launchPeg.connect(alice).setBatchSeed()
+      expect(await launchPeg.tokenURI(0)).not.to.be.equal('unrevealed')
+      expect(await launchPeg.tokenURI(config.batchRevealSize)).to.be.equal('unrevealed')
+
+      await advanceTimeAndBlock(config.batchRevealInterval)
+      console.log('Deuxième reveal')
+
+      await launchPeg.connect(bob).setBatchSeed()
+      expect(await launchPeg.tokenURI(2 * config.batchRevealSize - 1)).not.to.be.equal('unrevealed')
+      expect(await launchPeg.tokenURI(2 * config.batchRevealSize + 1)).to.be.equal('unrevealed')
+    })
+
+    it('setBatchSeed should not be available too early', async () => {
       await initializePhases(launchPeg, config, Phase.DutchAuction)
 
-      await launchPeg.connect(projectOwner).devMint(config.batchRevealSize)
-      expect(await launchPeg.tokenURI(0)).not.to.be.equal('unrevealed')
-      expect(await launchPeg.tokenURI(config.batchRevealSize + 1)).to.be.equal('unrevealed')
+      await expect(launchPeg.connect(alice).setBatchSeed()).to.be.revertedWith('LaunchPeg__SetBatchSeedNotAvailable')
+
+      await advanceTimeAndBlock(duration.minutes(400))
+      await launchPeg.connect(bob).setBatchSeed()
+      await expect(launchPeg.connect(alice).setBatchSeed()).to.be.revertedWith('LaunchPeg__SetBatchSeedNotAvailable')
     })
   })
 
