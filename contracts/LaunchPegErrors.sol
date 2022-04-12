@@ -19,3 +19,4 @@ error LaunchPeg__TooManyAlreadyMintedBeforeDevMint();
 error LaunchPeg__Unauthorized();
 error LaunchPeg__WrongAddressesAndNumSlotsLength();
 error LaunchPeg__WrongPhase();
+error LaunchPeg__SetBatchSeedNotAvailable();

@@ -17,10 +17,14 @@ export interface LaunchPegConfig {
   mintlistDiscount: number
   publicSaleDiscount: number
   batchRevealSize: number
+  batchRevealStart: BigNumber
+  batchRevealInterval: BigNumber
 }
 
 const MINTLIST_START_OFFSET = 100
 const PUBLIC_SALE_START_OFFSET = 200
+const REVEAL_START_OFFSET = 400
+const REVEAL_INTERVAL = 50
 
 export const getDefaultLaunchPegConfig = async (): Promise<LaunchPegConfig> => {
   const auctionStartTime = await latest()
@@ -39,6 +43,8 @@ export const getDefaultLaunchPegConfig = async (): Promise<LaunchPegConfig> => {
     mintlistDiscount: 0.1 * 10000,
     publicSaleDiscount: 0.2 * 10000,
     batchRevealSize: 1000,
+    batchRevealStart: auctionStartTime.add(duration.minutes(REVEAL_START_OFFSET)),
+    batchRevealInterval: duration.minutes(REVEAL_INTERVAL),
   }
 }
 
@@ -46,6 +52,7 @@ export enum Phase {
   DutchAuction,
   Mintlist,
   PublicSale,
+  Reveal,
 }
 
 export const initializePhases = async (launchPeg: Contract, config: LaunchPegConfig, currentPhase: Phase) => {
@@ -57,7 +64,9 @@ export const initializePhases = async (launchPeg: Contract, config: LaunchPegCon
     config.mintlistStartTime,
     config.mintlistDiscount,
     config.publicSaleStartTime,
-    config.publicSaleDiscount
+    config.publicSaleDiscount,
+    config.batchRevealStart,
+    config.batchRevealInterval
   )
   await advanceTimeAndBlockToPhase(currentPhase)
 }
@@ -71,6 +80,9 @@ const advanceTimeAndBlockToPhase = async (phase: Phase) => {
       break
     case Phase.PublicSale:
       await advanceTimeAndBlock(duration.minutes(PUBLIC_SALE_START_OFFSET))
+      break
+    case Phase.Reveal:
+      await advanceTimeAndBlock(duration.minutes(REVEAL_START_OFFSET))
       break
   }
 }

@@ -122,6 +122,9 @@ contract LaunchPeg is
     /// @dev Unrevealed token URI
     string public unrevealedURI = "unrevealed";
 
+    uint256 public revealTimestamp;
+    uint256 public revealInterval;
+
     modifier atPhase(Phase _phase) {
         if (currentPhase() != _phase) {
             revert LaunchPeg__WrongPhase();
@@ -185,7 +188,9 @@ contract LaunchPeg is
         uint256 _mintlistStartTime,
         uint256 _mintlistDiscountPercent,
         uint256 _publicSaleStartTime,
-        uint256 _publicSaleDiscountPercent
+        uint256 _publicSaleDiscountPercent,
+        uint256 _revealTimestamp,
+        uint256 _revealInterval
     ) external override atPhase(Phase.NotStarted) {
         if (auctionSaleStartTime != 0) {
             revert LaunchPeg__AuctionAlreadyInitialized();
@@ -224,6 +229,9 @@ contract LaunchPeg is
 
         publicSaleStartTime = _publicSaleStartTime;
         publicSaleDiscountPercent = _publicSaleDiscountPercent;
+
+        revealTimestamp = _revealTimestamp;
+        revealInterval = _revealInterval;
 
         emit Initialized(
             name(),
@@ -299,7 +307,6 @@ contract LaunchPeg is
         uint256 totalCost = lastAuctionPrice * _quantity;
         refundIfOver(totalCost);
         _safeMint(msg.sender, _quantity);
-        _revealBatch();
         amountMintedDuringAuction = amountMintedDuringAuction + _quantity;
         emit Mint(
             msg.sender,
@@ -333,7 +340,6 @@ contract LaunchPeg is
         uint256 price = getMintlistPrice();
         refundIfOver(price);
         _safeMint(msg.sender, 1);
-        _revealBatch();
         emit Mint(msg.sender, 1, price, _totalMinted() - 1, Phase.Mintlist);
     }
 
@@ -365,7 +371,6 @@ contract LaunchPeg is
         uint256 price = getPublicSalePrice();
         refundIfOver(price * _quantity);
         _safeMint(msg.sender, _quantity);
-        _revealBatch();
         emit Mint(
             msg.sender,
             _quantity,
@@ -462,7 +467,6 @@ contract LaunchPeg is
         uint256 numChunks = quantity / maxBatchSize;
         for (uint256 i = 0; i < numChunks; i++) {
             _safeMint(msg.sender, maxBatchSize);
-            _revealBatch();
         }
         amountMintedByDevs = amountMintedByDevs + quantity;
         emit DevMint(msg.sender, quantity);
@@ -522,27 +526,6 @@ contract LaunchPeg is
         return _ownershipOf(tokenId);
     }
 
-    function _revealBatch() internal {
-        if (totalSupply() >= (lastTokenRevealed + REVEAL_BATCH_SIZE)) {
-            setBatchSeed(
-                uint256(
-                    keccak256(
-                        abi.encode(
-                            msg.sender,
-                            tx.gasprice,
-                            block.number,
-                            block.timestamp,
-                            block.difficulty,
-                            blockhash(block.number - 1),
-                            address(this),
-                            totalSupply()
-                        )
-                    )
-                )
-            );
-        }
-    }
-
     function tokenURI(uint256 id)
         public
         view
@@ -560,5 +543,37 @@ contract LaunchPeg is
                     )
                 );
         }
+    }
+
+     function setBatchSeed() public {
+        uint256 batchNumber;
+        unchecked {
+            batchNumber = lastTokenRevealed / REVEAL_BATCH_SIZE;
+            lastTokenRevealed += REVEAL_BATCH_SIZE;
+        }
+         
+        if (block.timestamp < revealTimestamp + batchNumber * revealInterval) {
+            revert LaunchPeg__SetBatchSeedNotAvailable();
+        }
+
+        uint256 randomness = uint256(
+                    keccak256(
+                        abi.encode(
+                            msg.sender,
+                            tx.gasprice,
+                            block.number,
+                            block.timestamp,
+                            block.difficulty,
+                            blockhash(block.number - 1),
+                            address(this),
+                            totalSupply()
+                        )
+                    )
+                );
+
+        // not perfectly random since the folding doesn't match bounds perfectly, but difference is small
+        batchToSeed[batchNumber] =
+            randomness %
+            (TOKEN_LIMIT - (batchNumber * REVEAL_BATCH_SIZE));
     }
 }
