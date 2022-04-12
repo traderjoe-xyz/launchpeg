@@ -393,6 +393,26 @@ describe('LaunchPeg', () => {
     })
   })
 
+  describe('Batch reveal', () => {
+    it('NFTs should be unrevealed initially', async () => {
+      await initializePhases(launchPeg, config, Phase.DutchAuction)
+      expect(await launchPeg.tokenURI(0)).to.be.equal('unrevealed')
+    })
+
+    it('First NFTs should be revealed gradually', async () => {
+      // For quicker minting
+      config.amountForDevs = config.collectionSize
+      config.amountForAuction = 0
+      config.amountForMintlist = 0
+      await deployLaunchPeg()
+      await initializePhases(launchPeg, config, Phase.DutchAuction)
+
+      await launchPeg.connect(projectOwner).devMint(config.batchRevealSize)
+      expect(await launchPeg.tokenURI(0)).not.to.be.equal('unrevealed')
+      expect(await launchPeg.tokenURI(config.batchRevealSize + 1)).to.be.equal('unrevealed')
+    })
+  })
+
   after(async () => {
     await network.provider.request({
       method: 'hardhat_reset',
