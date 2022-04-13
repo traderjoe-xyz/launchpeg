@@ -2,7 +2,7 @@ import { config as hardhatConfig, ethers, network } from 'hardhat'
 import { expect } from 'chai'
 import { advanceTimeAndBlock, latest, duration } from './utils/time'
 import { initializePhases, getDefaultLaunchPegConfig, Phase, LaunchPegConfig } from './utils/helpers'
-import { ContractFactory, Contract } from 'ethers'
+import { ContractFactory, Contract, BigNumber } from 'ethers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
 describe('LaunchPeg', () => {
@@ -165,6 +165,7 @@ describe('LaunchPeg', () => {
       config.amountForAuction = 5
       config.amountForMintlist = 5
       config.amountForDevs = 5
+      config.batchRevealSize = 5
       await deployLaunchPeg()
       await initializePhases(launchPeg, config, Phase.DutchAuction)
 
@@ -180,6 +181,7 @@ describe('LaunchPeg', () => {
       config.amountForAuction = 5
       config.amountForMintlist = 5
       config.amountForDevs = 5
+      config.batchRevealSize = 5
       await deployLaunchPeg()
       await initializePhases(launchPeg, config, Phase.DutchAuction)
 
@@ -329,6 +331,7 @@ describe('LaunchPeg', () => {
       config.amountForAuction = 5
       config.amountForMintlist = 0
       config.amountForDevs = 5
+      config.batchRevealSize = 5
       await deployLaunchPeg()
       await initializePhases(launchPeg, config, Phase.PublicSale)
 
@@ -393,34 +396,128 @@ describe('LaunchPeg', () => {
     })
   })
 
-  describe('Batch reveal', () => {
+  describe('Batch reveal on mint', () => {
     it('NFTs should be unrevealed initially', async () => {
       await initializePhases(launchPeg, config, Phase.DutchAuction)
       expect(await launchPeg.tokenURI(0)).to.be.equal(config.unrevealedTokenURI)
     })
 
     it('First NFTs should be revealed gradually', async () => {
-      await initializePhases(launchPeg, config, Phase.Reveal)
+      config.collectionSize = 50
+      config.amountForDevs = 50
+      config.amountForAuction = 0
+      config.amountForMintlist = 0
+      config.batchRevealSize = 10
+      config.batchRevealStart = BigNumber.from(0)
+      config.batchRevealInterval = BigNumber.from(0)
+      await deployLaunchPeg()
+      await initializePhases(launchPeg, config, Phase.DutchAuction)
 
-      await launchPeg.connect(alice).setBatchSeed()
+      await launchPeg.connect(projectOwner).devMint(config.batchRevealSize)
+      await launchPeg.connect(alice).revealNextBatch()
       expect(await launchPeg.tokenURI(0)).to.contains(config.baseTokenURI)
       expect(await launchPeg.tokenURI(config.batchRevealSize)).to.be.equal(config.unrevealedTokenURI)
 
-      await advanceTimeAndBlock(config.batchRevealInterval)
+      await launchPeg.connect(projectOwner).devMint(config.batchRevealSize)
 
-      await launchPeg.connect(bob).setBatchSeed()
+      await launchPeg.connect(bob).revealNextBatch()
       expect(await launchPeg.tokenURI(2 * config.batchRevealSize - 1)).to.contains(config.baseTokenURI)
       expect(await launchPeg.tokenURI(2 * config.batchRevealSize + 1)).to.be.equal(config.unrevealedTokenURI)
     })
 
-    it('setBatchSeed should not be available too early', async () => {
+    it('RevealNextBatch should not be available too early', async () => {
+      config.collectionSize = 50
+      config.amountForDevs = 50
+      config.amountForAuction = 0
+      config.amountForMintlist = 0
+      config.batchRevealSize = 10
+      config.batchRevealStart = BigNumber.from(0)
+      config.batchRevealInterval = BigNumber.from(0)
+      await deployLaunchPeg()
+
       await initializePhases(launchPeg, config, Phase.DutchAuction)
 
-      await expect(launchPeg.connect(alice).setBatchSeed()).to.be.revertedWith('LaunchPeg__SetBatchSeedNotAvailable')
+      await expect(launchPeg.connect(alice).revealNextBatch()).to.be.revertedWith(
+        'LaunchPeg__RevealNextBatchNotAvailable'
+      )
 
-      await advanceTimeAndBlock(duration.minutes(400))
-      await launchPeg.connect(bob).setBatchSeed()
-      await expect(launchPeg.connect(alice).setBatchSeed()).to.be.revertedWith('LaunchPeg__SetBatchSeedNotAvailable')
+      await launchPeg.connect(projectOwner).devMint(config.batchRevealSize)
+      await launchPeg.connect(bob).revealNextBatch()
+      await expect(launchPeg.connect(alice).revealNextBatch()).to.be.revertedWith(
+        'LaunchPeg__RevealNextBatchNotAvailable'
+      )
+    })
+  })
+
+  describe('Batch reveal event after sale', () => {
+    it('First NFTs should not be revealed during sale', async () => {
+      config.collectionSize = 50
+      config.amountForDevs = 50
+      config.amountForAuction = 0
+      config.amountForMintlist = 0
+      config.batchRevealSize = 10
+      await deployLaunchPeg()
+      await initializePhases(launchPeg, config, Phase.DutchAuction)
+
+      await launchPeg.connect(projectOwner).devMint(config.batchRevealSize)
+
+      expect(await launchPeg.tokenURI(0)).to.be.equal(config.unrevealedTokenURI)
+      await expect(launchPeg.connect(alice).revealNextBatch()).to.be.revertedWith(
+        'LaunchPeg__RevealNextBatchNotAvailable'
+      )
+
+      await launchPeg.connect(projectOwner).devMint(config.batchRevealSize)
+
+      expect(await launchPeg.tokenURI(2 * config.batchRevealSize - 1)).to.be.equal(config.unrevealedTokenURI)
+      await expect(launchPeg.connect(alice).revealNextBatch()).to.be.revertedWith(
+        'LaunchPeg__RevealNextBatchNotAvailable'
+      )
+    })
+
+    it('NFTs should gradually reveal after revealStartTime', async () => {
+      config.collectionSize = 50
+      config.amountForDevs = 50
+      config.amountForAuction = 0
+      config.amountForMintlist = 0
+      config.batchRevealSize = 10
+      await deployLaunchPeg()
+
+      await initializePhases(launchPeg, config, Phase.Reveal)
+
+      await launchPeg.connect(projectOwner).devMint(3 * config.batchRevealSize)
+
+      await launchPeg.connect(alice).revealNextBatch()
+      expect(await launchPeg.tokenURI(0)).to.contains(config.baseTokenURI)
+      expect(await launchPeg.tokenURI(config.batchRevealSize)).to.be.equal(config.unrevealedTokenURI)
+
+      // Too early to reveal next batch
+      await expect(launchPeg.connect(bob).revealNextBatch()).to.be.revertedWith(
+        'LaunchPeg__RevealNextBatchNotAvailable'
+      )
+      await advanceTimeAndBlock(config.batchRevealInterval)
+
+      await launchPeg.connect(bob).revealNextBatch()
+      expect(await launchPeg.tokenURI(2 * config.batchRevealSize - 1)).to.contains(config.baseTokenURI)
+      expect(await launchPeg.tokenURI(2 * config.batchRevealSize + 1)).to.be.equal(config.unrevealedTokenURI)
+    })
+
+    it('Owner should be able to reveal if the collection does not sell out', async () => {
+      await initializePhases(launchPeg, config, Phase.PublicSale)
+
+      // No one bought the collection :(
+      await launchPeg.connect(projectOwner).devMint(config.amountForDevs)
+
+      // Should fail since not enough tokens have been minted for a reveal
+      await expect(launchPeg.connect(bob).revealNextBatch()).to.be.revertedWith(
+        'LaunchPeg__RevealNextBatchNotAvailable'
+      )
+
+      await expect(launchPeg.connect(bob).forceReveal()).to.be.revertedWith('LaunchPeg__Unauthorized')
+
+      await launchPeg.connect(projectOwner).forceReveal()
+      // Batch 1 is revealed
+      expect(await launchPeg.tokenURI(0)).to.contains(config.baseTokenURI)
+      expect(await launchPeg.tokenURI(config.batchRevealSize)).to.be.equal(config.unrevealedTokenURI)
     })
   })
 
