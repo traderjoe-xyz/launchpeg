@@ -6,12 +6,11 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 
 import "erc721a/contracts/ERC721A.sol";
+import "./BatchReveal.sol";
 
 import "./interfaces/ILaunchPeg.sol";
 import "./LaunchPegErrors.sol";
 
-import "./BatchReveal.sol";
-import "@openzeppelin/contracts/utils/Strings.sol";
 
 /// @title LaunchPeg
 /// @author Trader Joe
@@ -120,9 +119,9 @@ contract LaunchPeg is
     string private _baseTokenURI;
 
     /// @dev Unrevealed token URI
-    string public unrevealedURI = "unrevealed";
+    string private _unrevealedTokenURI;
 
-    uint256 public revealTimestamp;
+    uint256 public revealStartTime;
     uint256 public revealInterval;
 
     modifier atPhase(Phase _phase) {
@@ -156,7 +155,8 @@ contract LaunchPeg is
         uint256 _amountForMintlist,
         uint256 _amountForDevs,
         uint256 _batchRevealSize
-    ) ERC721A(_name, _symbol) {
+    ) ERC721A(_name, _symbol)
+        BatchReveal(_batchRevealSize) {
         if (
             _amountForAuction + _amountForMintlist + _amountForDevs >
             _collectionSize
@@ -173,7 +173,6 @@ contract LaunchPeg is
         amountForDevs = _amountForDevs;
 
         // BatchReveal initialisation
-        REVEAL_BATCH_SIZE = _batchRevealSize;
         TOKEN_LIMIT = _collectionSize;
         RANGE_LENGTH = (_collectionSize / _batchRevealSize) * 2;
         intTOKEN_LIMIT = int128(int256(_collectionSize));
@@ -189,7 +188,7 @@ contract LaunchPeg is
         uint256 _mintlistDiscountPercent,
         uint256 _publicSaleStartTime,
         uint256 _publicSaleDiscountPercent,
-        uint256 _revealTimestamp,
+        uint256 _revealStartTime,
         uint256 _revealInterval
     ) external override atPhase(Phase.NotStarted) {
         if (auctionSaleStartTime != 0) {
@@ -230,7 +229,7 @@ contract LaunchPeg is
         publicSaleStartTime = _publicSaleStartTime;
         publicSaleDiscountPercent = _publicSaleDiscountPercent;
 
-        revealTimestamp = _revealTimestamp;
+        revealStartTime = _revealStartTime;
         revealInterval = _revealInterval;
 
         emit Initialized(
@@ -482,6 +481,16 @@ contract LaunchPeg is
         _baseTokenURI = baseURI;
     }
 
+    /// @dev Returns the unrevealed token URI
+    function _unrevealedURI() internal view virtual  returns (string memory) {
+        return _unrevealedTokenURI;
+    }
+
+    /// @inheritdoc ILaunchPeg
+    function setUnrevealedURI(string calldata unrevealedURI) external override onlyOwner {
+        _unrevealedTokenURI = unrevealedURI;
+    }
+
     /// @inheritdoc ILaunchPeg
     function withdrawMoney() external override onlyOwner nonReentrant {
         uint256 amount = address(this).balance;
@@ -533,12 +542,12 @@ contract LaunchPeg is
         returns (string memory)
     {
         if (id >= lastTokenRevealed) {
-            return unrevealedURI;
+            return _unrevealedURI();
         } else {
             return
                 string(
                     abi.encodePacked(
-                        _baseTokenURI,
+                        _baseURI(),
                         getShuffledTokenId(id).toString()
                     )
                 );
@@ -548,11 +557,11 @@ contract LaunchPeg is
      function setBatchSeed() public {
         uint256 batchNumber;
         unchecked {
-            batchNumber = lastTokenRevealed / REVEAL_BATCH_SIZE;
-            lastTokenRevealed += REVEAL_BATCH_SIZE;
+            batchNumber = lastTokenRevealed / revealBatchSize;
+            lastTokenRevealed += revealBatchSize;
         }
          
-        if (block.timestamp < revealTimestamp + batchNumber * revealInterval) {
+        if (block.timestamp < revealStartTime + batchNumber * revealInterval) {
             revert LaunchPeg__SetBatchSeedNotAvailable();
         }
 
@@ -574,6 +583,6 @@ contract LaunchPeg is
         // not perfectly random since the folding doesn't match bounds perfectly, but difference is small
         batchToSeed[batchNumber] =
             randomness %
-            (TOKEN_LIMIT - (batchNumber * REVEAL_BATCH_SIZE));
+            (TOKEN_LIMIT - (batchNumber * revealBatchSize));
     }
 }

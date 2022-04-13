@@ -68,6 +68,7 @@ export const initializePhases = async (launchPeg: Contract, config: LaunchPegCon
     config.batchRevealStart,
     config.batchRevealInterval
   )
+  await launchPeg.setUnrevealedURI('unrevealed')
   await advanceTimeAndBlockToPhase(currentPhase)
 }
 

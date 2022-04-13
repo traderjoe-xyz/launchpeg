@@ -1,18 +1,25 @@
 //SPDX-License-Identifier: CC0
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.4;
+
+// Creator: Tubby Cats
+/// https://github.com/tubby-cats/batch-nft-reveal
 
 /*
   See ../../randomness.md
 */
 abstract contract BatchReveal {
     uint256 public TOKEN_LIMIT;
-    uint256 public REVEAL_BATCH_SIZE;
+    uint256 public immutable revealBatchSize;
     mapping(uint256 => uint256) public batchToSeed;
     uint256 public lastTokenRevealed = 0;
 
     struct Range {
         int128 start;
         int128 end;
+    }
+
+    constructor(uint256  _revealBatchSize) {
+        revealBatchSize =  _revealBatchSize;
     }
 
     // Forked from openzeppelin
@@ -74,7 +81,7 @@ abstract contract BatchReveal {
             int128 start = int128(
                 int256(getFreeTokenId(batchToSeed[i], ranges))
             );
-            int128 end = start + int128(int256(REVEAL_BATCH_SIZE));
+            int128 end = start + int128(int256(revealBatchSize));
             lastIndex = addRange(ranges, start, end, lastIndex);
         }
         return ranges;
@@ -85,13 +92,13 @@ abstract contract BatchReveal {
         view
         returns (uint256)
     {
-        uint256 batch = startId / REVEAL_BATCH_SIZE;
+        uint256 batch = startId / revealBatchSize;
         // uint256 constant length = RANGE_LENGTH;
         Range[] memory ranges = new Range[](RANGE_LENGTH);
 
         ranges = buildJumps(batch);
 
-        uint256 positionsToMove = (startId % REVEAL_BATCH_SIZE) +
+        uint256 positionsToMove = (startId % revealBatchSize) +
             batchToSeed[batch];
 
         return getFreeTokenId(positionsToMove, ranges);
@@ -132,12 +139,12 @@ abstract contract BatchReveal {
     function setBatchSeed(uint256 randomness) internal {
         uint256 batchNumber;
         unchecked {
-            batchNumber = lastTokenRevealed / REVEAL_BATCH_SIZE;
-            lastTokenRevealed += REVEAL_BATCH_SIZE;
+            batchNumber = lastTokenRevealed / revealBatchSize;
+            lastTokenRevealed += revealBatchSize;
         }
         // not perfectly random since the folding doesn't match bounds perfectly, but difference is small
         batchToSeed[batchNumber] =
             randomness %
-            (TOKEN_LIMIT - (batchNumber * REVEAL_BATCH_SIZE));
+            (TOKEN_LIMIT - (batchNumber * revealBatchSize));
     }
 }

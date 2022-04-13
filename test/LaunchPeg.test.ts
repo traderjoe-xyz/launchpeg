@@ -402,14 +402,11 @@ describe('LaunchPeg', () => {
     it('First NFTs should be revealed gradually', async () => {
       await initializePhases(launchPeg, config, Phase.Reveal)
 
-      console.log('Premier reveal')
-
       await launchPeg.connect(alice).setBatchSeed()
       expect(await launchPeg.tokenURI(0)).not.to.be.equal('unrevealed')
       expect(await launchPeg.tokenURI(config.batchRevealSize)).to.be.equal('unrevealed')
 
       await advanceTimeAndBlock(config.batchRevealInterval)
-      console.log('Deuxième reveal')
 
       await launchPeg.connect(bob).setBatchSeed()
       expect(await launchPeg.tokenURI(2 * config.batchRevealSize - 1)).not.to.be.equal('unrevealed')
