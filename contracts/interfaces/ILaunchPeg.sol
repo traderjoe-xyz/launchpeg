@@ -157,6 +157,10 @@ interface ILaunchPeg is IERC721, IERC721Metadata {
     /// @notice Set the base URI
     function setBaseURI(string calldata baseURI) external;
 
+    /// @notice Set the unrevealed URI
+    function setUnrevealedURI(string calldata baseURI) external;
+
+
     /// @notice Withdraw money to the contract owner
     function withdrawMoney() external;
 
