@@ -8,18 +8,23 @@ pragma solidity ^0.8.4;
   See ../../randomness.md
 */
 abstract contract BatchReveal {
-    uint256 public TOKEN_LIMIT;
+    uint256 private immutable collectionSize;
     uint256 public immutable revealBatchSize;
     mapping(uint256 => uint256) public batchToSeed;
     uint256 public lastTokenRevealed = 0;
+    uint256 private immutable rangeLength;
+    int128 private immutable intCollectionSize;
 
     struct Range {
         int128 start;
         int128 end;
     }
 
-    constructor(uint256  _revealBatchSize) {
+    constructor(uint256  _revealBatchSize, uint256 _collectionSize) {
         revealBatchSize =  _revealBatchSize;
+        collectionSize = _collectionSize;
+        rangeLength = (_collectionSize / _revealBatchSize) * 2;
+        intCollectionSize = int128(int256(_collectionSize));
     }
 
     // Forked from openzeppelin
@@ -30,8 +35,6 @@ abstract contract BatchReveal {
         return a < b ? a : b;
     }
 
-    uint256 RANGE_LENGTH;
-    int128 intTOKEN_LIMIT;
 
     // ranges include the start but not the end [start, end)
     function addRange(
@@ -61,10 +64,10 @@ abstract contract BatchReveal {
         for (uint256 pos = lastIndex; pos > positionToAssume; pos--) {
             ranges[pos] = ranges[pos - 1];
         }
-        ranges[positionToAssume] = Range(start, min(end, intTOKEN_LIMIT));
+        ranges[positionToAssume] = Range(start, min(end, intCollectionSize));
         lastIndex++;
-        if (end > intTOKEN_LIMIT) {
-            addRange(ranges, 0, end - intTOKEN_LIMIT, lastIndex);
+        if (end > intCollectionSize) {
+            addRange(ranges, 0, end - intCollectionSize, lastIndex);
             lastIndex++;
         }
         return lastIndex;
@@ -75,7 +78,7 @@ abstract contract BatchReveal {
         view
         returns (Range[] memory)
     {
-        Range[] memory ranges = new Range[](RANGE_LENGTH);
+        Range[] memory ranges = new Range[](rangeLength);
         uint256 lastIndex = 0;
         for (uint256 i = 0; i < lastBatch; i++) {
             int128 start = int128(
@@ -93,8 +96,8 @@ abstract contract BatchReveal {
         returns (uint256)
     {
         uint256 batch = startId / revealBatchSize;
-        // uint256 constant length = RANGE_LENGTH;
-        Range[] memory ranges = new Range[](RANGE_LENGTH);
+        // uint256 constant length = rangeLength;
+        Range[] memory ranges = new Range[](rangeLength);
 
         ranges = buildJumps(batch);
 
@@ -113,7 +116,7 @@ abstract contract BatchReveal {
         int128 id = 0;
 
         for (uint256 round = 0; round < 2; round++) {
-            for (uint256 i = 0; i < RANGE_LENGTH; i++) {
+            for (uint256 i = 0; i < rangeLength; i++) {
                 int128 start = ranges[i].start;
                 int128 end = ranges[i].end;
                 if (id < start) {
@@ -128,23 +131,32 @@ abstract contract BatchReveal {
                     id = end;
                 }
             }
-            if ((id + positionsToMove) >= intTOKEN_LIMIT) {
-                positionsToMove -= intTOKEN_LIMIT - id;
+            if ((id + positionsToMove) >= intCollectionSize) {
+                positionsToMove -= intCollectionSize - id;
                 id = 0;
             }
         }
         return uint256(uint128(id + positionsToMove));
     }
 
-    function setBatchSeed(uint256 randomness) internal {
-        uint256 batchNumber;
-        unchecked {
-            batchNumber = lastTokenRevealed / revealBatchSize;
-            lastTokenRevealed += revealBatchSize;
-        }
+    function setBatchSeed(uint256 batchNumber) internal {
+        uint256 randomness = uint256(
+                    keccak256(
+                        abi.encode(
+                            msg.sender,
+                            tx.gasprice,
+                            block.number,
+                            block.timestamp,
+                            block.difficulty,
+                            blockhash(block.number - 1),
+                            address(this)
+                        )
+                    )
+                );
+
         // not perfectly random since the folding doesn't match bounds perfectly, but difference is small
         batchToSeed[batchNumber] =
             randomness %
-            (TOKEN_LIMIT - (batchNumber * revealBatchSize));
+            (collectionSize - (batchNumber * revealBatchSize));
     }
 }
