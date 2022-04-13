@@ -11,7 +11,6 @@ import "./BatchReveal.sol";
 import "./interfaces/ILaunchPeg.sol";
 import "./LaunchPegErrors.sol";
 
-
 /// @title LaunchPeg
 /// @author Trader Joe
 /// @notice Implements a fair and gas efficient NFT launch mechanism. The sale takes place in 3 phases: dutch auction, allowlist mint, public sale.
@@ -155,13 +154,16 @@ contract LaunchPeg is
         uint256 _amountForMintlist,
         uint256 _amountForDevs,
         uint256 _batchRevealSize
-    ) ERC721A(_name, _symbol)
-        BatchReveal(_batchRevealSize, _collectionSize) {
+    ) ERC721A(_name, _symbol) BatchReveal(_batchRevealSize, _collectionSize) {
         if (
             _amountForAuction + _amountForMintlist + _amountForDevs >
             _collectionSize
         ) {
             revert LaunchPeg__LargerCollectionSizeNeeded();
+        }
+
+        if (_collectionSize % _batchRevealSize > 0) {
+            revert LaunchPeg__InvalidBatchRevealSize();
         }
 
         projectOwner = _projectOwner;
@@ -171,7 +173,6 @@ contract LaunchPeg is
         amountForAuction = _amountForAuction;
         amountForMintlist = _amountForMintlist;
         amountForDevs = _amountForDevs;
-
     }
 
     /// @inheritdoc ILaunchPeg
@@ -478,12 +479,16 @@ contract LaunchPeg is
     }
 
     /// @dev Returns the unrevealed token URI
-    function _unrevealedURI() internal view virtual  returns (string memory) {
+    function _unrevealedURI() internal view virtual returns (string memory) {
         return _unrevealedTokenURI;
     }
 
     /// @inheritdoc ILaunchPeg
-    function setUnrevealedURI(string calldata unrevealedURI) external override onlyOwner {
+    function setUnrevealedURI(string calldata unrevealedURI)
+        external
+        override
+        onlyOwner
+    {
         _unrevealedTokenURI = unrevealedURI;
     }
 
@@ -550,15 +555,40 @@ contract LaunchPeg is
         }
     }
 
-     function setBatchSeed() public {
+    function hasBatchToReveal() public view returns (bool, uint256) {
+        uint256 batchNumber;
+        unchecked {
+            batchNumber = lastTokenRevealed / revealBatchSize;
+        }
+
+        if (
+            block.timestamp < revealStartTime + batchNumber * revealInterval ||
+            totalSupply() < lastTokenRevealed + revealBatchSize
+        ) {
+            return (false, batchNumber);
+        }
+
+        return (true, batchNumber);
+    }
+
+    function revealNextBatch() public isEOA {
+        uint256 batchNumber;
+        bool canReveal;
+        (canReveal, batchNumber) = hasBatchToReveal();
+
+        if (!canReveal) {
+            revert LaunchPeg__RevealNextBatchNotAvailable();
+        }
+
+        lastTokenRevealed += revealBatchSize;
+        setBatchSeed(batchNumber);
+    }
+
+    function forceReveal() public onlyProjectOwner {
         uint256 batchNumber;
         unchecked {
             batchNumber = lastTokenRevealed / revealBatchSize;
             lastTokenRevealed += revealBatchSize;
-        }
-         
-        if (block.timestamp < revealStartTime + batchNumber * revealInterval) {
-            revert LaunchPeg__SetBatchSeedNotAvailable();
         }
 
         setBatchSeed(batchNumber);
