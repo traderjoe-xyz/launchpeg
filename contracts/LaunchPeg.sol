@@ -156,7 +156,7 @@ contract LaunchPeg is
         uint256 _amountForDevs,
         uint256 _batchRevealSize
     ) ERC721A(_name, _symbol)
-        BatchReveal(_batchRevealSize) {
+        BatchReveal(_batchRevealSize, _collectionSize) {
         if (
             _amountForAuction + _amountForMintlist + _amountForDevs >
             _collectionSize
@@ -172,10 +172,6 @@ contract LaunchPeg is
         amountForMintlist = _amountForMintlist;
         amountForDevs = _amountForDevs;
 
-        // BatchReveal initialisation
-        TOKEN_LIMIT = _collectionSize;
-        RANGE_LENGTH = (_collectionSize / _batchRevealSize) * 2;
-        intTOKEN_LIMIT = int128(int256(_collectionSize));
     }
 
     /// @inheritdoc ILaunchPeg
@@ -565,24 +561,6 @@ contract LaunchPeg is
             revert LaunchPeg__SetBatchSeedNotAvailable();
         }
 
-        uint256 randomness = uint256(
-                    keccak256(
-                        abi.encode(
-                            msg.sender,
-                            tx.gasprice,
-                            block.number,
-                            block.timestamp,
-                            block.difficulty,
-                            blockhash(block.number - 1),
-                            address(this),
-                            totalSupply()
-                        )
-                    )
-                );
-
-        // not perfectly random since the folding doesn't match bounds perfectly, but difference is small
-        batchToSeed[batchNumber] =
-            randomness %
-            (TOKEN_LIMIT - (batchNumber * revealBatchSize));
+        setBatchSeed(batchNumber);
     }
 }
