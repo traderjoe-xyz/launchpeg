@@ -396,21 +396,21 @@ describe('LaunchPeg', () => {
   describe('Batch reveal', () => {
     it('NFTs should be unrevealed initially', async () => {
       await initializePhases(launchPeg, config, Phase.DutchAuction)
-      expect(await launchPeg.tokenURI(0)).to.be.equal('unrevealed')
+      expect(await launchPeg.tokenURI(0)).to.be.equal(config.unrevealedTokenURI)
     })
 
     it('First NFTs should be revealed gradually', async () => {
       await initializePhases(launchPeg, config, Phase.Reveal)
 
       await launchPeg.connect(alice).setBatchSeed()
-      expect(await launchPeg.tokenURI(0)).not.to.be.equal('unrevealed')
-      expect(await launchPeg.tokenURI(config.batchRevealSize)).to.be.equal('unrevealed')
+      expect(await launchPeg.tokenURI(0)).to.contains(config.baseTokenURI)
+      expect(await launchPeg.tokenURI(config.batchRevealSize)).to.be.equal(config.unrevealedTokenURI)
 
       await advanceTimeAndBlock(config.batchRevealInterval)
 
       await launchPeg.connect(bob).setBatchSeed()
-      expect(await launchPeg.tokenURI(2 * config.batchRevealSize - 1)).not.to.be.equal('unrevealed')
-      expect(await launchPeg.tokenURI(2 * config.batchRevealSize + 1)).to.be.equal('unrevealed')
+      expect(await launchPeg.tokenURI(2 * config.batchRevealSize - 1)).to.contains(config.baseTokenURI)
+      expect(await launchPeg.tokenURI(2 * config.batchRevealSize + 1)).to.be.equal(config.unrevealedTokenURI)
     })
 
     it('setBatchSeed should not be available too early', async () => {

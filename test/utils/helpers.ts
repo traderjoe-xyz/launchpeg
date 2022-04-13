@@ -19,6 +19,8 @@ export interface LaunchPegConfig {
   batchRevealSize: number
   batchRevealStart: BigNumber
   batchRevealInterval: BigNumber
+  baseTokenURI: string
+  unrevealedTokenURI: string
 }
 
 const MINTLIST_START_OFFSET = 100
@@ -45,6 +47,8 @@ export const getDefaultLaunchPegConfig = async (): Promise<LaunchPegConfig> => {
     batchRevealSize: 1000,
     batchRevealStart: auctionStartTime.add(duration.minutes(REVEAL_START_OFFSET)),
     batchRevealInterval: duration.minutes(REVEAL_INTERVAL),
+    baseTokenURI: 'ipfs://bafybeib3jkgtnqmnevrafzlrhroa6ws7wbmdh7dndonij7jvmvho5fmxj4/',
+    unrevealedTokenURI: 'unrevealed',
   }
 }
 
@@ -68,7 +72,8 @@ export const initializePhases = async (launchPeg: Contract, config: LaunchPegCon
     config.batchRevealStart,
     config.batchRevealInterval
   )
-  await launchPeg.setUnrevealedURI('unrevealed')
+  await launchPeg.setUnrevealedURI(config.unrevealedTokenURI)
+  await launchPeg.setBaseURI(config.baseTokenURI)
   await advanceTimeAndBlockToPhase(currentPhase)
 }
 
