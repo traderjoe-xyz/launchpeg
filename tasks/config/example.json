@@ -1,0 +1,23 @@
+{
+  "name": "JoePEG",
+  "symbol": "JPEG",
+  "projectOwner": "0x0000000000000000000000000000000000000000",
+  "maxBatchSize": "5",
+  "collectionSize": "10000",
+  "amountForAuction": "6000",
+  "amountForMintlist": "2000",
+  "amountForDevs": "200",
+  "batchRevealSize": "1000",
+  "auctionSaleStartTime": "1650060142",
+  "auctionStartPrice": "10000000000000000000",
+  "auctionEndPrice": "5000000000000000000",
+  "auctionDropInterval": "1200",
+  "mintlistStartTime": "1650146542",
+  "mintlistDiscountPercent": "1000",
+  "publicSaleStartTime": "1650189742",
+  "publicSaleDiscountPercent": "2000",
+  "revealStartTime": "1650189742",
+  "revealInterval": "300",
+  "joeFeePercent": "100",
+  "joeFeeCollector": "0x0000000000000000000000000000000000000000"
+}

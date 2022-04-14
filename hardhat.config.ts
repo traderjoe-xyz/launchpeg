@@ -9,6 +9,12 @@ import 'hardhat-deploy'
 import 'hardhat-deploy-ethers'
 import 'solidity-coverage'
 import { HardhatUserConfig } from 'hardhat/config'
+import glob from 'glob'
+import path from 'path'
+
+glob.sync('./tasks/**/*.ts').forEach(function (file) {
+  require(path.resolve(file))
+})
 
 const config: HardhatUserConfig = {
   solidity: {
@@ -27,11 +33,11 @@ const config: HardhatUserConfig = {
   defaultNetwork: 'hardhat',
   networks: {
     hardhat: {},
-    rinkeby: {
-      url: `https://eth-rinkeby.alchemyapi.io/v2/${process.env.ALCHEMY_PROJECT_ID || ''}`,
+    fuji: {
+      url: 'https://api.avax-test.network/ext/bc/C/rpc',
+      gasPrice: 26000000000,
+      chainId: 43113,
       accounts: process.env.DEPLOY_PRIVATE_KEY ? [process.env.DEPLOY_PRIVATE_KEY] : [],
-      gas: 2100000,
-      gasPrice: 8000000000,
       saveDeployments: true,
     },
     avalanche: {
@@ -46,10 +52,6 @@ const config: HardhatUserConfig = {
   },
   namedAccounts: {
     deployer: 0,
-    dev: 1,
-  },
-  etherscan: {
-    apiKey: process.env.ETHERSCAN_API_KEY,
   },
 }
 
