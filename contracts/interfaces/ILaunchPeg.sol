@@ -27,8 +27,6 @@ interface ILaunchPeg is IERC721, IERC721Metadata {
     /// @param mintlistDiscountPercent Discount applied to the last auction price during the allowlist mint
     /// @param publicSaleStartTime Public sale start time in seconds
     /// @param publicSaleDiscountPercent Discount applied to the last auction price during the public sale
-    /// @param revealStartTime Start of the token URIs reveal in seconds
-    /// @param revealInterval Interval between two batch reveals in seconds
     event Initialized(
         string indexed name,
         string indexed symbol,
@@ -45,9 +43,17 @@ interface ILaunchPeg is IERC721, IERC721Metadata {
         uint256 mintlistStartTime,
         uint256 mintlistDiscountPercent,
         uint256 publicSaleStartTime,
-        uint256 publicSaleDiscountPercent,
+        uint256 publicSaleDiscountPercent
+    );
+
+    /// @dev Emitted on initializePhases()
+    /// @param revealStartTime Start of the token URIs reveal in seconds
+    /// @param revealInterval Interval between two batch reveals in seconds
+    /// @param revealBatchSize Amount of NFTs revealed in a single batch
+    event RevealInitialized(
         uint256 revealStartTime,
-        uint256 revealInterval
+        uint256 revealInterval,
+        uint256 revealBatchSize
     );
 
     /// @dev Emitted on initializeJoeFee()

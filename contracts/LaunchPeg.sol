@@ -242,9 +242,13 @@ contract LaunchPeg is
             mintlistStartTime,
             mintlistDiscountPercent,
             publicSaleStartTime,
-            publicSaleDiscountPercent,
+            publicSaleDiscountPercent
+        );
+
+        emit RevealInitialized(
             revealStartTime,
-            revealInterval
+            revealInterval,
+            revealBatchSize
         );
     }
 
@@ -535,6 +539,7 @@ contract LaunchPeg is
         return _ownershipOf(tokenId);
     }
 
+    /// @inheritdoc ERC721A
     function tokenURI(uint256 id)
         public
         view
