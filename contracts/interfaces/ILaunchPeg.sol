@@ -27,6 +27,8 @@ interface ILaunchPeg is IERC721, IERC721Metadata {
     /// @param mintlistDiscountPercent Discount applied to the last auction price during the allowlist mint
     /// @param publicSaleStartTime Public sale start time in seconds
     /// @param publicSaleDiscountPercent Discount applied to the last auction price during the public sale
+    /// @param revealStartTime Start of the token URIs reveal in seconds
+    /// @param revealInterval Interval between two batch reveals in seconds
     event Initialized(
         string indexed name,
         string indexed symbol,
@@ -43,7 +45,9 @@ interface ILaunchPeg is IERC721, IERC721Metadata {
         uint256 mintlistStartTime,
         uint256 mintlistDiscountPercent,
         uint256 publicSaleStartTime,
-        uint256 publicSaleDiscountPercent
+        uint256 publicSaleDiscountPercent,
+        uint256 revealStartTime,
+        uint256 revealInterval
     );
 
     /// @dev Emitted on initializeJoeFee()
@@ -90,6 +94,8 @@ interface ILaunchPeg is IERC721, IERC721Metadata {
     /// @param _mintlistDiscountPercent Discount applied to the last auction price during the allowlist mint
     /// @param _publicSaleStartTime Public sale start time in seconds
     /// @param _publicSaleDiscountPercent Discount applied to the last auction price during the public sale
+    /// @param _revealStartTime Start of the token URIs reveal in seconds
+    /// @param _revealInterval Interval between two batch reveals in seconds
     function initializePhases(
         uint256 _auctionSaleStartTime,
         uint256 _auctionStartPrice,
@@ -99,7 +105,7 @@ interface ILaunchPeg is IERC721, IERC721Metadata {
         uint256 _mintlistDiscountPercent,
         uint256 _publicSaleStartTime,
         uint256 _publicSaleDiscountPercent,
-        uint256 _revealTimestamp,
+        uint256 _revealStartTime,
         uint256 _revealInterval
     ) external;
 
@@ -155,11 +161,12 @@ interface ILaunchPeg is IERC721, IERC721Metadata {
     function devMint(uint256 quantity) external;
 
     /// @notice Set the base URI
+    /// @dev Only callable by project owner
     function setBaseURI(string calldata baseURI) external;
 
     /// @notice Set the unrevealed URI
+    /// @dev Only callable by project owner
     function setUnrevealedURI(string calldata baseURI) external;
-
 
     /// @notice Withdraw money to the contract owner
     function withdrawMoney() external;
@@ -174,4 +181,13 @@ interface ILaunchPeg is IERC721, IERC721Metadata {
         external
         view
         returns (ERC721A.TokenOwnership memory);
+
+    /// @notice Checks block timestamp, token minted and last token revealed
+    function hasBatchToReveal() external view returns (bool, uint256);
+
+    /// @notice Reveals the next batch if the reveal conditions are met
+    function revealNextBatch() external;
+
+    /// @notice Allows ProjectOwner to reveal batches even if the conditions are not met
+    function forceReveal() external;
 }
