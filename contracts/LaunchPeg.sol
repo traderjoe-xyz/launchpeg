@@ -114,14 +114,11 @@ contract LaunchPeg is
     /// @dev We may own the contract during the launch: this address is allowed to call `devMint`
     address public projectOwner;
 
-    /// @dev Base token URI
-    string private _baseTokenURI;
-
-    /// @dev Unrevealed token URI
+    /// @dev Token URI before the collection reveal
     string private _unrevealedTokenURI;
 
-    uint256 public revealStartTime;
-    uint256 public revealInterval;
+    /// @dev Token URI after collection reveal
+    string private _baseTokenURI;
 
     modifier atPhase(Phase _phase) {
         if (currentPhase() != _phase) {
@@ -245,7 +242,9 @@ contract LaunchPeg is
             mintlistStartTime,
             mintlistDiscountPercent,
             publicSaleStartTime,
-            publicSaleDiscountPercent
+            publicSaleDiscountPercent,
+            revealStartTime,
+            revealInterval
         );
     }
 
@@ -543,54 +542,32 @@ contract LaunchPeg is
         returns (string memory)
     {
         if (id >= lastTokenRevealed) {
-            return _unrevealedURI();
+            return _unrevealedTokenURI;
         } else {
             return
                 string(
                     abi.encodePacked(
-                        _baseURI(),
-                        getShuffledTokenId(id).toString()
+                        _baseTokenURI,
+                        _getShuffledTokenId(id).toString()
                     )
                 );
         }
     }
 
-    function hasBatchToReveal() public view returns (bool, uint256) {
-        uint256 batchNumber;
-        unchecked {
-            batchNumber = lastTokenRevealed / revealBatchSize;
-        }
-
-        if (
-            block.timestamp < revealStartTime + batchNumber * revealInterval ||
-            totalSupply() < lastTokenRevealed + revealBatchSize
-        ) {
-            return (false, batchNumber);
-        }
-
-        return (true, batchNumber);
+    /// @inheritdoc ILaunchPeg
+    function hasBatchToReveal() external view override returns (bool, uint256) {
+        return _hasBatchToReveal(totalSupply());
     }
 
-    function revealNextBatch() public isEOA {
-        uint256 batchNumber;
-        bool canReveal;
-        (canReveal, batchNumber) = hasBatchToReveal();
-
-        if (!canReveal) {
+    /// @inheritdoc ILaunchPeg
+    function revealNextBatch() external override isEOA {
+        if (!_revealNextBatch(totalSupply())) {
             revert LaunchPeg__RevealNextBatchNotAvailable();
         }
-
-        lastTokenRevealed += revealBatchSize;
-        setBatchSeed(batchNumber);
     }
 
-    function forceReveal() public onlyProjectOwner {
-        uint256 batchNumber;
-        unchecked {
-            batchNumber = lastTokenRevealed / revealBatchSize;
-            lastTokenRevealed += revealBatchSize;
-        }
-
-        setBatchSeed(batchNumber);
+    /// @inheritdoc ILaunchPeg
+    function forceReveal() external override onlyProjectOwner {
+        _forceReveal();
     }
 }
