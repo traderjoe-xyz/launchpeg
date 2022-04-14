@@ -14,4 +14,5 @@ Create a config file in ./tasks/config (see example.json), then run:
 ```
 yarn compile
 yarn deploy-launchpeg-fuji --config-filename <config-filename>
+yarn verify-launchpeg-fuji --contract-address <contract-address> --config-filename <config-filename>
 ```

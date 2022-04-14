@@ -53,6 +53,9 @@ const config: HardhatUserConfig = {
   namedAccounts: {
     deployer: 0,
   },
+  etherscan: {
+    apiKey: process.env.SNOWTRACE_API_KEY,
+  },
 }
 
 export default config

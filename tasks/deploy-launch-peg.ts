@@ -1,7 +1,6 @@
 import '@nomiclabs/hardhat-ethers'
 import { task } from 'hardhat/config'
-import fs from 'fs'
-import path from 'path'
+import { loadLaunchConfig } from './utils'
 
 task('deploy-launch-peg', 'Deploy LaunchPeg contract')
   .addParam('configFilename')
@@ -9,8 +8,7 @@ task('deploy-launch-peg', 'Deploy LaunchPeg contract')
     console.log('-- Deploying LaunchPeg --')
     const ethers = hre.ethers
 
-    const file = path.join(__dirname, `config/${configFilename}`)
-    const launchConfig = JSON.parse(fs.readFileSync(file, 'utf8'))
+    const launchConfig = loadLaunchConfig(configFilename)
     console.log(launchConfig)
 
     const LaunchPegFactory = await ethers.getContractFactory('LaunchPeg')
