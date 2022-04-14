@@ -1,15 +1,22 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import "erc721a/contracts/ERC721A.sol";
-import "../LaunchPeg.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/IERC721Metadata.sol";
+
+import "erc721a/contracts/ERC721A.sol";
 
 /// @title ILaunchPeg
 /// @author Trader Joe
 /// @notice Defines the basic interface of LaunchPeg
 interface ILaunchPeg is IERC721, IERC721Metadata {
+    enum Phase {
+        NotStarted,
+        DutchAuction,
+        Mintlist,
+        PublicSale
+    }
+
     /// @dev Emitted on initializePhases()
     /// @param name Contract name
     /// @param symbol Token symbol
@@ -72,7 +79,7 @@ interface ILaunchPeg is IERC721, IERC721Metadata {
         uint256 quantity,
         uint256 price,
         uint256 startTokenId,
-        LaunchPeg.Phase phase
+        Phase phase
     );
 
     /// @dev Emitted on devMint()
@@ -155,7 +162,7 @@ interface ILaunchPeg is IERC721, IERC721Metadata {
         returns (uint256);
 
     /// @notice Returns the current phase
-    function currentPhase() external view returns (LaunchPeg.Phase);
+    function currentPhase() external view returns (Phase);
 
     /// @notice Set the project owner
     /// @dev The project owner can call `devMint` any time

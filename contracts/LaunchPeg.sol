@@ -23,13 +23,6 @@ contract LaunchPeg is
 {
     using Strings for uint256;
 
-    enum Phase {
-        NotStarted,
-        DutchAuction,
-        Mintlist,
-        PublicSale
-    }
-
     /// @notice The collection size (e.g 10000)
     uint256 public immutable collectionSize;
 
