@@ -21,6 +21,8 @@ export interface LaunchPegConfig {
   batchRevealInterval: BigNumber
   baseTokenURI: string
   unrevealedTokenURI: string
+  flatPublicSalePrice: BigNumber
+  flatMintListSalePrice: BigNumber
 }
 
 const MINTLIST_START_OFFSET = 100
@@ -49,6 +51,8 @@ export const getDefaultLaunchPegConfig = async (): Promise<LaunchPegConfig> => {
     batchRevealInterval: duration.minutes(REVEAL_INTERVAL),
     baseTokenURI: 'ipfs://bafybeib3jkgtnqmnevrafzlrhroa6ws7wbmdh7dndonij7jvmvho5fmxj4/',
     unrevealedTokenURI: 'unrevealed',
+    flatPublicSalePrice: ethers.utils.parseUnits('1', 18),
+    flatMintListSalePrice: ethers.utils.parseUnits('0.5', 18),
   }
 }
 
