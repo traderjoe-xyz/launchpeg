@@ -57,7 +57,7 @@ describe('FlatLaunchPeg', () => {
   beforeEach(async () => {
     config = { ...(await getDefaultLaunchPegConfig()) }
     await deployFlatLaunchPeg()
-    await flatLaunchPeg.flipSaleState()
+    await flatLaunchPeg.setPublicSaleActive(true)
   })
 
   describe('Project owner mint', () => {
@@ -132,7 +132,7 @@ describe('FlatLaunchPeg', () => {
     })
 
     it('Mint reverts when sale is off', async () => {
-      await flatLaunchPeg.connect(dev).flipSaleState()
+      await flatLaunchPeg.connect(dev).setPublicSaleActive(false)
       await expect(flatLaunchPeg.connect(alice).publicSaleMint(6)).to.be.revertedWith('LaunchPeg__PublicSaleClosed()')
     })
   })

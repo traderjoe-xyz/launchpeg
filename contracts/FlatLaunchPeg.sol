@@ -6,19 +6,19 @@ import "./interfaces/IFlatLaunchPeg.sol";
 import "./BaseLaunchPeg.sol";
 
 contract FlatLaunchPeg is BaseLaunchPeg, IFlatLaunchPeg {
+    /// @notice The amount of NFTs each allowed address can mint during the allowlist mint
+    mapping(address => uint256) public allowlist;
+
     /// @notice Price of one NFT for people on the mint list
     /// @dev mintlistPrice is scaled to 1e18
     uint256 public immutable mintlistPrice;
-
-    /// @notice The amount of NFTs each allowed address can mint during the allowlist mint
-    mapping(address => uint256) public allowlist;
 
     /// @notice Price of one NFT during the public sale
     /// @dev salePrice is scaled to 1e18
     uint256 public immutable salePrice;
 
     /// @notice Determine wether or not users are allowed to buy from public sale
-    bool public saleIsActive = false;
+    bool public isPublicSaleActive = false;
 
     constructor(
         string memory _name,
@@ -59,9 +59,13 @@ contract FlatLaunchPeg is BaseLaunchPeg, IFlatLaunchPeg {
     }
 
     /// @inheritdoc IFlatLaunchPeg
-    function flipSaleState() external override onlyOwner {
-        saleIsActive = !saleIsActive;
-        // TODO: emit event
+    function setPublicSaleActive(bool _isPublicSaleActive)
+        external
+        override
+        onlyOwner
+    {
+        isPublicSaleActive = _isPublicSaleActive;
+        emit PublicSaleStateChanged(_isPublicSaleActive);
     }
 
     /// @inheritdoc IFlatLaunchPeg
@@ -75,12 +79,12 @@ contract FlatLaunchPeg is BaseLaunchPeg, IFlatLaunchPeg {
         allowlist[msg.sender]--;
         refundIfOver(mintlistPrice);
         _safeMint(msg.sender, 1);
-        // TODO: emit event
+        emit Mint(msg.sender, 1, mintlistPrice, _totalMinted() - 1);
     }
 
     /// @inheritdoc IFlatLaunchPeg
     function publicSaleMint(uint256 _quantity) external payable override {
-        if (!saleIsActive) {
+        if (!isPublicSaleActive) {
             revert LaunchPeg__PublicSaleClosed();
         }
         if (_quantity > maxPerAddressDuringMint) {
@@ -92,6 +96,6 @@ contract FlatLaunchPeg is BaseLaunchPeg, IFlatLaunchPeg {
         uint256 total = salePrice * _quantity;
         refundIfOver(total);
         _safeMint(msg.sender, _quantity);
-        // TODO: emit event
+        emit Mint(msg.sender, _quantity, total, _totalMinted() - _quantity);
     }
 }

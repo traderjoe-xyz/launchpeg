@@ -7,7 +7,7 @@ import "./IBaseLaunchPeg.sol";
 /// @author Trader Joe
 /// @notice Defines the basic interface of LaunchPeg
 interface IFlatLaunchPeg is IBaseLaunchPeg {
-    /// @dev Emitted on auctionMint(), allowlistMint(), publicSaleMint()
+    /// @dev Emitted on allowlistMint(), publicSaleMint()
     /// @param sender The address that minted
     /// @param quantity Amount of NFTs minted
     /// @param price Price in AVAX for the NFTs
@@ -18,6 +18,10 @@ interface IFlatLaunchPeg is IBaseLaunchPeg {
         uint256 price,
         uint256 tokenId
     );
+
+    /// @dev Emitted on setPublicSaleActive()
+    /// @param isActive True if the public sale is open, false otherwise
+    event PublicSaleStateChanged(bool isActive);
 
     /// @notice Seed the allowlist: each address can mint up to numSlot
     /// @dev e.g _addresses: [0x1, 0x2, 0x3], _numSlots: [1, 1, 2]
@@ -38,5 +42,6 @@ interface IFlatLaunchPeg is IBaseLaunchPeg {
 
     /// @notice Switch the sale on and off
     /// @dev Must be only owner
-    function flipSaleState() external;
+    /// @param _isPublicSaleActive Whether or not the public sale is open
+    function setPublicSaleActive(bool _isPublicSaleActive) external;
 }

@@ -45,10 +45,6 @@ interface IBaseLaunchPeg is IERC721, IERC721Metadata {
     /// @param quantity Quantity of NFTs to mint
     function devMint(uint256 quantity) external;
 
-    /// @notice Set the base URI
-    /// @dev Only callable by project owner
-    function setBaseURI(string calldata baseURI) external;
-
     /// @notice Withdraw money to the contract owner
     function withdrawMoney() external;
 
@@ -62,6 +58,10 @@ interface IBaseLaunchPeg is IERC721, IERC721Metadata {
         external
         view
         returns (ERC721A.TokenOwnership memory);
+
+    /// @notice Set the base URI
+    /// @dev Only callable by project owner
+    function setBaseURI(string calldata baseURI) external;
 
     /// @notice Set the unrevealed URI
     /// @dev Only callable by project owner
