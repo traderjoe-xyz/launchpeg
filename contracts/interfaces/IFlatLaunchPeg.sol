@@ -5,7 +5,7 @@ import "./IBaseLaunchPeg.sol";
 
 /// @title ILaunchPeg
 /// @author Trader Joe
-/// @notice Defines the basic interface of LaunchPeg
+/// @notice Defines the basic interface of FlatLaunchPeg
 interface IFlatLaunchPeg is IBaseLaunchPeg {
     /// @dev Emitted on allowlistMint(), publicSaleMint()
     /// @param sender The address that minted

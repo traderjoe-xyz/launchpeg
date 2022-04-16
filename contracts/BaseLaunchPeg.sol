@@ -10,6 +10,9 @@ import "./interfaces/IBaseLaunchPeg.sol";
 import "./LaunchPegErrors.sol";
 import "./BatchReveal.sol";
 
+/// @title BaseLaunchPeg
+/// @author Trader Joe
+/// @notice Implements the functionalities shared between LaunchPeg and FlatLaunchPeg contracts.
 abstract contract BaseLaunchPeg is
     ERC721A,
     Ownable,

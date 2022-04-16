@@ -8,7 +8,7 @@ import "erc721a/contracts/ERC721A.sol";
 
 /// @title IBaseLaunchPeg
 /// @author Trader Joe
-/// @notice Defines the basic interface of LaunchPeg
+/// @notice Defines the basic interface of BaseLaunchPeg
 interface IBaseLaunchPeg is IERC721, IERC721Metadata {
     /// @dev Emitted on initializeJoeFee()
     /// @param feePercent The fees collected by Joepeg on the sale benefits

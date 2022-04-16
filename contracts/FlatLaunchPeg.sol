@@ -5,6 +5,9 @@ import "./LaunchPegErrors.sol";
 import "./interfaces/IFlatLaunchPeg.sol";
 import "./BaseLaunchPeg.sol";
 
+/// @title FlatLaunchPeg
+/// @author Trader Joe
+/// @notice Implements a simple minting NFT contract with an allowlist and public sale phase.
 contract FlatLaunchPeg is BaseLaunchPeg, IFlatLaunchPeg {
     /// @notice Price of one NFT for people on the mint list
     /// @dev mintlistPrice is scaled to 1e18
