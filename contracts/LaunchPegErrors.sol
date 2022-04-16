@@ -15,6 +15,7 @@ error LaunchPeg__MintlistBeforeAuction();
 error LaunchPeg__NotEligibleForAllowlistMint();
 error LaunchPeg__NotEnoughAVAX(uint256 avaxSent);
 error LaunchPeg__PublicSaleBeforeMintlist();
+error LaunchPeg__PublicSaleClosed();
 error LaunchPeg__RevealNextBatchNotAvailable();
 error LaunchPeg__TransferFailed();
 error LaunchPeg__TooManyAlreadyMintedBeforeDevMint();
