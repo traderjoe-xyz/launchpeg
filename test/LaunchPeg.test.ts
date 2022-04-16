@@ -62,7 +62,7 @@ describe('LaunchPeg', () => {
 
   describe('Initialization', () => {
     it('Amount reserved for devs, auction, mintlist but be lower than collection size', async () => {
-      config.collectionSize = config.collectionSize - 1
+      config.collectionSize = config.collectionSize - 1000
       await expect(deployLaunchPeg()).to.be.revertedWith('LaunchPeg__LargerCollectionSizeNeeded()')
     })
 

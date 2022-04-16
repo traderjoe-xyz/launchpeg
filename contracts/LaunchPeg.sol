@@ -8,28 +8,14 @@ import "@openzeppelin/contracts/utils/Strings.sol";
 import "erc721a/contracts/ERC721A.sol";
 import "./BatchReveal.sol";
 
+import "./BaseLaunchPeg.sol";
 import "./interfaces/ILaunchPeg.sol";
 import "./LaunchPegErrors.sol";
 
 /// @title LaunchPeg
 /// @author Trader Joe
 /// @notice Implements a fair and gas efficient NFT launch mechanism. The sale takes place in 3 phases: dutch auction, allowlist mint, public sale.
-contract LaunchPeg is
-    Ownable,
-    ERC721A,
-    ReentrancyGuard,
-    ILaunchPeg,
-    BatchReveal
-{
-    using Strings for uint256;
-
-    /// @notice The collection size (e.g 10000)
-    uint256 public immutable collectionSize;
-
-    /// @notice Amount of NFTs reserved for `projectOwner` (e.g 200)
-    /// @dev It can be minted any time via `devMint`
-    uint256 public immutable amountForDevs;
-
+contract LaunchPeg is BaseLaunchPeg, ILaunchPeg {
     /// @notice Amount of NFTs available for the auction (e.g 8000)
     /// Unsold items are put up for sale during the public sale.
     uint256 public immutable amountForAuction;
@@ -37,15 +23,6 @@ contract LaunchPeg is
     /// @notice Amount of NFTs available for the allowlist mint (e.g 1000)
     /// Unsold items are put up for sale during the public sale.
     uint256 public immutable amountForMintlist;
-
-    /// @notice Max amount of NFTs an address can mint
-    uint256 public immutable maxPerAddressDuringMint;
-
-    /// @notice Max amout of NFTs that can be minted at once
-    uint256 public immutable maxBatchSize;
-
-    /// @dev Tracks the amount of NFTs minted by `projectOwner`
-    uint256 private amountMintedByDevs;
 
     /// @dev Tracks the amount of NFTs minted during the dutch auction
     uint256 private amountMintedDuringAuction;
@@ -96,40 +73,9 @@ contract LaunchPeg is
     /// @notice The amount of NFTs each allowed address can mint during the allowlist mint
     mapping(address => uint256) public allowlist;
 
-    /// @notice The fees collected by Joepeg on the sale benefits
-    /// @dev in basis points e.g 100 for 1%
-    uint256 public joeFeePercent;
-
-    /// @notice The address to which the fees on the sale will be sent
-    address public joeFeeCollector;
-
-    /// @notice The project owner
-    /// @dev We may own the contract during the launch: this address is allowed to call `devMint`
-    address public projectOwner;
-
-    /// @dev Token URI before the collection reveal
-    string private _unrevealedTokenURI;
-
-    /// @dev Token URI after collection reveal
-    string private _baseTokenURI;
-
     modifier atPhase(Phase _phase) {
         if (currentPhase() != _phase) {
             revert LaunchPeg__WrongPhase();
-        }
-        _;
-    }
-
-    modifier isEOA() {
-        if (tx.origin != msg.sender) {
-            revert LaunchPeg__Unauthorized();
-        }
-        _;
-    }
-
-    modifier onlyProjectOwner() {
-        if (projectOwner != msg.sender) {
-            revert LaunchPeg__Unauthorized();
         }
         _;
     }
@@ -144,7 +90,17 @@ contract LaunchPeg is
         uint256 _amountForMintlist,
         uint256 _amountForDevs,
         uint256 _batchRevealSize
-    ) ERC721A(_name, _symbol) BatchReveal(_batchRevealSize, _collectionSize) {
+    )
+        BaseLaunchPeg(
+            _name,
+            _symbol,
+            _projectOwner,
+            _maxBatchSize,
+            _collectionSize,
+            _amountForDevs,
+            _batchRevealSize
+        )
+    {
         if (
             _amountForAuction + _amountForMintlist + _amountForDevs >
             _collectionSize
@@ -152,17 +108,8 @@ contract LaunchPeg is
             revert LaunchPeg__LargerCollectionSizeNeeded();
         }
 
-        if (_collectionSize % _batchRevealSize > 0) {
-            revert LaunchPeg__InvalidBatchRevealSize();
-        }
-
-        projectOwner = _projectOwner;
-        collectionSize = _collectionSize;
-        maxBatchSize = _maxBatchSize;
-        maxPerAddressDuringMint = _maxBatchSize;
         amountForAuction = _amountForAuction;
         amountForMintlist = _amountForMintlist;
-        amountForDevs = _amountForDevs;
     }
 
     /// @inheritdoc ILaunchPeg
@@ -243,24 +190,6 @@ contract LaunchPeg is
             revealInterval,
             revealBatchSize
         );
-    }
-
-    /// @inheritdoc ILaunchPeg
-    function initializeJoeFee(uint256 _joeFeePercent, address _joeFeeCollector)
-        external
-        override
-        onlyOwner
-        atPhase(Phase.NotStarted)
-    {
-        if (joeFeePercent > 10000) {
-            revert LaunchPeg__InvalidPercent();
-        }
-        if (_joeFeeCollector == address(0)) {
-            revert LaunchPeg__InvalidJoeFeeCollector();
-        }
-        joeFeePercent = _joeFeePercent;
-        joeFeeCollector = _joeFeeCollector;
-        emit JoeFeeInitialized(_joeFeePercent, _joeFeeCollector);
     }
 
     /// @inheritdoc ILaunchPeg
@@ -380,22 +309,6 @@ contract LaunchPeg is
             10000;
     }
 
-    /// @dev Verifies that enough AVAX has been sent by the sender and refunds the extra tokens if any
-    /// @param _price The price paid by the sender for minting NFTs
-    function refundIfOver(uint256 _price) private {
-        if (msg.value < _price) {
-            revert LaunchPeg__NotEnoughAVAX(msg.value);
-        }
-        if (msg.value > _price) {
-            (bool success, ) = payable(msg.sender).call{
-                value: msg.value - _price
-            }("");
-            if (!success) {
-                revert LaunchPeg__TransferFailed();
-            }
-        }
-    }
-
     /// @inheritdoc ILaunchPeg
     function getAuctionPrice(uint256 _saleStartTime)
         public
@@ -436,136 +349,5 @@ contract LaunchPeg is
             return Phase.Mintlist;
         }
         return Phase.PublicSale;
-    }
-
-    /// @inheritdoc ILaunchPeg
-    function setProjectOwner(address _projectOwner)
-        external
-        override
-        onlyOwner
-    {
-        projectOwner = _projectOwner;
-        emit ProjectOwnerUpdated(projectOwner);
-    }
-
-    /// @inheritdoc ILaunchPeg
-    function devMint(uint256 quantity) external override onlyProjectOwner {
-        if (amountMintedByDevs + quantity > amountForDevs) {
-            revert LaunchPeg__MaxSupplyReached();
-        }
-        if (quantity % maxBatchSize != 0) {
-            revert LaunchPeg__CanOnlyMintMultipleOfMaxBatchSize();
-        }
-        uint256 numChunks = quantity / maxBatchSize;
-        for (uint256 i = 0; i < numChunks; i++) {
-            _safeMint(msg.sender, maxBatchSize);
-        }
-        amountMintedByDevs = amountMintedByDevs + quantity;
-        emit DevMint(msg.sender, quantity);
-    }
-
-    /// @dev Returns the base token URI
-    function _baseURI() internal view virtual override returns (string memory) {
-        return _baseTokenURI;
-    }
-
-    /// @inheritdoc ILaunchPeg
-    function setBaseURI(string calldata baseURI) external override onlyOwner {
-        _baseTokenURI = baseURI;
-    }
-
-    /// @dev Returns the unrevealed token URI
-    function _unrevealedURI() internal view virtual returns (string memory) {
-        return _unrevealedTokenURI;
-    }
-
-    /// @inheritdoc ILaunchPeg
-    function setUnrevealedURI(string calldata unrevealedURI)
-        external
-        override
-        onlyOwner
-    {
-        _unrevealedTokenURI = unrevealedURI;
-    }
-
-    /// @inheritdoc ILaunchPeg
-    function withdrawMoney() external override onlyOwner nonReentrant {
-        uint256 amount = address(this).balance;
-        uint256 fee = 0;
-        bool sent = false;
-
-        if (joeFeePercent > 0) {
-            fee = (amount * joeFeePercent) / 10000;
-            amount = amount - fee;
-
-            (sent, ) = joeFeeCollector.call{value: fee}("");
-            if (!sent) {
-                revert LaunchPeg__TransferFailed();
-            }
-        }
-
-        (sent, ) = msg.sender.call{value: amount}("");
-        if (!sent) {
-            revert LaunchPeg__TransferFailed();
-        }
-
-        emit MoneyWithdraw(msg.sender, amount, fee);
-    }
-
-    /// @inheritdoc ILaunchPeg
-    function numberMinted(address owner)
-        public
-        view
-        override
-        returns (uint256)
-    {
-        return _numberMinted(owner);
-    }
-
-    /// @inheritdoc ILaunchPeg
-    function getOwnershipData(uint256 tokenId)
-        external
-        view
-        override
-        returns (TokenOwnership memory)
-    {
-        return _ownershipOf(tokenId);
-    }
-
-    /// @inheritdoc ERC721A
-    function tokenURI(uint256 id)
-        public
-        view
-        override(ERC721A, IERC721Metadata)
-        returns (string memory)
-    {
-        if (id >= lastTokenRevealed) {
-            return _unrevealedTokenURI;
-        } else {
-            return
-                string(
-                    abi.encodePacked(
-                        _baseTokenURI,
-                        _getShuffledTokenId(id).toString()
-                    )
-                );
-        }
-    }
-
-    /// @inheritdoc ILaunchPeg
-    function hasBatchToReveal() external view override returns (bool, uint256) {
-        return _hasBatchToReveal(totalSupply());
-    }
-
-    /// @inheritdoc ILaunchPeg
-    function revealNextBatch() external override isEOA {
-        if (!_revealNextBatch(totalSupply())) {
-            revert LaunchPeg__RevealNextBatchNotAvailable();
-        }
-    }
-
-    /// @inheritdoc ILaunchPeg
-    function forceReveal() external override onlyProjectOwner {
-        _forceReveal();
     }
 }

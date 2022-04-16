@@ -45,8 +45,10 @@ describe('FlatLaunchPeg', () => {
       'JoePEG',
       'JOEPEG',
       projectOwner.address,
-      config.collectionSize,
       config.maxBatchSize,
+      config.collectionSize,
+      config.amountForDevs,
+      config.batchRevealSize,
       config.flatPublicSalePrice,
       config.flatMintListSalePrice
     )
@@ -131,7 +133,7 @@ describe('FlatLaunchPeg', () => {
 
     it('Mint reverts when sale is off', async () => {
       await flatLaunchPeg.connect(dev).flipSaleState()
-      await expect(flatLaunchPeg.connect(alice).publicSaleMint(6)).to.be.revertedWith('LaunchPeg__SaleClosed()')
+      await expect(flatLaunchPeg.connect(alice).publicSaleMint(6)).to.be.revertedWith('LaunchPeg__PublicSaleClosed()')
     })
   })
 
@@ -160,7 +162,7 @@ describe('FlatLaunchPeg', () => {
       const price = config.flatPublicSalePrice
       await flatLaunchPeg.connect(bob).publicSaleMint(quantity, { value: price.mul(quantity) })
       await expect(flatLaunchPeg.connect(alice).transferFrom(bob.address, alice.address, 1)).to.be.revertedWith(
-        'ERC721: transfer caller is not owner nor approved'
+        'TransferCallerNotOwnerNorApproved()'
       )
       expect(await flatLaunchPeg.ownerOf(1)).to.eq(bob.address)
     })
