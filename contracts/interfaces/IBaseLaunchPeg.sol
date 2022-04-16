@@ -33,8 +33,10 @@ interface IBaseLaunchPeg is IERC721, IERC721Metadata {
     /// @notice Initialize the percentage taken on the sale and collector address
     /// @param _joeFeePercent The fees collected by Joepeg on the sale benefits
     /// @param _joeFeeCollector The address to which the fees on the sale will be sent
-    function initializeJoeFee(uint256 _joeFeePercent, address _joeFeeCollector)
-        external;
+    function initializeJoeFee(
+        uint256 _joeFeePercent,
+        address payable _joeFeeCollector
+    ) external;
 
     /// @notice Seed the allowlist: each address can mint up to numSlot
     /// @dev e.g _addresses: [0x1, 0x2, 0x3], _numSlots: [1, 1, 2]
@@ -75,6 +77,11 @@ interface IBaseLaunchPeg is IERC721, IERC721Metadata {
     /// @notice Set the unrevealed URI
     /// @dev Only callable by project owner
     function setUnrevealedURI(string calldata baseURI) external;
+
+    /// @notice Set the royalty fee
+    /// @param receiver Royalty fee collector
+    /// @param feePercent Royalty fee percent in basis point
+    function setRoyaltyInfo(address receiver, uint96 feePercent) external;
 
     /// @notice Checks block timestamp, token minted and last token revealed
     function hasBatchToReveal() external view returns (bool, uint256);

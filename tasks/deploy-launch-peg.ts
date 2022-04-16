@@ -17,6 +17,7 @@ task('deploy-launch-peg', 'Deploy LaunchPeg contract')
       launchConfig.name,
       launchConfig.symbol,
       launchConfig.projectOwner,
+      launchConfig.royaltyReceiver,
       launchConfig.maxBatchSize,
       launchConfig.collectionSize,
       launchConfig.amountForAuction,

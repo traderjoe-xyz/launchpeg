@@ -3,6 +3,7 @@ pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/token/common/ERC2981.sol";
 
 import "erc721a/contracts/ERC721A.sol";
 
@@ -18,7 +19,8 @@ abstract contract BaseLaunchPeg is
     Ownable,
     ReentrancyGuard,
     IBaseLaunchPeg,
-    BatchReveal
+    BatchReveal,
+    ERC2981
 {
     using Strings for uint256;
 
@@ -76,6 +78,7 @@ abstract contract BaseLaunchPeg is
         string memory _name,
         string memory _symbol,
         address _projectOwner,
+        address _royaltyReceiver,
         uint256 _maxBatchSize,
         uint256 _collectionSize,
         uint256 _amountForDevs,
@@ -90,6 +93,8 @@ abstract contract BaseLaunchPeg is
         maxBatchSize = _maxBatchSize;
         maxPerAddressDuringMint = _maxBatchSize;
         amountForDevs = _amountForDevs;
+
+        _setDefaultRoyalty(_royaltyReceiver, 500);
     }
 
     /// @inheritdoc IBaseLaunchPeg
@@ -106,11 +111,10 @@ abstract contract BaseLaunchPeg is
     }
 
     /// @inheritdoc IBaseLaunchPeg
-    function initializeJoeFee(uint256 _joeFeePercent, address _joeFeeCollector)
-        external
-        override
-        onlyOwner
-    {
+    function initializeJoeFee(
+        uint256 _joeFeePercent,
+        address payable _joeFeeCollector
+    ) external override onlyOwner {
         if (joeFeePercent > 10000) {
             revert LaunchPeg__InvalidPercent();
         }
@@ -267,5 +271,24 @@ abstract contract BaseLaunchPeg is
                     )
                 );
         }
+    }
+
+    /// @inheritdoc IBaseLaunchPeg
+    function setRoyaltyInfo(address receiver, uint96 feePercent)
+        external
+        override
+        onlyOwner
+    {
+        _setDefaultRoyalty(receiver, feePercent);
+    }
+
+    /// @inheritdoc ERC721A
+    function supportsInterface(bytes4 interfaceId)
+        public
+        view
+        override(ERC721A, ERC2981, IERC165)
+        returns (bool)
+    {
+        return super.supportsInterface(interfaceId);
     }
 }

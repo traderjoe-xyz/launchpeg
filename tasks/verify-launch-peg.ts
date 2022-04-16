@@ -13,6 +13,7 @@ task('verify-launch-peg', 'Verify LaunchPeg contract')
         launchConfig.name,
         launchConfig.symbol,
         launchConfig.projectOwner,
+        launchConfig.royaltyReceiver,
         launchConfig.maxBatchSize,
         launchConfig.collectionSize,
         launchConfig.amountForAuction,

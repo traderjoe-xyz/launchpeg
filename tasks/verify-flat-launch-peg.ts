@@ -13,6 +13,7 @@ task('verify-flat-launch-peg', 'Verify FlatLaunchPeg contract')
         launchConfig.name,
         launchConfig.symbol,
         launchConfig.projectOwner,
+        launchConfig.royaltyReceiver,
         launchConfig.maxBatchSize,
         launchConfig.collectionSize,
         launchConfig.amountForDevs,

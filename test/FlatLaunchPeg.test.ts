@@ -15,6 +15,7 @@ describe('FlatLaunchPeg', () => {
   let alice: SignerWithAddress
   let bob: SignerWithAddress
   let projectOwner: SignerWithAddress
+  let royaltyReceiver: SignerWithAddress
 
   before(async () => {
     flatLaunchPegCF = await ethers.getContractFactory('FlatLaunchPeg')
@@ -24,6 +25,7 @@ describe('FlatLaunchPeg', () => {
     alice = signers[1]
     bob = signers[2]
     projectOwner = signers[3]
+    royaltyReceiver = signers[4]
 
     await network.provider.request({
       method: 'hardhat_reset',
@@ -45,6 +47,7 @@ describe('FlatLaunchPeg', () => {
       'JoePEG',
       'JOEPEG',
       projectOwner.address,
+      royaltyReceiver.address,
       config.maxBatchSize,
       config.collectionSize,
       config.amountForDevs,
