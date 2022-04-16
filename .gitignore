@@ -21,3 +21,4 @@ deployments/localhost
 
 tasks/config/*
 !tasks/config/example.json
+!tasks/config/flat-example.json

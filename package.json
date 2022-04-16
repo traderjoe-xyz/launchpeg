@@ -1,7 +1,7 @@
 {
-  "name": "@traderjoe-xyz/joepeg",
+  "name": "@traderjoe-xyz/launchpeg",
   "version": "1.0.0",
-  "repository": "https://github.com/traderjoe-xyz/joepeg.git",
+  "repository": "https://github.com/traderjoe-xyz/launchpeg.git",
   "author": "traderjoexyz",
   "license": "MIT",
   "directories": {
@@ -16,6 +16,8 @@
     "prettier": "prettier --write 'contracts/**/*.sol' './**/*.ts'",
     "deploy-launchpeg-fuji": "npx hardhat deploy-launch-peg --network fuji",
     "verify-launchpeg-fuji": "npx hardhat verify-launch-peg --network fuji",
+    "deploy-flat-launchpeg-fuji": "npx hardhat deploy-flat-launch-peg --network fuji",
+    "verify-flat-launchpeg-fuji": "npx hardhat verify-flat-launch-peg --network fuji",
     "test": "hardhat test"
   },
   "devDependencies": {
