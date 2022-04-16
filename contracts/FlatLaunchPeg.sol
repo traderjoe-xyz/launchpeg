@@ -6,9 +6,6 @@ import "./interfaces/IFlatLaunchPeg.sol";
 import "./BaseLaunchPeg.sol";
 
 contract FlatLaunchPeg is BaseLaunchPeg, IFlatLaunchPeg {
-    /// @notice The amount of NFTs each allowed address can mint during the allowlist mint
-    mapping(address => uint256) public allowlist;
-
     /// @notice Price of one NFT for people on the mint list
     /// @dev mintlistPrice is scaled to 1e18
     uint256 public immutable mintlistPrice;
@@ -43,19 +40,6 @@ contract FlatLaunchPeg is BaseLaunchPeg, IFlatLaunchPeg {
     {
         salePrice = _salePrice;
         mintlistPrice = _mintlistPrice;
-    }
-
-    /// @inheritdoc IFlatLaunchPeg
-    function seedAllowlist(
-        address[] memory _addresses,
-        uint256[] memory _numSlots
-    ) external override onlyOwner {
-        if (_addresses.length != _numSlots.length) {
-            revert LaunchPeg__WrongAddressesAndNumSlotsLength();
-        }
-        for (uint256 i = 0; i < _addresses.length; i++) {
-            allowlist[_addresses[i]] = _numSlots[i];
-        }
     }
 
     /// @inheritdoc IFlatLaunchPeg

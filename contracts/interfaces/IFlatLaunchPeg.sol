@@ -23,15 +23,6 @@ interface IFlatLaunchPeg is IBaseLaunchPeg {
     /// @param isActive True if the public sale is open, false otherwise
     event PublicSaleStateChanged(bool isActive);
 
-    /// @notice Seed the allowlist: each address can mint up to numSlot
-    /// @dev e.g _addresses: [0x1, 0x2, 0x3], _numSlots: [1, 1, 2]
-    /// @param _addresses Addresses allowed to mint during the allowlist phase
-    /// @param _numSlots Quantity of NFTs that an address can mint
-    function seedAllowlist(
-        address[] memory _addresses,
-        uint256[] memory _numSlots
-    ) external;
-
     /// @notice Mint NFTs during the allowlist mint
     /// @dev One NFT at a time
     function allowlistMint() external payable;

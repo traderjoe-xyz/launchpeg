@@ -52,6 +52,9 @@ abstract contract BaseLaunchPeg is
     /// @dev Token URI before the collection reveal
     string private _unrevealedTokenURI;
 
+    /// @notice The amount of NFTs each allowed address can mint during the allowlist mint
+    mapping(address => uint256) public allowlist;
+
     modifier isEOA() {
         if (tx.origin != msg.sender) {
             revert LaunchPeg__Unauthorized();
@@ -84,6 +87,19 @@ abstract contract BaseLaunchPeg is
         maxBatchSize = _maxBatchSize;
         maxPerAddressDuringMint = _maxBatchSize;
         amountForDevs = _amountForDevs;
+    }
+
+    /// @inheritdoc IBaseLaunchPeg
+    function seedAllowlist(
+        address[] memory _addresses,
+        uint256[] memory _numSlots
+    ) external override onlyOwner {
+        if (_addresses.length != _numSlots.length) {
+            revert LaunchPeg__WrongAddressesAndNumSlotsLength();
+        }
+        for (uint256 i = 0; i < _addresses.length; i++) {
+            allowlist[_addresses[i]] = _numSlots[i];
+        }
     }
 
     /// @inheritdoc IBaseLaunchPeg

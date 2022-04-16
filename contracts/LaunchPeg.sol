@@ -70,9 +70,6 @@ contract LaunchPeg is BaseLaunchPeg, ILaunchPeg {
     /// @dev in basis points e.g 2500 for 25%
     uint256 public publicSaleDiscountPercent;
 
-    /// @notice The amount of NFTs each allowed address can mint during the allowlist mint
-    mapping(address => uint256) public allowlist;
-
     modifier atPhase(Phase _phase) {
         if (currentPhase() != _phase) {
             revert LaunchPeg__WrongPhase();
@@ -190,19 +187,6 @@ contract LaunchPeg is BaseLaunchPeg, ILaunchPeg {
             revealInterval,
             revealBatchSize
         );
-    }
-
-    /// @inheritdoc ILaunchPeg
-    function seedAllowlist(
-        address[] memory _addresses,
-        uint256[] memory _numSlots
-    ) external override onlyOwner {
-        if (_addresses.length != _numSlots.length) {
-            revert LaunchPeg__WrongAddressesAndNumSlotsLength();
-        }
-        for (uint256 i = 0; i < _addresses.length; i++) {
-            allowlist[_addresses[i]] = _numSlots[i];
-        }
     }
 
     /// @inheritdoc ILaunchPeg

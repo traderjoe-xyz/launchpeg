@@ -36,6 +36,15 @@ interface IBaseLaunchPeg is IERC721, IERC721Metadata {
     function initializeJoeFee(uint256 _joeFeePercent, address _joeFeeCollector)
         external;
 
+    /// @notice Seed the allowlist: each address can mint up to numSlot
+    /// @dev e.g _addresses: [0x1, 0x2, 0x3], _numSlots: [1, 1, 2]
+    /// @param _addresses Addresses allowed to mint during the allowlist phase
+    /// @param _numSlots Quantity of NFTs that an address can mint
+    function seedAllowlist(
+        address[] memory _addresses,
+        uint256[] memory _numSlots
+    ) external;
+
     /// @notice Set the project owner
     /// @dev The project owner can call `devMint` any time
     function setProjectOwner(address _projectOwner) external;
