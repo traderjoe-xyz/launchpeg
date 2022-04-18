@@ -23,6 +23,17 @@ interface IFlatLaunchPeg is IBaseLaunchPeg {
     /// @param isActive True if the public sale is open, false otherwise
     event PublicSaleStateChanged(bool isActive);
 
+    /// @notice Price of one NFT for people on the mint list
+    /// @dev mintlistPrice is scaled to 1e18
+    function mintlistPrice() external view returns (uint256);
+
+    /// @notice Price of one NFT during the public sale
+    /// @dev salePrice is scaled to 1e18
+    function salePrice() external view returns (uint256);
+
+    /// @notice Determine wether or not users are allowed to buy from public sale
+    function isPublicSaleActive() external view returns (bool);
+
     /// @notice Mint NFTs during the allowlist mint
     /// @dev One NFT at a time
     function allowlistMint() external payable;

@@ -16,59 +16,48 @@ import "./LaunchPegErrors.sol";
 /// @author Trader Joe
 /// @notice Implements a fair and gas efficient NFT launch mechanism. The sale takes place in 3 phases: dutch auction, allowlist mint, public sale.
 contract LaunchPeg is BaseLaunchPeg, ILaunchPeg {
-    /// @notice Amount of NFTs available for the auction (e.g 8000)
-    /// Unsold items are put up for sale during the public sale.
-    uint256 public immutable amountForAuction;
+    /// @inheritdoc ILaunchPeg
+    uint256 public immutable override amountForAuction;
 
-    /// @notice Amount of NFTs available for the allowlist mint (e.g 1000)
-    /// Unsold items are put up for sale during the public sale.
-    uint256 public immutable amountForMintlist;
+    /// @inheritdoc ILaunchPeg
+    uint256 public immutable override amountForMintlist;
 
     /// @dev Tracks the amount of NFTs minted during the dutch auction
     uint256 private amountMintedDuringAuction;
 
-    /// @notice Start time of the dutch auction in seconds
-    /// @dev Timestamp
-    uint256 public auctionSaleStartTime;
+    /// @inheritdoc ILaunchPeg
+    uint256 public override auctionSaleStartTime;
 
-    /// @notice Start time of the allowlist mint in seconds
-    /// @dev A timestamp greater than the dutch auction start
-    uint256 public mintlistStartTime;
+    /// @inheritdoc ILaunchPeg
+    uint256 public override mintlistStartTime;
 
-    /// @notice Start time of the public sale in seconds
-    /// @dev A timestamp greater than the allowlist mint start
-    uint256 public publicSaleStartTime;
+    /// @inheritdoc ILaunchPeg
+    uint256 public override publicSaleStartTime;
 
-    /// @notice Auction start price in AVAX
-    /// @dev auctionStartPrice is scaled to 1e18
-    uint256 public auctionStartPrice;
+    /// @inheritdoc ILaunchPeg
+    uint256 public override auctionStartPrice;
 
-    /// @notice Auction floor price in AVAX
-    /// @dev auctionEndPrice is scaled to 1e18
-    uint256 public auctionEndPrice;
+    /// @inheritdoc ILaunchPeg
+    uint256 public override auctionEndPrice;
 
-    /// @notice Duration of the auction in seconds
-    /// @dev auctionSaleStartTime - mintlistStartTime
-    uint256 public auctionSaleDuration;
+    /// @inheritdoc ILaunchPeg
+    uint256 public override auctionSaleDuration;
 
-    /// @notice Time elapsed between each drop in price
-    /// @dev in seconds
-    uint256 public auctionDropInterval;
+    /// @inheritdoc ILaunchPeg
+    uint256 public override auctionDropInterval;
 
-    /// @notice Amount in AVAX deducted at each interval
-    uint256 public auctionDropPerStep;
+    /// @inheritdoc ILaunchPeg
+    uint256 public override auctionDropPerStep;
 
     /// @notice The price of the last NFT sold during the auction
     /// @dev lastAuctionPrice is scaled to 1e18
     uint256 private lastAuctionPrice;
 
-    /// @notice The discount applied to the last auction price during the allowlist mint
-    /// @dev in basis points e.g 500 for 5%
-    uint256 public mintlistDiscountPercent;
+    /// @inheritdoc ILaunchPeg
+    uint256 public override mintlistDiscountPercent;
 
-    /// @notice The discount applied to the last auction price during the public sale
-    /// @dev in basis points e.g 2500 for 25%
-    uint256 public publicSaleDiscountPercent;
+    /// @inheritdoc ILaunchPeg
+    uint256 public override publicSaleDiscountPercent;
 
     modifier atPhase(Phase _phase) {
         if (currentPhase() != _phase) {
