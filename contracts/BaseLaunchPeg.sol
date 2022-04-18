@@ -286,6 +286,7 @@ abstract contract BaseLaunchPeg is
     function supportsInterface(bytes4 interfaceId)
         public
         view
+        virtual
         override(ERC721A, ERC2981, IERC165)
         returns (bool)
     {
