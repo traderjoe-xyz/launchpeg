@@ -87,4 +87,17 @@ contract FlatLaunchPeg is BaseLaunchPeg, IFlatLaunchPeg {
         _safeMint(msg.sender, _quantity);
         emit Mint(msg.sender, _quantity, total, _totalMinted() - _quantity);
     }
+
+    /// @inheritdoc ERC721A
+    function supportsInterface(bytes4 interfaceId)
+        public
+        view
+        virtual
+        override(BaseLaunchPeg, IERC165)
+        returns (bool)
+    {
+        return
+            interfaceId == type(IFlatLaunchPeg).interfaceId ||
+            super.supportsInterface(interfaceId);
+    }
 }

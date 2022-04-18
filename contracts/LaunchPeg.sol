@@ -336,4 +336,17 @@ contract LaunchPeg is BaseLaunchPeg, ILaunchPeg {
         }
         return Phase.PublicSale;
     }
+
+    /// @inheritdoc ERC721A
+    function supportsInterface(bytes4 interfaceId)
+        public
+        view
+        virtual
+        override(BaseLaunchPeg, IERC165)
+        returns (bool)
+    {
+        return
+            interfaceId == type(ILaunchPeg).interfaceId ||
+            super.supportsInterface(interfaceId);
+    }
 }
