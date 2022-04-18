@@ -9,16 +9,14 @@ import "./BaseLaunchPeg.sol";
 /// @author Trader Joe
 /// @notice Implements a simple minting NFT contract with an allowlist and public sale phase.
 contract FlatLaunchPeg is BaseLaunchPeg, IFlatLaunchPeg {
-    /// @notice Price of one NFT for people on the mint list
-    /// @dev mintlistPrice is scaled to 1e18
-    uint256 public immutable mintlistPrice;
+    /// @inheritdoc IFlatLaunchPeg
+    uint256 public immutable override mintlistPrice;
 
-    /// @notice Price of one NFT during the public sale
-    /// @dev salePrice is scaled to 1e18
-    uint256 public immutable salePrice;
+    /// @inheritdoc IFlatLaunchPeg
+    uint256 public immutable override salePrice;
 
-    /// @notice Determine wether or not users are allowed to buy from public sale
-    bool public isPublicSaleActive = false;
+    /// @inheritdoc IFlatLaunchPeg
+    bool public override isPublicSaleActive = false;
 
     constructor(
         string memory _name,

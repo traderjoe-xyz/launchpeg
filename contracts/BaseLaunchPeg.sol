@@ -24,32 +24,29 @@ abstract contract BaseLaunchPeg is
 {
     using Strings for uint256;
 
-    /// @notice The collection size (e.g 10000)
-    uint256 public immutable collectionSize;
+    /// @inheritdoc IBaseLaunchPeg
+    uint256 public immutable override collectionSize;
 
-    /// @notice Amount of NFTs reserved for `projectOwner` (e.g 200)
-    /// @dev It can be minted any time via `devMint`
-    uint256 public immutable amountForDevs;
+    /// @inheritdoc IBaseLaunchPeg
+    uint256 public immutable override amountForDevs;
 
     /// @dev Tracks the amount of NFTs minted by `projectOwner`
     uint256 internal amountMintedByDevs;
 
-    /// @notice Max amout of NFTs that can be minted at once
-    uint256 public immutable maxBatchSize;
+    /// @inheritdoc IBaseLaunchPeg
+    uint256 public immutable override maxBatchSize;
 
-    /// @notice Max amount of NFTs an address can mint
-    uint256 public immutable maxPerAddressDuringMint;
+    /// @inheritdoc IBaseLaunchPeg
+    uint256 public immutable override maxPerAddressDuringMint;
 
-    /// @notice The fees collected by Joepeg on the sale benefits
-    /// @dev in basis points e.g 100 for 1%
-    uint256 public joeFeePercent;
+    /// @inheritdoc IBaseLaunchPeg
+    uint256 public override joeFeePercent;
 
-    /// @notice The address to which the fees on the sale will be sent
-    address public joeFeeCollector;
+    /// @inheritdoc IBaseLaunchPeg
+    address public override joeFeeCollector;
 
-    /// @notice The project owner
-    /// @dev We may own the contract during the launch: this address is allowed to call `devMint`
-    address public projectOwner;
+    /// @inheritdoc IBaseLaunchPeg
+    address public override projectOwner;
 
     /// @dev Token URI after collection reveal
     string private _baseTokenURI;
@@ -58,7 +55,7 @@ abstract contract BaseLaunchPeg is
     string private _unrevealedTokenURI;
 
     /// @notice The amount of NFTs each allowed address can mint during the allowlist mint
-    mapping(address => uint256) public allowlist;
+    mapping(address => uint256) public override allowlist;
 
     modifier isEOA() {
         if (tx.origin != msg.sender) {

@@ -74,6 +74,53 @@ interface ILaunchPeg is IBaseLaunchPeg {
         Phase phase
     );
 
+    /// @notice Amount of NFTs available for the auction (e.g 8000)
+    /// Unsold items are put up for sale during the public sale.
+    function amountForAuction() external view returns (uint256);
+
+    /// @notice Amount of NFTs available for the allowlist mint (e.g 1000)
+    /// Unsold items are put up for sale during the public sale.
+    function amountForMintlist() external view returns (uint256);
+
+    /// @notice Start time of the dutch auction in seconds
+    /// @dev Timestamp
+    function auctionSaleStartTime() external view returns (uint256);
+
+    /// @notice Start time of the allowlist mint in seconds
+    /// @dev A timestamp greater than the dutch auction start
+    function mintlistStartTime() external view returns (uint256);
+
+    /// @notice Start time of the public sale in seconds
+    /// @dev A timestamp greater than the allowlist mint start
+    function publicSaleStartTime() external view returns (uint256);
+
+    /// @notice Auction start price in AVAX
+    /// @dev auctionStartPrice is scaled to 1e18
+    function auctionStartPrice() external view returns (uint256);
+
+    /// @notice Auction floor price in AVAX
+    /// @dev auctionEndPrice is scaled to 1e18
+    function auctionEndPrice() external view returns (uint256);
+
+    /// @notice Duration of the auction in seconds
+    /// @dev auctionSaleStartTime - mintlistStartTime
+    function auctionSaleDuration() external view returns (uint256);
+
+    /// @notice Time elapsed between each drop in price
+    /// @dev in seconds
+    function auctionDropInterval() external view returns (uint256);
+
+    /// @notice Amount in AVAX deducted at each interval
+    function auctionDropPerStep() external view returns (uint256);
+
+    /// @notice The discount applied to the last auction price during the allowlist mint
+    /// @dev in basis points e.g 500 for 5%
+    function mintlistDiscountPercent() external view returns (uint256);
+
+    /// @notice The discount applied to the last auction price during the public sale
+    /// @dev in basis points e.g 2500 for 25%
+    function publicSaleDiscountPercent() external view returns (uint256);
+
     /// @notice Initialize the three phases of the sale
     /// @dev Can only be called once
     /// @param _auctionSaleStartTime Auction start time in seconds

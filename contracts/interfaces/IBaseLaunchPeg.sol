@@ -30,6 +30,33 @@ interface IBaseLaunchPeg is IERC721, IERC721Metadata {
     /// @param owner The new project owner
     event ProjectOwnerUpdated(address indexed owner);
 
+    /// @notice The collection size (e.g 10000)
+    function collectionSize() external view returns (uint256);
+
+    /// @notice Amount of NFTs reserved for `projectOwner` (e.g 200)
+    /// @dev It can be minted any time via `devMint`
+    function amountForDevs() external view returns (uint256);
+
+    /// @notice Max amout of NFTs that can be minted at once
+    function maxBatchSize() external view returns (uint256);
+
+    /// @notice Max amount of NFTs an address can mint
+    function maxPerAddressDuringMint() external view returns (uint256);
+
+    /// @notice The fees collected by Joepeg on the sale benefits
+    /// @dev in basis points e.g 100 for 1%
+    function joeFeePercent() external view returns (uint256);
+
+    /// @notice The address to which the fees on the sale will be sent
+    function joeFeeCollector() external view returns (address);
+
+    /// @notice The project owner
+    /// @dev We may own the contract during the launch: this address is allowed to call `devMint`
+    function projectOwner() external view returns (address);
+
+    /// @notice The amount of NFTs each allowed address can mint during the allowlist mint
+    function allowlist(address) external view returns (uint256);
+
     /// @notice Initialize the percentage taken on the sale and collector address
     /// @param _joeFeePercent The fees collected by Joepeg on the sale benefits
     /// @param _joeFeeCollector The address to which the fees on the sale will be sent
