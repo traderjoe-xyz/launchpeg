@@ -23,7 +23,7 @@ contract LaunchPegLens {
         // Base Launchpeg
         uint256 collectionSize;
         uint256 maxBatchSize;
-        uint256 allowListAmount;
+        uint256 allowlist;
         // Batch reveal
         uint256 revealBatchSize;
         uint256 lastTokenRevealed;
@@ -78,6 +78,21 @@ contract LaunchPegLens {
         return LaunchPegDatas;
     }
 
+    function getAllLaunchPegsWithUser(
+        address[] memory _addressList,
+        address _user
+    ) external view returns (LaunchPegData[] memory) {
+        LaunchPegData[] memory LaunchPegDatas = new LaunchPegData[](
+            _addressList.length
+        );
+
+        for (uint256 i = 0; i < LaunchPegDatas.length; i++) {
+            LaunchPegDatas[i] = getLaunchPegUserData(_addressList[i], _user);
+        }
+
+        return LaunchPegDatas;
+    }
+
     function getLaunchPegType(address _contract)
         public
         view
@@ -92,6 +107,22 @@ contract LaunchPegLens {
         } else {
             return LaunchPegType.Unknown;
         }
+    }
+
+    function getLaunchPegUserData(address _launchPeg, address _user)
+        private
+        view
+        returns (LaunchPegData memory)
+    {
+        LaunchPegData memory data = getLaunchPegData(_launchPeg);
+
+        data.balanceOf = ERC721A(_launchPeg).balanceOf(_user);
+
+        if (data.launchType != LaunchPegType.Unknown) {
+            data.allowlist = IBaseLaunchPeg(_launchPeg).allowlist(_user);
+        }
+
+        return data;
     }
 
     function getLaunchPegData(address _launchPeg)
