@@ -110,7 +110,7 @@ contract LaunchPegLens {
     }
 
     function getLaunchPegUserData(address _launchPeg, address _user)
-        private
+        public
         view
         returns (LaunchPegData memory)
     {
@@ -126,7 +126,7 @@ contract LaunchPegLens {
     }
 
     function getLaunchPegData(address _launchPeg)
-        private
+        public
         view
         returns (LaunchPegData memory)
     {
