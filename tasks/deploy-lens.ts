@@ -7,9 +7,9 @@ task('deploy-lens', 'Deploy LaunchPegLens contract').setAction(async ({}, hre) =
 
   const LaunchPegLensFactory = await ethers.getContractFactory('LaunchPegLens')
 
-  const LaunchPegLens = await LaunchPegLensFactory.deploy()
+  const launchPegLens = await LaunchPegLensFactory.deploy()
 
-  await LaunchPegLens.deployTransaction.wait()
+  await launchPegLens.deployTransaction.wait()
 
-  console.log(`-- Contract deployed at ${LaunchPegLens.address} --`)
+  console.log(`-- Contract deployed at ${launchPegLens.address} --`)
 })
