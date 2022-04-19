@@ -30,7 +30,7 @@ task('deploy-launch-peg', 'Deploy LaunchPeg contract')
 
     console.log('-- Initializating phases --')
 
-    await launchPeg.initializePhases(
+    const initTx = await launchPeg.initializePhases(
       launchConfig.auctionSaleStartTime,
       launchConfig.auctionStartPrice,
       launchConfig.auctionEndPrice,
@@ -42,6 +42,8 @@ task('deploy-launch-peg', 'Deploy LaunchPeg contract')
       launchConfig.revealStartTime,
       launchConfig.revealInterval
     )
+
+    await initTx.wait()
 
     if (launchConfig.joeFeePercent && launchConfig.joeFeeCollector) {
       console.log('-- Initializating Joe fee --')
