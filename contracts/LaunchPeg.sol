@@ -16,48 +16,119 @@ import "./LaunchPegErrors.sol";
 /// @author Trader Joe
 /// @notice Implements a fair and gas efficient NFT launch mechanism. The sale takes place in 3 phases: dutch auction, allowlist mint, public sale.
 contract LaunchPeg is BaseLaunchPeg, ILaunchPeg {
-    /// @inheritdoc ILaunchPeg
+    /// @notice Amount of NFTs available for the auction (e.g 8000)
+    /// Unsold items are put up for sale during the public sale.
     uint256 public immutable override amountForAuction;
 
-    /// @inheritdoc ILaunchPeg
+    /// @notice Amount of NFTs available for the allowlist mint (e.g 1000)
+    /// Unsold items are put up for sale during the public sale.
     uint256 public immutable override amountForMintlist;
 
     /// @dev Tracks the amount of NFTs minted during the dutch auction
     uint256 private amountMintedDuringAuction;
 
-    /// @inheritdoc ILaunchPeg
+    /// @notice Start time of the dutch auction in seconds
+    /// @dev Timestamp
     uint256 public override auctionSaleStartTime;
 
-    /// @inheritdoc ILaunchPeg
+    /// @notice Start time of the allowlist mint in seconds
+    /// @dev A timestamp greater than the dutch auction start
     uint256 public override mintlistStartTime;
 
-    /// @inheritdoc ILaunchPeg
+    /// @notice Start time of the public sale in seconds
+    /// @dev A timestamp greater than the allowlist mint start
     uint256 public override publicSaleStartTime;
 
-    /// @inheritdoc ILaunchPeg
+    /// @notice Auction start price in AVAX
+    /// @dev auctionStartPrice is scaled to 1e18
     uint256 public override auctionStartPrice;
 
-    /// @inheritdoc ILaunchPeg
+    /// @notice Auction floor price in AVAX
+    /// @dev auctionEndPrice is scaled to 1e18
     uint256 public override auctionEndPrice;
 
-    /// @inheritdoc ILaunchPeg
+    /// @notice Duration of the auction in seconds
+    /// @dev auctionSaleStartTime - mintlistStartTime
     uint256 public override auctionSaleDuration;
 
-    /// @inheritdoc ILaunchPeg
+    /// @notice Time elapsed between each drop in price
+    /// @dev in seconds
     uint256 public override auctionDropInterval;
 
-    /// @inheritdoc ILaunchPeg
+    /// @notice Amount in AVAX deducted at each interval
     uint256 public override auctionDropPerStep;
 
     /// @notice The price of the last NFT sold during the auction
     /// @dev lastAuctionPrice is scaled to 1e18
     uint256 private lastAuctionPrice;
 
-    /// @inheritdoc ILaunchPeg
+    /// @notice The discount applied to the last auction price during the allowlist mint
+    /// @dev in basis points e.g 500 for 5%
     uint256 public override mintlistDiscountPercent;
 
-    /// @inheritdoc ILaunchPeg
+    /// @notice The discount applied to the last auction price during the public sale
+    /// @dev in basis points e.g 2500 for 25%
     uint256 public override publicSaleDiscountPercent;
+
+    /// @dev Emitted on initializePhases()
+    /// @param name Contract name
+    /// @param symbol Token symbol
+    /// @param projectOwner Owner of the project
+    /// @param maxBatchSize  Max amout of NFTs that can be minted at once
+    /// @param collectionSize The collection size (e.g 10000)
+    /// @param amountForAuction Amount of NFTs available for the auction (e.g 8000)
+    /// @param amountForMintlist  Amount of NFTs available for the allowlist mint (e.g 1000)
+    /// @param amountForDevs Amount of NFTs reserved for `projectOwner` (e.g 200)
+    /// @param auctionSaleStartTime Auction start time in seconds
+    /// @param auctionStartPrice Auction start price in AVAX
+    /// @param auctionEndPrice Auction floor price in AVAX
+    /// @param auctionDropInterval Time elapsed between each drop in price in seconds
+    /// @param mintlistStartTime Allowlist mint start time in seconds
+    /// @param mintlistDiscountPercent Discount applied to the last auction price during the allowlist mint
+    /// @param publicSaleStartTime Public sale start time in seconds
+    /// @param publicSaleDiscountPercent Discount applied to the last auction price during the public sale
+    event Initialized(
+        string indexed name,
+        string indexed symbol,
+        address indexed projectOwner,
+        uint256 maxBatchSize,
+        uint256 collectionSize,
+        uint256 amountForAuction,
+        uint256 amountForMintlist,
+        uint256 amountForDevs,
+        uint256 auctionSaleStartTime,
+        uint256 auctionStartPrice,
+        uint256 auctionEndPrice,
+        uint256 auctionDropInterval,
+        uint256 mintlistStartTime,
+        uint256 mintlistDiscountPercent,
+        uint256 publicSaleStartTime,
+        uint256 publicSaleDiscountPercent
+    );
+
+    /// @dev Emitted on initializePhases()
+    /// @param revealStartTime Start of the token URIs reveal in seconds
+    /// @param revealInterval Interval between two batch reveals in seconds
+    /// @param revealBatchSize Amount of NFTs revealed in a single batch
+    event RevealInitialized(
+        uint256 revealStartTime,
+        uint256 revealInterval,
+        uint256 revealBatchSize
+    );
+
+    /// @dev Emitted on auctionMint(), allowlistMint(), publicSaleMint()
+    /// @param sender The address that minted
+    /// @param quantity Amount of NFTs minted
+    /// @param price Price in AVAX for the NFTs
+    /// @param startTokenId The token ID of the first minted NFT: if `startTokenId` = 100 and `quantity` = 2, `sender` minted 100 and 101
+    /// @param phase The phase in which the mint occurs
+    event Mint(
+        address indexed sender,
+        uint256 quantity,
+        uint256 price,
+        uint256 startTokenId,
+        Phase phase
+    );
 
     modifier atPhase(Phase _phase) {
         if (currentPhase() != _phase) {
@@ -66,6 +137,17 @@ contract LaunchPeg is BaseLaunchPeg, ILaunchPeg {
         _;
     }
 
+    /// @dev LaunchPeg constructor
+    /// @param _name ERC721 name
+    /// @param _symbol ERC721 symbol
+    /// @param _projectOwner The project owner
+    /// @param _royaltyReceiver Royalty fee collector
+    /// @param _maxBatchSize Max amout of NFTs that can be minted at once
+    /// @param _collectionSize The collection size (e.g 10000)
+    /// @param _amountForAuction Amount of NFTs available for the auction (e.g 8000)
+    /// @param _amountForMintlist Amount of NFTs available for the allowlist mint (e.g 1000)
+    /// @param _amountForDevs Amount of NFTs reserved for `projectOwner` (e.g 200)
+    /// @param _batchRevealSize Size of the batch reveal
     constructor(
         string memory _name,
         string memory _symbol,
@@ -100,7 +182,18 @@ contract LaunchPeg is BaseLaunchPeg, ILaunchPeg {
         amountForMintlist = _amountForMintlist;
     }
 
-    /// @inheritdoc ILaunchPeg
+    /// @notice Initialize the three phases of the sale
+    /// @dev Can only be called once
+    /// @param _auctionSaleStartTime Auction start time in seconds
+    /// @param _auctionStartPrice Auction start price in AVAX
+    /// @param _auctionEndPrice Auction floor price in AVAX
+    /// @param _auctionDropInterval Time elapsed between each drop in price in seconds
+    /// @param _mintlistStartTime Allowlist mint start time in seconds
+    /// @param _mintlistDiscountPercent Discount applied to the last auction price during the allowlist mint
+    /// @param _publicSaleStartTime Public sale start time in seconds
+    /// @param _publicSaleDiscountPercent Discount applied to the last auction price during the public sale
+    /// @param _revealStartTime Start of the token URIs reveal in seconds
+    /// @param _revealInterval Interval between two batch reveals in seconds
     function initializePhases(
         uint256 _auctionSaleStartTime,
         uint256 _auctionStartPrice,
@@ -180,7 +273,9 @@ contract LaunchPeg is BaseLaunchPeg, ILaunchPeg {
         );
     }
 
-    /// @inheritdoc ILaunchPeg
+    /// @notice Mint NFTs during the dutch auction
+    /// The price decreases every `auctionDropInterval` by `auctionDropPerStep`
+    /// @param _quantity Quantity of NFTs to buy
     function auctionMint(uint256 _quantity)
         external
         payable
@@ -213,7 +308,8 @@ contract LaunchPeg is BaseLaunchPeg, ILaunchPeg {
         );
     }
 
-    /// @inheritdoc ILaunchPeg
+    /// @notice Mint NFTs during the allowlist mint
+    /// @dev One NFT at a time
     function allowlistMint()
         external
         payable
@@ -239,7 +335,7 @@ contract LaunchPeg is BaseLaunchPeg, ILaunchPeg {
         emit Mint(msg.sender, 1, price, _totalMinted() - 1, Phase.Mintlist);
     }
 
-    /// @inheritdoc ILaunchPeg
+    /// @notice Returns the price of the allowlist mint
     function getMintlistPrice() public view override returns (uint256) {
         return
             lastAuctionPrice -
@@ -247,7 +343,8 @@ contract LaunchPeg is BaseLaunchPeg, ILaunchPeg {
             10000;
     }
 
-    /// @inheritdoc ILaunchPeg
+    /// @notice Mint NFTs during the public sale
+    /// @param _quantity Quantity of NFTs to mint
     function publicSaleMint(uint256 _quantity)
         external
         payable
@@ -276,7 +373,7 @@ contract LaunchPeg is BaseLaunchPeg, ILaunchPeg {
         );
     }
 
-    /// @inheritdoc ILaunchPeg
+    /// @notice Returns the price of the public sale
     function getPublicSalePrice() public view override returns (uint256) {
         return
             lastAuctionPrice -
@@ -284,7 +381,7 @@ contract LaunchPeg is BaseLaunchPeg, ILaunchPeg {
             10000;
     }
 
-    /// @inheritdoc ILaunchPeg
+    /// @notice Returns the current price of the dutch auction
     function getAuctionPrice(uint256 _saleStartTime)
         public
         view
@@ -303,7 +400,7 @@ contract LaunchPeg is BaseLaunchPeg, ILaunchPeg {
         }
     }
 
-    /// @inheritdoc ILaunchPeg
+    /// @notice Returns the current phase
     function currentPhase() public view override returns (Phase) {
         if (
             auctionSaleStartTime == 0 ||
@@ -326,7 +423,11 @@ contract LaunchPeg is BaseLaunchPeg, ILaunchPeg {
         return Phase.PublicSale;
     }
 
-    /// @inheritdoc ERC721A
+    /// @dev Returns true if this contract implements the interface defined by
+    /// `interfaceId`. See the corresponding
+    /// https://eips.ethereum.org/EIPS/eip-165#how-interfaces-are-identified[EIP section]
+    /// to learn more about how these ids are created.
+    /// This function call must use less than 30 000 gas.
     function supportsInterface(bytes4 interfaceId)
         public
         view

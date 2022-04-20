@@ -9,15 +9,44 @@ import "./BaseLaunchPeg.sol";
 /// @author Trader Joe
 /// @notice Implements a simple minting NFT contract with an allowlist and public sale phase.
 contract FlatLaunchPeg is BaseLaunchPeg, IFlatLaunchPeg {
-    /// @inheritdoc IFlatLaunchPeg
+    /// @notice Price of one NFT for people on the mint list
+    /// @dev mintlistPrice is scaled to 1e18
     uint256 public immutable override mintlistPrice;
 
-    /// @inheritdoc IFlatLaunchPeg
+    /// @notice Price of one NFT during the public sale
+    /// @dev salePrice is scaled to 1e18
     uint256 public immutable override salePrice;
 
-    /// @inheritdoc IFlatLaunchPeg
+    /// @notice Determine wether or not users are allowed to buy from public sale
     bool public override isPublicSaleActive = false;
 
+    /// @dev Emitted on allowlistMint(), publicSaleMint()
+    /// @param sender The address that minted
+    /// @param quantity Amount of NFTs minted
+    /// @param price Price in AVAX for the NFTs
+    /// @param tokenId The token ID of the first minted NFT
+    event Mint(
+        address indexed sender,
+        uint256 quantity,
+        uint256 price,
+        uint256 tokenId
+    );
+
+    /// @dev Emitted on setPublicSaleActive()
+    /// @param isActive True if the public sale is open, false otherwise
+    event PublicSaleStateChanged(bool isActive);
+
+    /// @dev FlatLaunchPeg constructor
+    /// @param _name ERC721 name
+    /// @param _symbol ERC721 symbol
+    /// @param _projectOwner The project owner
+    /// @param _royaltyReceiver Royalty fee collector
+    /// @param _maxBatchSize Max amout of NFTs that can be minted at once
+    /// @param _collectionSize The collection size (e.g 10000)
+    /// @param _amountForDevs Amount of NFTs reserved for `projectOwner` (e.g 200)
+    /// @param _batchRevealSize Size of the batch reveal
+    /// @param _salePrice Price of the public sale in Avax
+    /// @param _mintlistPrice Price of the whitelist sale in Avax
     constructor(
         string memory _name,
         string memory _symbol,
@@ -45,7 +74,9 @@ contract FlatLaunchPeg is BaseLaunchPeg, IFlatLaunchPeg {
         mintlistPrice = _mintlistPrice;
     }
 
-    /// @inheritdoc IFlatLaunchPeg
+    /// @notice Switch the sale on and off
+    /// @dev Must be only owner
+    /// @param _isPublicSaleActive Whether or not the public sale is open
     function setPublicSaleActive(bool _isPublicSaleActive)
         external
         override
@@ -55,7 +86,8 @@ contract FlatLaunchPeg is BaseLaunchPeg, IFlatLaunchPeg {
         emit PublicSaleStateChanged(_isPublicSaleActive);
     }
 
-    /// @inheritdoc IFlatLaunchPeg
+    /// @notice Mint NFTs during the allowlist mint
+    /// @dev One NFT at a time
     function allowlistMint() external payable override {
         if (allowlist[msg.sender] <= 0) {
             revert LaunchPeg__NotEligibleForAllowlistMint();
@@ -69,7 +101,8 @@ contract FlatLaunchPeg is BaseLaunchPeg, IFlatLaunchPeg {
         emit Mint(msg.sender, 1, mintlistPrice, _totalMinted() - 1);
     }
 
-    /// @inheritdoc IFlatLaunchPeg
+    /// @notice Mint NFTs during the public sale
+    /// @param _quantity Quantity of NFTs to mint
     function publicSaleMint(uint256 _quantity) external payable override {
         if (!isPublicSaleActive) {
             revert LaunchPeg__PublicSaleClosed();
@@ -86,7 +119,11 @@ contract FlatLaunchPeg is BaseLaunchPeg, IFlatLaunchPeg {
         emit Mint(msg.sender, _quantity, total, _totalMinted() - _quantity);
     }
 
-    /// @inheritdoc ERC721A
+    /// @dev Returns true if this contract implements the interface defined by
+    /// `interfaceId`. See the corresponding
+    /// https://eips.ethereum.org/EIPS/eip-165#how-interfaces-are-identified[EIP section]
+    /// to learn more about how these ids are created.
+    /// This function call must use less than 30 000 gas.
     function supportsInterface(bytes4 interfaceId)
         public
         view

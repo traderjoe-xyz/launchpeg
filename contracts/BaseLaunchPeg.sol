@@ -24,38 +24,61 @@ abstract contract BaseLaunchPeg is
 {
     using Strings for uint256;
 
-    /// @inheritdoc IBaseLaunchPeg
+    /// @notice The collection size (e.g 10000)
     uint256 public immutable override collectionSize;
 
-    /// @inheritdoc IBaseLaunchPeg
+    /// @notice Amount of NFTs reserved for `projectOwner` (e.g 200)
+    /// @dev It can be minted any time via `devMint`
     uint256 public immutable override amountForDevs;
 
     /// @dev Tracks the amount of NFTs minted by `projectOwner`
     uint256 internal amountMintedByDevs;
 
-    /// @inheritdoc IBaseLaunchPeg
+    /// @notice Max amout of NFTs that can be minted at once
     uint256 public immutable override maxBatchSize;
 
-    /// @inheritdoc IBaseLaunchPeg
+    /// @notice Max amount of NFTs an address can mint
     uint256 public immutable override maxPerAddressDuringMint;
 
-    /// @inheritdoc IBaseLaunchPeg
+    /// @notice The fees collected by Joepeg on the sale benefits
+    /// @dev in basis points e.g 100 for 1%
     uint256 public override joeFeePercent;
 
-    /// @inheritdoc IBaseLaunchPeg
+    /// @notice The address to which the fees on the sale will be sent
     address public override joeFeeCollector;
 
-    /// @inheritdoc IBaseLaunchPeg
+    /// @notice The project owner
+    /// @dev We may own the contract during the launch: this address is allowed to call `devMint`
     address public override projectOwner;
 
-    /// @dev Token URI after collection reveal
+    /// @notice Token URI after collection reveal
     string public baseURI;
 
-    /// @dev Token URI before the collection reveal
+    /// @notice Token URI before the collection reveal
     string public unrevealedURI;
 
     /// @notice The amount of NFTs each allowed address can mint during the allowlist mint
     mapping(address => uint256) public override allowlist;
+
+    /// @dev Emitted on initializeJoeFee()
+    /// @param feePercent The fees collected by Joepeg on the sale benefits
+    /// @param feeCollector The address to which the fees on the sale will be sent
+    event JoeFeeInitialized(uint256 feePercent, address feeCollector);
+
+    /// @dev Emitted on devMint()
+    /// @param sender The address that minted
+    /// @param quantity Amount of NFTs minted
+    event DevMint(address indexed sender, uint256 quantity);
+
+    /// @dev Emitted on withdrawAVAX()
+    /// @param sender The address that withdrew the tokens
+    /// @param amount Amount of AVAX transfered to `sender`
+    /// @param fee Amount of AVAX paid to the fee collector
+    event AvaxWithdraw(address indexed sender, uint256 amount, uint256 fee);
+
+    /// @dev Emitted on setProjectOwner()
+    /// @param owner The new project owner
+    event ProjectOwnerUpdated(address indexed owner);
 
     modifier isEOA() {
         if (tx.origin != msg.sender) {
@@ -71,6 +94,15 @@ abstract contract BaseLaunchPeg is
         _;
     }
 
+    /// @dev BaseLaunchPeg constructor
+    /// @param _name ERC721 name
+    /// @param _symbol ERC721 symbol
+    /// @param _projectOwner The project owner
+    /// @param _royaltyReceiver Royalty fee collector
+    /// @param _maxBatchSize Max amout of NFTs that can be minted at once
+    /// @param _collectionSize The collection size (e.g 10000)
+    /// @param _amountForDevs Amount of NFTs reserved for `projectOwner` (e.g 200)
+    /// @param _batchRevealSize Size of the batch reveal
     constructor(
         string memory _name,
         string memory _symbol,
@@ -94,7 +126,10 @@ abstract contract BaseLaunchPeg is
         _setDefaultRoyalty(_royaltyReceiver, 500);
     }
 
-    /// @inheritdoc IBaseLaunchPeg
+    /// @notice Seed the allowlist: each address can mint up to numSlot
+    /// @dev e.g _addresses: [0x1, 0x2, 0x3], _numSlots: [1, 1, 2]
+    /// @param _addresses Addresses allowed to mint during the allowlist phase
+    /// @param _numSlots Quantity of NFTs that an address can mint
     function seedAllowlist(
         address[] memory _addresses,
         uint256[] memory _numSlots
@@ -107,7 +142,9 @@ abstract contract BaseLaunchPeg is
         }
     }
 
-    /// @inheritdoc IBaseLaunchPeg
+    /// @notice Initialize the percentage taken on the sale and collector address
+    /// @param _joeFeePercent The fees collected by Joepeg on the sale benefits
+    /// @param _joeFeeCollector The address to which the fees on the sale will be sent
     function initializeJoeFee(
         uint256 _joeFeePercent,
         address payable _joeFeeCollector
@@ -123,7 +160,7 @@ abstract contract BaseLaunchPeg is
         emit JoeFeeInitialized(_joeFeePercent, _joeFeeCollector);
     }
 
-    /// @inheritdoc IBaseLaunchPeg
+    /// @notice Withdraw Avax to the contract owner
     function withdrawAVAX() external override onlyOwner nonReentrant {
         uint256 amount = address(this).balance;
         uint256 fee = 0;
@@ -147,7 +184,8 @@ abstract contract BaseLaunchPeg is
         emit AvaxWithdraw(msg.sender, amount, fee);
     }
 
-    /// @inheritdoc IBaseLaunchPeg
+    /// @notice Returns the number of NFTs minted by a specific address
+    /// @param owner The owner of the NFTs
     function numberMinted(address owner)
         public
         view
@@ -157,7 +195,8 @@ abstract contract BaseLaunchPeg is
         return _numberMinted(owner);
     }
 
-    /// @inheritdoc IBaseLaunchPeg
+    /// @notice Returns the ownership data of a specific token ID
+    /// @param tokenId Token ID
     function getOwnershipData(uint256 tokenId)
         external
         view
@@ -183,12 +222,14 @@ abstract contract BaseLaunchPeg is
         }
     }
 
-    /// @inheritdoc IBaseLaunchPeg
+    /// @notice Set the base URI
+    /// @dev Only callable by project owner
     function setBaseURI(string calldata _baseURI) external override onlyOwner {
         baseURI = _baseURI;
     }
 
-    /// @inheritdoc IBaseLaunchPeg
+    /// @notice Set the unrevealed URI
+    /// @dev Only callable by project owner
     function setUnrevealedURI(string calldata _unrevealedURI)
         external
         override
@@ -197,24 +238,26 @@ abstract contract BaseLaunchPeg is
         unrevealedURI = _unrevealedURI;
     }
 
-    /// @inheritdoc IBaseLaunchPeg
+    /// @notice Checks block timestamp, token minted and last token revealed
+    /// to know if more token can be revealed
     function hasBatchToReveal() external view override returns (bool, uint256) {
         return _hasBatchToReveal(totalSupply());
     }
 
-    /// @inheritdoc IBaseLaunchPeg
+    /// @notice Reveals the next batch if the reveal conditions are met
     function revealNextBatch() external override isEOA {
         if (!_revealNextBatch(totalSupply())) {
             revert LaunchPeg__RevealNextBatchNotAvailable();
         }
     }
 
-    /// @inheritdoc IBaseLaunchPeg
+    /// @notice Allows ProjectOwner to reveal batches even if the conditions are not met
     function forceReveal() external override onlyProjectOwner {
         _forceReveal();
     }
 
-    /// @inheritdoc IBaseLaunchPeg
+    /// @notice Set the project owner
+    /// @dev The project owner can call `devMint` any time
     function setProjectOwner(address _projectOwner)
         external
         override
@@ -224,7 +267,9 @@ abstract contract BaseLaunchPeg is
         emit ProjectOwnerUpdated(projectOwner);
     }
 
-    /// @inheritdoc IBaseLaunchPeg
+    /// @notice Mint NFTs to the project owner
+    /// @dev Can only mint up to ``amountForDevs`
+    /// @param quantity Quantity of NFTs to mint
     function devMint(uint256 quantity) external override onlyProjectOwner {
         if (amountMintedByDevs + quantity > amountForDevs) {
             revert LaunchPeg__MaxSupplyReached();
@@ -240,7 +285,7 @@ abstract contract BaseLaunchPeg is
         emit DevMint(msg.sender, quantity);
     }
 
-    /// @inheritdoc ERC721A
+    /// @notice Returns the Uniform Resource Identifier (URI) for `tokenId` token.
     function tokenURI(uint256 id)
         public
         view
@@ -260,7 +305,9 @@ abstract contract BaseLaunchPeg is
         }
     }
 
-    /// @inheritdoc IBaseLaunchPeg
+    /// @notice Set the royalty fee
+    /// @param receiver Royalty fee collector
+    /// @param feePercent Royalty fee percent in basis point
     function setRoyaltyInfo(address receiver, uint96 feePercent)
         external
         override
@@ -269,7 +316,11 @@ abstract contract BaseLaunchPeg is
         _setDefaultRoyalty(receiver, feePercent);
     }
 
-    /// @inheritdoc ERC721A
+    /// @dev Returns true if this contract implements the interface defined by
+    /// `interfaceId`. See the corresponding
+    /// https://eips.ethereum.org/EIPS/eip-165#how-interfaces-are-identified[EIP section]
+    /// to learn more about how these ids are created.
+    /// This function call must use less than 30 000 gas.
     function supportsInterface(bytes4 interfaceId)
         public
         view

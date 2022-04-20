@@ -37,6 +37,9 @@ abstract contract BatchReveal {
         int128 end;
     }
 
+    /// @dev BatchReveal constructor
+    /// @param _revealBatchSize Size of the batch reveal
+    /// @param _collectionSize Needs to be sent by child contract
     constructor(uint256 _revealBatchSize, uint256 _collectionSize) {
         revealBatchSize = _revealBatchSize;
         collectionSize = _collectionSize;
