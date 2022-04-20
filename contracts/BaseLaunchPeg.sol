@@ -112,7 +112,7 @@ abstract contract BaseLaunchPeg is
         uint256 _joeFeePercent,
         address payable _joeFeeCollector
     ) external override onlyOwner {
-        if (joeFeePercent > 10000) {
+        if (_joeFeePercent > 10000) {
             revert LaunchPeg__InvalidPercent();
         }
         if (_joeFeeCollector == address(0)) {
