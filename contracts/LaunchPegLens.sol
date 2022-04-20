@@ -62,7 +62,7 @@ contract LaunchPegLens {
         flatLaunchPegInterface = type(IFlatLaunchPeg).interfaceId;
     }
 
-    function getAllLaunchPegs(address[] memory _addressList)
+    function getAllLaunchPegs(address[] memory _addressList, address _user)
         external
         view
         returns (LaunchPegData[] memory)
@@ -72,22 +72,7 @@ contract LaunchPegLens {
         );
 
         for (uint256 i = 0; i < LaunchPegDatas.length; i++) {
-            LaunchPegDatas[i] = getLaunchPegData(_addressList[i]);
-        }
-
-        return LaunchPegDatas;
-    }
-
-    function getAllLaunchPegsWithUser(
-        address[] memory _addressList,
-        address _user
-    ) external view returns (LaunchPegData[] memory) {
-        LaunchPegData[] memory LaunchPegDatas = new LaunchPegData[](
-            _addressList.length
-        );
-
-        for (uint256 i = 0; i < LaunchPegDatas.length; i++) {
-            LaunchPegDatas[i] = getLaunchPegUserData(_addressList[i], _user);
+            LaunchPegDatas[i] = getLaunchPegData(_addressList[i], _user);
         }
 
         return LaunchPegDatas;
@@ -109,23 +94,7 @@ contract LaunchPegLens {
         }
     }
 
-    function getLaunchPegUserData(address _launchPeg, address _user)
-        public
-        view
-        returns (LaunchPegData memory)
-    {
-        LaunchPegData memory data = getLaunchPegData(_launchPeg);
-
-        data.balanceOf = ERC721A(_launchPeg).balanceOf(_user);
-
-        if (data.launchType != LaunchPegType.Unknown) {
-            data.allowlist = IBaseLaunchPeg(_launchPeg).allowlist(_user);
-        }
-
-        return data;
-    }
-
-    function getLaunchPegData(address _launchPeg)
+    function getLaunchPegData(address _launchPeg, address _user)
         public
         view
         returns (LaunchPegData memory)
@@ -176,6 +145,11 @@ contract LaunchPegLens {
             data.salePrice = IFlatLaunchPeg(_launchPeg).salePrice();
             data.isPublicSaleActive = IFlatLaunchPeg(_launchPeg)
                 .isPublicSaleActive();
+        }
+
+        if (_user != address(0)) {
+            data.balanceOf = ERC721A(_launchPeg).balanceOf(_user);
+            data.allowlist = IBaseLaunchPeg(_launchPeg).allowlist(_user);
         }
 
         return data;
