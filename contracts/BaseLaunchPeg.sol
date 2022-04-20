@@ -81,7 +81,7 @@ abstract contract BaseLaunchPeg is
         uint256 _amountForDevs,
         uint256 _batchRevealSize
     ) ERC721A(_name, _symbol) BatchReveal(_batchRevealSize, _collectionSize) {
-        if (_collectionSize % _batchRevealSize > 0) {
+        if (_collectionSize % _batchRevealSize != 0) {
             revert LaunchPeg__InvalidBatchRevealSize();
         }
 
