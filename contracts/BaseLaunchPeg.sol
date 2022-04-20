@@ -124,7 +124,7 @@ abstract contract BaseLaunchPeg is
     }
 
     /// @inheritdoc IBaseLaunchPeg
-    function withdrawMoney() external override onlyOwner nonReentrant {
+    function withdrawAVAX() external override onlyOwner nonReentrant {
         uint256 amount = address(this).balance;
         uint256 fee = 0;
         bool sent = false;
@@ -144,7 +144,7 @@ abstract contract BaseLaunchPeg is
             revert LaunchPeg__TransferFailed();
         }
 
-        emit MoneyWithdraw(msg.sender, amount, fee);
+        emit AvaxWithdraw(msg.sender, amount, fee);
     }
 
     /// @inheritdoc IBaseLaunchPeg

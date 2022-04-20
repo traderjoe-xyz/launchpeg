@@ -20,11 +20,11 @@ interface IBaseLaunchPeg is IERC721, IERC721Metadata {
     /// @param quantity Amount of NFTs minted
     event DevMint(address indexed sender, uint256 quantity);
 
-    /// @dev Emitted on withdrawMoney()
+    /// @dev Emitted on withdrawAVAX()
     /// @param sender The address that withdrew the tokens
     /// @param amount Amount of AVAX transfered to `sender`
     /// @param fee Amount of AVAX paid to the fee collector
-    event MoneyWithdraw(address indexed sender, uint256 amount, uint256 fee);
+    event AvaxWithdraw(address indexed sender, uint256 amount, uint256 fee);
 
     /// @dev Emitted on setProjectOwner()
     /// @param owner The new project owner
@@ -84,7 +84,7 @@ interface IBaseLaunchPeg is IERC721, IERC721Metadata {
     function devMint(uint256 quantity) external;
 
     /// @notice Withdraw money to the contract owner
-    function withdrawMoney() external;
+    function withdrawAVAX() external;
 
     /// @notice Returns the number of NFTs minted by a specific address
     /// @param owner The owner of the NFTs

@@ -371,7 +371,7 @@ describe('LaunchPeg', () => {
       await launchPeg.connect(bob).auctionMint(4, { value: config.startPrice.mul(4) })
 
       const initialDevBalance = await dev.getBalance()
-      await launchPeg.connect(dev).withdrawMoney()
+      await launchPeg.connect(dev).withdrawAVAX()
       expect(await dev.getBalance()).to.be.closeTo(
         initialDevBalance.add(config.startPrice.mul(9)),
         ethers.utils.parseEther('0.01')
@@ -403,7 +403,7 @@ describe('LaunchPeg', () => {
       const fee = total.mul(feePercent).div(10000)
       const initialDevBalance = await dev.getBalance()
       const initialFeeCollectorBalance = await feeCollector.getBalance()
-      await launchPeg.connect(dev).withdrawMoney()
+      await launchPeg.connect(dev).withdrawAVAX()
       expect(await dev.getBalance()).to.be.closeTo(
         initialDevBalance.add(total.sub(fee)),
         ethers.utils.parseEther('0.01')
