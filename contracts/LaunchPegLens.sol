@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.4;
 
-import "./interfaces/IBaseLaunchPeg.sol";
+import "./BaseLaunchPeg.sol";
 import "./interfaces/IFlatLaunchPeg.sol";
 import "./interfaces/ILaunchPeg.sol";
 import "./interfaces/IBatchReveal.sol";
@@ -98,10 +98,10 @@ contract LaunchPegLens {
         view
         returns (LaunchPegType)
     {
-        if (IBaseLaunchPeg(_contract).supportsInterface(launchPegInterface)) {
+        if (BaseLaunchPeg(_contract).supportsInterface(launchPegInterface)) {
             return LaunchPegType.LaunchPeg;
         } else if (
-            IBaseLaunchPeg(_contract).supportsInterface(flatLaunchPegInterface)
+            BaseLaunchPeg(_contract).supportsInterface(flatLaunchPegInterface)
         ) {
             return LaunchPegType.FlatLaunchPeg;
         } else {
@@ -134,12 +134,14 @@ contract LaunchPegLens {
         data.id = _launchPeg;
         data.launchType = getLaunchPegType(_launchPeg);
 
-        if (data.launchType != LaunchPegType.Unknown) {
-            data.name = ERC721A(_launchPeg).name();
-            data.symbol = ERC721A(_launchPeg).symbol();
-            data.collectionSize = IBaseLaunchPeg(_launchPeg).collectionSize();
-            data.totalSupply = ERC721A(_launchPeg).totalSupply();
+        if (data.launchType == LaunchPegType.Unknown) {
+            revert("Invalid contract");
         }
+
+        data.name = ERC721A(_launchPeg).name();
+        data.symbol = ERC721A(_launchPeg).symbol();
+        data.collectionSize = BaseLaunchPeg(_launchPeg).collectionSize();
+        data.totalSupply = ERC721A(_launchPeg).totalSupply();
 
         if (data.launchType == LaunchPegType.LaunchPeg) {
             data.revealBatchSize = IBatchReveal(_launchPeg).revealBatchSize();
