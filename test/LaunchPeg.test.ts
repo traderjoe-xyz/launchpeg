@@ -378,6 +378,19 @@ describe('LaunchPeg', () => {
       )
     })
 
+    it('Invalid fee setup should be blocked', async () => {
+      let feePercent = 10001
+      let feeCollector = bob
+      await expect(launchPeg.initializeJoeFee(feePercent, feeCollector.address)).to.be.revertedWith(
+        'LaunchPeg__InvalidPercent()'
+      )
+
+      feePercent = 100
+      await expect(launchPeg.initializeJoeFee(feePercent, ethers.constants.AddressZero)).to.be.revertedWith(
+        'LaunchPeg__InvalidJoeFeeCollector()'
+      )
+    })
+
     it('Fee correctly sent to collector address', async () => {
       const feePercent = 200
       const feeCollector = bob
@@ -400,6 +413,11 @@ describe('LaunchPeg', () => {
   })
 
   describe('Batch reveal on mint', () => {
+    it('Invalid batch reveal size should be blocked', async () => {
+      config.batchRevealSize = 49
+      await expect(deployLaunchPeg()).to.be.revertedWith('LaunchPeg__InvalidBatchRevealSize()')
+    })
+
     it('NFTs should be unrevealed initially', async () => {
       await initializePhases(launchPeg, config, Phase.DutchAuction)
       expect(await launchPeg.tokenURI(0)).to.be.equal(config.unrevealedTokenURI)
@@ -417,15 +435,26 @@ describe('LaunchPeg', () => {
       await initializePhases(launchPeg, config, Phase.DutchAuction)
 
       await launchPeg.connect(projectOwner).devMint(config.batchRevealSize)
+      expect((await launchPeg.hasBatchToReveal())[0]).to.eq(true)
       await launchPeg.connect(alice).revealNextBatch()
+      expect((await launchPeg.hasBatchToReveal())[0]).to.eq(false)
+
       expect(await launchPeg.tokenURI(0)).to.contains(config.baseTokenURI)
       expect(await launchPeg.tokenURI(config.batchRevealSize)).to.be.equal(config.unrevealedTokenURI)
 
       await launchPeg.connect(projectOwner).devMint(config.batchRevealSize)
 
+      expect((await launchPeg.hasBatchToReveal())[1]).to.eq(BigNumber.from(1))
       await launchPeg.connect(bob).revealNextBatch()
       expect(await launchPeg.tokenURI(2 * config.batchRevealSize - 1)).to.contains(config.baseTokenURI)
       expect(await launchPeg.tokenURI(2 * config.batchRevealSize + 1)).to.be.equal(config.unrevealedTokenURI)
+
+      // Minting the rest of the collection
+      for (let i = 0; i < 3; i++) {
+        await launchPeg.connect(projectOwner).devMint(config.batchRevealSize)
+        await launchPeg.connect(bob).revealNextBatch()
+      }
+      expect(await launchPeg.tokenURI(config.collectionSize - 1)).to.contains(config.baseTokenURI)
     })
 
     it('RevealNextBatch should not be available too early', async () => {

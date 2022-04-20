@@ -138,6 +138,23 @@ describe('FlatLaunchPeg', () => {
       await flatLaunchPeg.connect(dev).setPublicSaleActive(false)
       await expect(flatLaunchPeg.connect(alice).publicSaleMint(6)).to.be.revertedWith('LaunchPeg__PublicSaleClosed()')
     })
+
+    it('Mint reverts when maxSupply is reached', async () => {
+      config.collectionSize = 10
+      config.maxBatchSize = 10
+      config.batchRevealSize = 10
+      await deployFlatLaunchPeg()
+      await flatLaunchPeg.setPublicSaleActive(true)
+
+      let quantity = 10
+      const price = config.flatPublicSalePrice
+      await flatLaunchPeg.connect(bob).publicSaleMint(quantity, { value: price.mul(quantity) })
+
+      quantity = 1
+      await expect(flatLaunchPeg.connect(alice).publicSaleMint(quantity)).to.be.revertedWith(
+        'LaunchPeg__MaxSupplyReached()'
+      )
+    })
   })
 
   describe('Transfers', () => {
