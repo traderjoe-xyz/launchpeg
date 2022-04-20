@@ -49,10 +49,10 @@ abstract contract BaseLaunchPeg is
     address public override projectOwner;
 
     /// @dev Token URI after collection reveal
-    string private _baseTokenURI;
+    string public baseURI;
 
     /// @dev Token URI before the collection reveal
-    string private _unrevealedTokenURI;
+    string public unrevealedURI;
 
     /// @notice The amount of NFTs each allowed address can mint during the allowlist mint
     mapping(address => uint256) public override allowlist;
@@ -183,28 +183,18 @@ abstract contract BaseLaunchPeg is
         }
     }
 
-    /// @dev Returns the base token URI
-    function _baseURI() internal view virtual override returns (string memory) {
-        return _baseTokenURI;
+    /// @inheritdoc IBaseLaunchPeg
+    function setBaseURI(string calldata _baseURI) external override onlyOwner {
+        baseURI = _baseURI;
     }
 
     /// @inheritdoc IBaseLaunchPeg
-    function setBaseURI(string calldata baseURI) external override onlyOwner {
-        _baseTokenURI = baseURI;
-    }
-
-    /// @dev Returns the unrevealed token URI
-    function _unrevealedURI() internal view virtual returns (string memory) {
-        return _unrevealedTokenURI;
-    }
-
-    /// @inheritdoc IBaseLaunchPeg
-    function setUnrevealedURI(string calldata unrevealedURI)
+    function setUnrevealedURI(string calldata _unrevealedURI)
         external
         override
         onlyOwner
     {
-        _unrevealedTokenURI = unrevealedURI;
+        unrevealedURI = _unrevealedURI;
     }
 
     /// @inheritdoc IBaseLaunchPeg
@@ -258,12 +248,12 @@ abstract contract BaseLaunchPeg is
         returns (string memory)
     {
         if (id >= lastTokenRevealed) {
-            return _unrevealedTokenURI;
+            return unrevealedURI;
         } else {
             return
                 string(
                     abi.encodePacked(
-                        _baseTokenURI,
+                        baseURI,
                         _getShuffledTokenId(id).toString()
                     )
                 );
