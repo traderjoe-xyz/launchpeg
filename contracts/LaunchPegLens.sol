@@ -12,28 +12,15 @@ import "erc721a/contracts/ERC721A.sol";
 /// @author Trader Joe
 /// @notice Helper contract to fetch launchpegs data
 contract LaunchPegLens {
-    struct LaunchPegData {
-        address id;
-        LaunchPegType launchType;
-        //ERC721A
+    struct CollectionData {
         string name;
         string symbol;
-        uint256 totalSupply;
-        uint256 balanceOf;
-        // Base Launchpeg
         uint256 collectionSize;
         uint256 maxBatchSize;
-        uint256 allowlist;
-        // Batch reveal
-        uint256 revealBatchSize;
-        uint256 lastTokenRevealed;
-        uint256 revealStartTime;
-        uint256 revealInterval;
-        // Flat LaunchPeg
-        uint256 mintlistPrice;
-        uint256 salePrice;
-        bool isPublicSaleActive;
-        // LaunchPeg
+        uint256 totalSupply;
+    }
+
+    struct LaunchPegData {
         uint256 amountForAuction;
         uint256 amountForMintlist;
         uint256 auctionSaleStartTime;
@@ -46,6 +33,38 @@ contract LaunchPegLens {
         uint256 auctionDropPerStep;
         uint256 mintlistDiscountPercent;
         uint256 publicSaleDiscountPercent;
+        ILaunchPeg.Phase currentPhase;
+    }
+
+    struct FlatLaunchPegData {
+        uint256 collectionSize;
+        uint256 maxBatchSize;
+        uint256 allowlist;
+        uint256 mintlistPrice;
+        uint256 salePrice;
+        bool isPublicSaleActive;
+    }
+
+    struct RevealData {
+        uint256 revealBatchSize;
+        uint256 lastTokenRevealed;
+        uint256 revealStartTime;
+        uint256 revealInterval;
+    }
+
+    struct UserData {
+        uint256 balanceOf;
+        uint256 allowlist;
+    }
+
+    struct LensData {
+        address id;
+        LaunchPegType launchType;
+        CollectionData collectionData;
+        LaunchPegData launchPegData;
+        FlatLaunchPegData flatLaunchPegData;
+        RevealData revealData;
+        UserData userData;
     }
 
     enum LaunchPegType {
@@ -65,17 +84,15 @@ contract LaunchPegLens {
     function getAllLaunchPegs(address[] memory _addressList, address _user)
         external
         view
-        returns (LaunchPegData[] memory)
+        returns (LensData[] memory)
     {
-        LaunchPegData[] memory LaunchPegDatas = new LaunchPegData[](
-            _addressList.length
-        );
+        LensData[] memory LensDatas = new LensData[](_addressList.length);
 
-        for (uint256 i = 0; i < LaunchPegDatas.length; i++) {
-            LaunchPegDatas[i] = getLaunchPegData(_addressList[i], _user);
+        for (uint256 i = 0; i < LensDatas.length; i++) {
+            LensDatas[i] = getLaunchPegData(_addressList[i], _user);
         }
 
-        return LaunchPegDatas;
+        return LensDatas;
     }
 
     function getLaunchPegType(address _contract)
@@ -97,9 +114,9 @@ contract LaunchPegLens {
     function getLaunchPegData(address _launchPeg, address _user)
         public
         view
-        returns (LaunchPegData memory)
+        returns (LensData memory)
     {
-        LaunchPegData memory data;
+        LensData memory data;
         data.id = _launchPeg;
         data.launchType = getLaunchPegType(_launchPeg);
 
@@ -107,49 +124,66 @@ contract LaunchPegLens {
             revert("Invalid contract");
         }
 
-        data.name = ERC721A(_launchPeg).name();
-        data.symbol = ERC721A(_launchPeg).symbol();
-        data.collectionSize = BaseLaunchPeg(_launchPeg).collectionSize();
-        data.totalSupply = ERC721A(_launchPeg).totalSupply();
+        data.collectionData.name = ERC721A(_launchPeg).name();
+        data.collectionData.symbol = ERC721A(_launchPeg).symbol();
+        data.collectionData.collectionSize = BaseLaunchPeg(_launchPeg)
+            .collectionSize();
+        data.collectionData.totalSupply = ERC721A(_launchPeg).totalSupply();
+
+        data.revealData.revealBatchSize = IBatchReveal(_launchPeg)
+            .revealBatchSize();
+        data.revealData.lastTokenRevealed = IBatchReveal(_launchPeg)
+            .lastTokenRevealed();
+        data.revealData.revealStartTime = IBatchReveal(_launchPeg)
+            .revealStartTime();
+        data.revealData.revealInterval = IBatchReveal(_launchPeg)
+            .revealInterval();
 
         if (data.launchType == LaunchPegType.LaunchPeg) {
-            data.revealBatchSize = IBatchReveal(_launchPeg).revealBatchSize();
-            data.lastTokenRevealed = IBatchReveal(_launchPeg)
-                .lastTokenRevealed();
-            data.revealStartTime = IBatchReveal(_launchPeg).revealStartTime();
-            data.revealInterval = IBatchReveal(_launchPeg).revealInterval();
-
-            data.amountForAuction = ILaunchPeg(_launchPeg).amountForAuction();
-            data.amountForMintlist = ILaunchPeg(_launchPeg).amountForMintlist();
-            data.auctionSaleStartTime = ILaunchPeg(_launchPeg)
+            data.launchPegData.amountForAuction = ILaunchPeg(_launchPeg)
+                .amountForAuction();
+            data.launchPegData.amountForMintlist = ILaunchPeg(_launchPeg)
+                .amountForMintlist();
+            data.launchPegData.auctionSaleStartTime = ILaunchPeg(_launchPeg)
                 .auctionSaleStartTime();
-            data.mintlistStartTime = ILaunchPeg(_launchPeg).mintlistStartTime();
-            data.publicSaleStartTime = ILaunchPeg(_launchPeg)
+            data.launchPegData.mintlistStartTime = ILaunchPeg(_launchPeg)
+                .mintlistStartTime();
+            data.launchPegData.publicSaleStartTime = ILaunchPeg(_launchPeg)
                 .publicSaleStartTime();
-            data.auctionStartPrice = ILaunchPeg(_launchPeg).auctionStartPrice();
-            data.auctionEndPrice = ILaunchPeg(_launchPeg).auctionEndPrice();
-            data.auctionSaleDuration = ILaunchPeg(_launchPeg)
+            data.launchPegData.auctionStartPrice = ILaunchPeg(_launchPeg)
+                .auctionStartPrice();
+            data.launchPegData.auctionEndPrice = ILaunchPeg(_launchPeg)
+                .auctionEndPrice();
+            data.launchPegData.auctionSaleDuration = ILaunchPeg(_launchPeg)
                 .auctionSaleDuration();
-            data.auctionDropInterval = ILaunchPeg(_launchPeg)
+            data.launchPegData.auctionDropInterval = ILaunchPeg(_launchPeg)
                 .auctionDropInterval();
-            data.auctionDropPerStep = ILaunchPeg(_launchPeg)
+            data.launchPegData.auctionDropPerStep = ILaunchPeg(_launchPeg)
                 .auctionDropPerStep();
-            data.mintlistDiscountPercent = ILaunchPeg(_launchPeg)
+            data.launchPegData.mintlistDiscountPercent = ILaunchPeg(_launchPeg)
                 .mintlistDiscountPercent();
-            data.publicSaleDiscountPercent = ILaunchPeg(_launchPeg)
-                .publicSaleDiscountPercent();
+            data.launchPegData.publicSaleDiscountPercent = ILaunchPeg(
+                _launchPeg
+            ).publicSaleDiscountPercent();
+            data.launchPegData.currentPhase = ILaunchPeg(_launchPeg)
+                .currentPhase();
         }
 
         if (data.launchType == LaunchPegType.FlatLaunchPeg) {
-            data.mintlistPrice = IFlatLaunchPeg(_launchPeg).mintlistPrice();
-            data.salePrice = IFlatLaunchPeg(_launchPeg).salePrice();
-            data.isPublicSaleActive = IFlatLaunchPeg(_launchPeg)
-                .isPublicSaleActive();
+            data.flatLaunchPegData.mintlistPrice = IFlatLaunchPeg(_launchPeg)
+                .mintlistPrice();
+            data.flatLaunchPegData.salePrice = IFlatLaunchPeg(_launchPeg)
+                .salePrice();
+            data.flatLaunchPegData.isPublicSaleActive = IFlatLaunchPeg(
+                _launchPeg
+            ).isPublicSaleActive();
         }
 
         if (_user != address(0)) {
-            data.balanceOf = ERC721A(_launchPeg).balanceOf(_user);
-            data.allowlist = IBaseLaunchPeg(_launchPeg).allowlist(_user);
+            data.userData.balanceOf = ERC721A(_launchPeg).balanceOf(_user);
+            data.userData.allowlist = IBaseLaunchPeg(_launchPeg).allowlist(
+                _user
+            );
         }
 
         return data;
