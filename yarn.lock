@@ -3167,9 +3167,9 @@ env-paths@^2.2.0:
   integrity sha512-+h1lkLKhZMTYjog1VEpJNG7NZJWcuc2DDk/qsqSTRRCOXiLjeQ1d1/udrUGhqMxUgAlwKNZ0cf2uqan5GLuS2A==
 
 erc721a@^3.1.0:
-  version "3.1.0"
-  resolved "https://registry.npmjs.org/erc721a/-/erc721a-3.1.0.tgz"
-  integrity sha512-2p1pSqn/NS9+XygGJWH8AOmKOnZ6mwJNoX1roEAM7pkmSCO69CYVEiwiznoc3YgmHCREKVqnfpl+KFTg/VqCmg==
+  version "3.2.0"
+  resolved "https://registry.yarnpkg.com/erc721a/-/erc721a-3.2.0.tgz#5f2ba2599465fbd51088b4d9d7c3e0ba340daa5e"
+  integrity sha512-bK6rT45M8csSpH/8SBAhlmyIlCh0LrejflvkSw9zVPU5pNRSe0P0YWmv/g6seYwc8OCfL9ND/fKL8LsuvuePmg==
   dependencies:
     "@openzeppelin/contracts" "^4.4.2"
 
