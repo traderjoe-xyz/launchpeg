@@ -297,7 +297,7 @@ contract LaunchPeg is BaseLaunchPeg, ILaunchPeg {
         lastAuctionPrice = getAuctionPrice(auctionSaleStartTime);
         uint256 totalCost = lastAuctionPrice * _quantity;
         refundIfOver(totalCost);
-        _safeMint(msg.sender, _quantity);
+        _mint(msg.sender, _quantity, '', false);
         amountMintedDuringAuction = amountMintedDuringAuction + _quantity;
         emit Mint(
             msg.sender,
@@ -331,7 +331,7 @@ contract LaunchPeg is BaseLaunchPeg, ILaunchPeg {
         allowlist[msg.sender]--;
         uint256 price = getMintlistPrice();
         refundIfOver(price);
-        _safeMint(msg.sender, 1);
+        _mint(msg.sender, 1, '', false);
         emit Mint(msg.sender, 1, price, _totalMinted() - 1, Phase.Mintlist);
     }
 
@@ -363,7 +363,7 @@ contract LaunchPeg is BaseLaunchPeg, ILaunchPeg {
         }
         uint256 price = getPublicSalePrice();
         refundIfOver(price * _quantity);
-        _safeMint(msg.sender, _quantity);
+        _mint(msg.sender, _quantity, '', false);
         emit Mint(
             msg.sender,
             _quantity,

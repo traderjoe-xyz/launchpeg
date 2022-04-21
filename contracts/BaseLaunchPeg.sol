@@ -283,7 +283,7 @@ abstract contract BaseLaunchPeg is
         amountMintedByDevs = amountMintedByDevs + quantity;
         uint256 numChunks = quantity / maxBatchSize;
         for (uint256 i = 0; i < numChunks; i++) {
-            _safeMint(msg.sender, maxBatchSize);
+            _mint(msg.sender, maxBatchSize, '', false);
         }
         emit DevMint(msg.sender, quantity);
     }

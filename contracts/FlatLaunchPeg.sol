@@ -97,7 +97,7 @@ contract FlatLaunchPeg is BaseLaunchPeg, IFlatLaunchPeg {
         }
         allowlist[msg.sender]--;
         refundIfOver(mintlistPrice);
-        _safeMint(msg.sender, 1);
+        _mint(msg.sender, 1, '', false);
         emit Mint(msg.sender, 1, mintlistPrice, _totalMinted() - 1);
     }
 
@@ -115,7 +115,7 @@ contract FlatLaunchPeg is BaseLaunchPeg, IFlatLaunchPeg {
         }
         uint256 total = salePrice * _quantity;
         refundIfOver(total);
-        _safeMint(msg.sender, _quantity);
+        _mint(msg.sender, _quantity, '', false);
         emit Mint(msg.sender, _quantity, total, _totalMinted() - _quantity);
     }
 
