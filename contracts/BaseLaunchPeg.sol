@@ -47,6 +47,9 @@ abstract contract BaseLaunchPeg is
     /// @notice The address to which the fees on the sale will be sent
     address public override joeFeeCollector;
 
+    /// @notice Percentage base point
+    uint256 public constant BASEPOINT = 10_000;
+
     /// @notice The project owner
     /// @dev We may own the contract during the launch: this address is allowed to call `devMint`
     address public override projectOwner;
@@ -145,11 +148,12 @@ abstract contract BaseLaunchPeg is
     /// @notice Initialize the percentage taken on the sale and collector address
     /// @param _joeFeePercent The fees collected by Joepeg on the sale benefits
     /// @param _joeFeeCollector The address to which the fees on the sale will be sent
-    function initializeJoeFee(
-        uint256 _joeFeePercent,
-        address payable _joeFeeCollector
-    ) external override onlyOwner {
-        if (_joeFeePercent > 10000) {
+    function initializeJoeFee(uint256 _joeFeePercent, address _joeFeeCollector)
+        external
+        override
+        onlyOwner
+    {
+        if (_joeFeePercent > BASEPOINT) {
             revert LaunchPeg__InvalidPercent();
         }
         if (_joeFeeCollector == address(0)) {
@@ -167,7 +171,7 @@ abstract contract BaseLaunchPeg is
         bool sent = false;
 
         if (joeFeePercent > 0) {
-            fee = (amount * joeFeePercent) / 10000;
+            fee = (amount * joeFeePercent) / BASEPOINT;
             amount = amount - fee;
 
             (sent, ) = joeFeeCollector.call{value: fee}("");
@@ -213,9 +217,7 @@ abstract contract BaseLaunchPeg is
             revert LaunchPeg__NotEnoughAVAX(msg.value);
         }
         if (msg.value > _price) {
-            (bool success, ) = payable(msg.sender).call{
-                value: msg.value - _price
-            }("");
+            (bool success, ) = msg.sender.call{value: msg.value - _price}("");
             if (!success) {
                 revert LaunchPeg__TransferFailed();
             }
