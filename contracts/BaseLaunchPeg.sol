@@ -137,10 +137,11 @@ abstract contract BaseLaunchPeg is
         address[] memory _addresses,
         uint256[] memory _numSlots
     ) external override onlyOwner {
-        if (_addresses.length != _numSlots.length) {
+        uint256 addressesLength = _addresses.length;
+        if (addressesLength != _numSlots.length) {
             revert LaunchPeg__WrongAddressesAndNumSlotsLength();
         }
-        for (uint256 i = 0; i < _addresses.length; i++) {
+        for (uint256 i = 0; i < addressesLength; i++) {
             allowlist[_addresses[i]] = _numSlots[i];
         }
     }
