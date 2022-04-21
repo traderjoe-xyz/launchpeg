@@ -92,7 +92,7 @@ contract FlatLaunchPeg is BaseLaunchPeg, IFlatLaunchPeg {
         if (allowlist[msg.sender] == 0) {
             revert LaunchPeg__NotEligibleForAllowlistMint();
         }
-        if (totalSupply() + 1 > collectionSize) {
+        if (totalSupply() >= collectionSize) {
             revert LaunchPeg__MaxSupplyReached();
         }
         allowlist[msg.sender]--;
