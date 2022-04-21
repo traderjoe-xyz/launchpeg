@@ -121,12 +121,12 @@ abstract contract BaseLaunchPeg is
         }
 
         projectOwner = _projectOwner;
-        collectionSize = _collectionSize;
+        _setDefaultRoyalty(_royaltyReceiver, 500);
+
         maxBatchSize = _maxBatchSize;
+        collectionSize = _collectionSize;
         maxPerAddressDuringMint = _maxBatchSize;
         amountForDevs = _amountForDevs;
-
-        _setDefaultRoyalty(_royaltyReceiver, 500);
     }
 
     /// @notice Seed the allowlist: each address can mint up to numSlot

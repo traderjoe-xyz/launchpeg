@@ -89,7 +89,7 @@ contract FlatLaunchPeg is BaseLaunchPeg, IFlatLaunchPeg {
     /// @notice Mint NFTs during the allowlist mint
     /// @dev One NFT at a time
     function allowlistMint() external payable override {
-        if (allowlist[msg.sender] <= 0) {
+        if (allowlist[msg.sender] == 0) {
             revert LaunchPeg__NotEligibleForAllowlistMint();
         }
         if (totalSupply() + 1 > collectionSize) {
