@@ -24,9 +24,6 @@ contract LaunchPeg is BaseLaunchPeg, ILaunchPeg {
     /// Unsold items are put up for sale during the public sale.
     uint256 public immutable override amountForMintlist;
 
-    /// @dev Tracks the amount of NFTs minted during the dutch auction
-    uint256 private amountMintedDuringAuction;
-
     /// @notice Start time of the dutch auction in seconds
     /// @dev Timestamp
     uint256 public override auctionSaleStartTime;
@@ -58,10 +55,6 @@ contract LaunchPeg is BaseLaunchPeg, ILaunchPeg {
     /// @notice Amount in AVAX deducted at each interval
     uint256 public override auctionDropPerStep;
 
-    /// @notice The price of the last NFT sold during the auction
-    /// @dev lastAuctionPrice is scaled to 1e18
-    uint256 private lastAuctionPrice;
-
     /// @notice The discount applied to the last auction price during the allowlist mint
     /// @dev In basis points e.g 500 for 5%
     uint256 public override mintlistDiscountPercent;
@@ -69,6 +62,13 @@ contract LaunchPeg is BaseLaunchPeg, ILaunchPeg {
     /// @notice The discount applied to the last auction price during the public sale
     /// @dev In basis points e.g 2500 for 25%
     uint256 public override publicSaleDiscountPercent;
+
+    /// @dev Tracks the amount of NFTs minted during the dutch auction
+    uint256 private amountMintedDuringAuction;
+
+    /// @notice The price of the last NFT sold during the auction
+    /// @dev lastAuctionPrice is scaled to 1e18
+    uint256 private lastAuctionPrice;
 
     /// @dev Emitted on initializePhases()
     /// @param name Contract name
@@ -341,14 +341,6 @@ contract LaunchPeg is BaseLaunchPeg, ILaunchPeg {
         emit Mint(msg.sender, 1, price, _totalMinted() - 1, Phase.Mintlist);
     }
 
-    /// @notice Returns the price of the allowlist mint
-    function getMintlistPrice() public view override returns (uint256) {
-        return
-            lastAuctionPrice -
-            (lastAuctionPrice * mintlistDiscountPercent) /
-            10000;
-    }
-
     /// @notice Mint NFTs during the public sale
     /// @param _quantity Quantity of NFTs to mint
     function publicSaleMint(uint256 _quantity)
@@ -379,15 +371,6 @@ contract LaunchPeg is BaseLaunchPeg, ILaunchPeg {
         );
     }
 
-    /// @notice Returns the price of the public sale
-    /// @return publicSalePrice Public sale price
-    function getPublicSalePrice() public view override returns (uint256) {
-        return
-            lastAuctionPrice -
-            (lastAuctionPrice * publicSaleDiscountPercent) /
-            10000;
-    }
-
     /// @notice Returns the current price of the dutch auction
     /// @param _saleStartTime Auction sale start time
     /// @return auctionSalePrice Auction sale price
@@ -407,6 +390,23 @@ contract LaunchPeg is BaseLaunchPeg, ILaunchPeg {
                 auctionDropInterval;
             return auctionStartPrice - (steps * auctionDropPerStep);
         }
+    }
+
+    /// @notice Returns the price of the allowlist mint
+    function getMintlistPrice() public view override returns (uint256) {
+        return
+            lastAuctionPrice -
+            (lastAuctionPrice * mintlistDiscountPercent) /
+            10000;
+    }
+
+    /// @notice Returns the price of the public sale
+    /// @return publicSalePrice Public sale price
+    function getPublicSalePrice() public view override returns (uint256) {
+        return
+            lastAuctionPrice -
+            (lastAuctionPrice * publicSaleDiscountPercent) /
+            10000;
     }
 
     /// @notice Returns the current phase

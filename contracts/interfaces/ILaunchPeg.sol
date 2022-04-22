@@ -55,16 +55,16 @@ interface ILaunchPeg is IBaseLaunchPeg {
 
     function allowlistMint() external payable;
 
-    function getMintlistPrice() external view returns (uint256);
-
     function publicSaleMint(uint256 _quantity) external payable;
-
-    function getPublicSalePrice() external view returns (uint256);
 
     function getAuctionPrice(uint256 _saleStartTime)
         external
         view
         returns (uint256);
+
+    function getMintlistPrice() external view returns (uint256);
+
+    function getPublicSalePrice() external view returns (uint256);
 
     function currentPhase() external view returns (Phase);
 }

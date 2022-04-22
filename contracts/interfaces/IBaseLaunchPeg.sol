@@ -29,10 +29,16 @@ interface IBaseLaunchPeg is IERC721, IERC721Metadata {
     function initializeJoeFee(uint256 _joeFeePercent, address _joeFeeCollector)
         external;
 
+    function setRoyaltyInfo(address receiver, uint96 feePercent) external;
+
     function seedAllowlist(
         address[] memory _addresses,
         uint256[] memory _numSlots
     ) external;
+
+    function setBaseURI(string calldata baseURI) external;
+
+    function setUnrevealedURI(string calldata baseURI) external;
 
     function setProjectOwner(address _projectOwner) external;
 
@@ -40,22 +46,16 @@ interface IBaseLaunchPeg is IERC721, IERC721Metadata {
 
     function withdrawAVAX() external;
 
-    function numberMinted(address owner) external view returns (uint256);
+    function revealNextBatch() external;
+
+    function forceReveal() external;
+
+    function hasBatchToReveal() external view returns (bool, uint256);
 
     function getOwnershipData(uint256 tokenId)
         external
         view
         returns (ERC721A.TokenOwnership memory);
 
-    function setBaseURI(string calldata baseURI) external;
-
-    function setUnrevealedURI(string calldata baseURI) external;
-
-    function setRoyaltyInfo(address receiver, uint96 feePercent) external;
-
-    function hasBatchToReveal() external view returns (bool, uint256);
-
-    function revealNextBatch() external;
-
-    function forceReveal() external;
+    function numberMinted(address owner) external view returns (uint256);
 }

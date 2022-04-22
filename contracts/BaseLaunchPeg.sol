@@ -31,9 +31,6 @@ abstract contract BaseLaunchPeg is
     /// @dev It can be minted any time via `devMint`
     uint256 public immutable override amountForDevs;
 
-    /// @dev Tracks the amount of NFTs minted by `projectOwner`
-    uint256 internal _amountMintedByDevs;
-
     /// @notice Max amount of NFTs that can be minted at once
     uint256 public immutable override maxBatchSize;
 
@@ -62,6 +59,9 @@ abstract contract BaseLaunchPeg is
 
     /// @notice The amount of NFTs each allowed address can mint during the allowlist mint
     mapping(address => uint256) public override allowlist;
+
+    /// @dev Tracks the amount of NFTs minted by `projectOwner`
+    uint256 internal _amountMintedByDevs;
 
     /// @dev Emitted on initializeJoeFee()
     /// @param feePercent The fees collected by Joepegs on the sale benefits
@@ -138,22 +138,6 @@ abstract contract BaseLaunchPeg is
         amountForDevs = _amountForDevs;
     }
 
-    /// @notice Set amount of NFTs mintable per address during the allowlist phase
-    /// @param _addresses List of addresses allowed to mint during the allowlist phase
-    /// @param _numNfts List of NFT quantities mintable per address
-    function seedAllowlist(
-        address[] memory _addresses,
-        uint256[] memory _numNfts
-    ) external override onlyOwner {
-        uint256 addressesLength = _addresses.length;
-        if (addressesLength != _numNfts.length) {
-            revert LaunchPeg__WrongAddressesAndNumSlotsLength();
-        }
-        for (uint256 i = 0; i < addressesLength; i++) {
-            allowlist[_addresses[i]] = _numNfts[i];
-        }
-    }
-
     /// @notice Initialize the sales fee percent taken by Joepegs and address that collects the fees
     /// @param _joeFeePercent The fees collected by Joepegs on the sale benefits
     /// @param _joeFeeCollector The address to which the fees on the sale will be sent
@@ -173,65 +157,30 @@ abstract contract BaseLaunchPeg is
         emit JoeFeeInitialized(_joeFeePercent, _joeFeeCollector);
     }
 
-    /// @notice Withdraw AVAX to the contract owner
-    function withdrawAVAX() external override onlyOwner nonReentrant {
-        uint256 amount = address(this).balance;
-        uint256 fee = 0;
-        bool sent = false;
-
-        if (joeFeePercent > 0) {
-            fee = (amount * joeFeePercent) / BASIS_POINT_PRECISION;
-            amount = amount - fee;
-
-            (sent, ) = joeFeeCollector.call{value: fee}("");
-            if (!sent) {
-                revert LaunchPeg__TransferFailed();
-            }
-        }
-
-        (sent, ) = msg.sender.call{value: amount}("");
-        if (!sent) {
-            revert LaunchPeg__TransferFailed();
-        }
-
-        emit AvaxWithdraw(msg.sender, amount, fee);
-    }
-
-    /// @notice Returns the number of NFTs minted by a specific address
-    /// @param owner The owner of the NFTs
-    /// @return numberMinted Number of NFTs minted
-    function numberMinted(address owner)
-        public
-        view
-        override
-        returns (uint256)
-    {
-        return _numberMinted(owner);
-    }
-
-    /// @notice Returns the ownership data of a specific token ID
-    /// @param tokenId Token ID
-    /// @return TokenOwnership Ownership struct for a specific token ID
-    function getOwnershipData(uint256 tokenId)
+    /// @notice Set the royalty fee
+    /// @param _receiver Royalty fee collector
+    /// @param _feePercent Royalty fee percent in basis point
+    function setRoyaltyInfo(address _receiver, uint96 _feePercent)
         external
-        view
         override
-        returns (TokenOwnership memory)
+        onlyOwner
     {
-        return _ownershipOf(tokenId);
+        _setDefaultRoyalty(_receiver, _feePercent);
     }
 
-    /// @dev Verifies that enough AVAX has been sent by the sender and refunds the extra tokens if any
-    /// @param _price The price paid by the sender for minting NFTs
-    function _refundIfOver(uint256 _price) internal {
-        if (msg.value < _price) {
-            revert LaunchPeg__NotEnoughAVAX(msg.value);
+    /// @notice Set amount of NFTs mintable per address during the allowlist phase
+    /// @param _addresses List of addresses allowed to mint during the allowlist phase
+    /// @param _numNfts List of NFT quantities mintable per address
+    function seedAllowlist(
+        address[] memory _addresses,
+        uint256[] memory _numNfts
+    ) external override onlyOwner {
+        uint256 addressesLength = _addresses.length;
+        if (addressesLength != _numNfts.length) {
+            revert LaunchPeg__WrongAddressesAndNumSlotsLength();
         }
-        if (msg.value > _price) {
-            (bool success, ) = msg.sender.call{value: msg.value - _price}("");
-            if (!success) {
-                revert LaunchPeg__TransferFailed();
-            }
+        for (uint256 i = 0; i < addressesLength; i++) {
+            allowlist[_addresses[i]] = _numNfts[i];
         }
     }
 
@@ -250,25 +199,6 @@ abstract contract BaseLaunchPeg is
         onlyOwner
     {
         unrevealedURI = _unrevealedURI;
-    }
-
-    /// @notice Tells you if a batch can be revealed
-    /// @return hasToRevealInfo Returns a bool saying wether a reveal can be triggered or not
-    /// And the number of the next batch that will be revealed
-    function hasBatchToReveal() external view override returns (bool, uint256) {
-        return _hasBatchToReveal(totalSupply());
-    }
-
-    /// @notice Reveals the next batch if the reveal conditions are met
-    function revealNextBatch() external override isEOA {
-        if (!_revealNextBatch(totalSupply())) {
-            revert LaunchPeg__RevealNextBatchNotAvailable();
-        }
-    }
-
-    /// @notice Allows ProjectOwner to reveal batches even if the conditions are not met
-    function forceReveal() external override onlyProjectOwner {
-        _forceReveal();
     }
 
     /// @notice Set the project owner
@@ -301,6 +231,61 @@ abstract contract BaseLaunchPeg is
         emit DevMint(msg.sender, _quantity);
     }
 
+    /// @notice Withdraw AVAX to the contract owner
+    function withdrawAVAX() external override onlyOwner nonReentrant {
+        uint256 amount = address(this).balance;
+        uint256 fee = 0;
+        bool sent = false;
+
+        if (joeFeePercent > 0) {
+            fee = (amount * joeFeePercent) / BASIS_POINT_PRECISION;
+            amount = amount - fee;
+
+            (sent, ) = joeFeeCollector.call{value: fee}("");
+            if (!sent) {
+                revert LaunchPeg__TransferFailed();
+            }
+        }
+
+        (sent, ) = msg.sender.call{value: amount}("");
+        if (!sent) {
+            revert LaunchPeg__TransferFailed();
+        }
+
+        emit AvaxWithdraw(msg.sender, amount, fee);
+    }
+
+    /// @notice Reveals the next batch if the reveal conditions are met
+    function revealNextBatch() external override isEOA {
+        if (!_revealNextBatch(totalSupply())) {
+            revert LaunchPeg__RevealNextBatchNotAvailable();
+        }
+    }
+
+    /// @notice Allows ProjectOwner to reveal batches even if the conditions are not met
+    function forceReveal() external override onlyProjectOwner {
+        _forceReveal();
+    }
+
+    /// @notice Tells you if a batch can be revealed
+    /// @return hasToRevealInfo Returns a bool saying wether a reveal can be triggered or not
+    /// And the number of the next batch that will be revealed
+    function hasBatchToReveal() external view override returns (bool, uint256) {
+        return _hasBatchToReveal(totalSupply());
+    }
+
+    /// @notice Returns the ownership data of a specific token ID
+    /// @param tokenId Token ID
+    /// @return TokenOwnership Ownership struct for a specific token ID
+    function getOwnershipData(uint256 tokenId)
+        external
+        view
+        override
+        returns (TokenOwnership memory)
+    {
+        return _ownershipOf(tokenId);
+    }
+
     /// @notice Returns the Uniform Resource Identifier (URI) for `tokenId` token.
     /// @param _id Token id
     /// @return URI IPFS token URI
@@ -323,15 +308,16 @@ abstract contract BaseLaunchPeg is
         }
     }
 
-    /// @notice Set the royalty fee
-    /// @param _receiver Royalty fee collector
-    /// @param _feePercent Royalty fee percent in basis point
-    function setRoyaltyInfo(address _receiver, uint96 _feePercent)
-        external
+    /// @notice Returns the number of NFTs minted by a specific address
+    /// @param owner The owner of the NFTs
+    /// @return numberMinted Number of NFTs minted
+    function numberMinted(address owner)
+        public
+        view
         override
-        onlyOwner
+        returns (uint256)
     {
-        _setDefaultRoyalty(_receiver, _feePercent);
+        return _numberMinted(owner);
     }
 
     /// @dev Returns true if this contract implements the interface defined by
@@ -349,5 +335,19 @@ abstract contract BaseLaunchPeg is
         returns (bool)
     {
         return super.supportsInterface(_interfaceId);
+    }
+
+    /// @dev Verifies that enough AVAX has been sent by the sender and refunds the extra tokens if any
+    /// @param _price The price paid by the sender for minting NFTs
+    function _refundIfOver(uint256 _price) internal {
+        if (msg.value < _price) {
+            revert LaunchPeg__NotEnoughAVAX(msg.value);
+        }
+        if (msg.value > _price) {
+            (bool success, ) = msg.sender.call{value: msg.value - _price}("");
+            if (!success) {
+                revert LaunchPeg__TransferFailed();
+            }
+        }
     }
 }
