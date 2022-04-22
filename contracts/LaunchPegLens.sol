@@ -36,8 +36,8 @@ contract LaunchPegLens {
         uint256 mintlistDiscountPercent;
         uint256 publicSaleDiscountPercent;
         ILaunchPeg.Phase currentPhase;
-        uint256 getAuctionPrice;
-        uint256 getMintlistPrice;
+        uint256 auctionPrice;
+        uint256 mintlistPrice;
         uint256 publicSalePrice;
     }
 
@@ -171,6 +171,12 @@ contract LaunchPegLens {
             ).publicSaleDiscountPercent();
             data.launchPegData.currentPhase = ILaunchPeg(_launchPeg)
                 .currentPhase();
+            data.launchPegData.auctionPrice = ILaunchPeg(_launchPeg)
+                .getAuctionPrice(data.launchPegData.auctionSaleStartTime);
+            data.launchPegData.mintlistPrice = ILaunchPeg(_launchPeg)
+                .getMintlistPrice();
+            data.launchPegData.publicSalePrice = ILaunchPeg(_launchPeg)
+                .getPublicSalePrice();
         }
 
         if (data.launchType == LaunchPegType.FlatLaunchPeg) {
