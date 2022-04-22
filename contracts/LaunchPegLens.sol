@@ -8,6 +8,8 @@ import "./interfaces/ILaunchPeg.sol";
 import "./interfaces/IBatchReveal.sol";
 import "erc721a/contracts/ERC721A.sol";
 
+error LaunchPegLens__InvalidContract();
+
 /// @title LaunchPeg Lens
 /// @author Trader Joe
 /// @notice Helper contract to fetch launchpegs data
@@ -34,12 +36,12 @@ contract LaunchPegLens {
         uint256 mintlistDiscountPercent;
         uint256 publicSaleDiscountPercent;
         ILaunchPeg.Phase currentPhase;
+        uint256 getAuctionPrice;
+        uint256 getMintlistPrice;
+        uint256 publicSalePrice;
     }
 
     struct FlatLaunchPegData {
-        uint256 collectionSize;
-        uint256 maxBatchSize;
-        uint256 allowlist;
         uint256 mintlistPrice;
         uint256 salePrice;
         bool isPublicSaleActive;
@@ -54,7 +56,7 @@ contract LaunchPegLens {
 
     struct UserData {
         uint256 balanceOf;
-        uint256 allowlist;
+        uint256 allowanceForAllowlistMint;
     }
 
     struct LensData {
@@ -121,13 +123,15 @@ contract LaunchPegLens {
         data.launchType = getLaunchPegType(_launchPeg);
 
         if (data.launchType == LaunchPegType.Unknown) {
-            revert("Invalid contract");
+            revert LaunchPegLens__InvalidContract();
         }
 
         data.collectionData.name = ERC721A(_launchPeg).name();
         data.collectionData.symbol = ERC721A(_launchPeg).symbol();
         data.collectionData.collectionSize = BaseLaunchPeg(_launchPeg)
             .collectionSize();
+        data.collectionData.maxBatchSize = BaseLaunchPeg(_launchPeg)
+            .maxBatchSize();
         data.collectionData.totalSupply = ERC721A(_launchPeg).totalSupply();
 
         data.revealData.revealBatchSize = IBatchReveal(_launchPeg)
@@ -181,9 +185,8 @@ contract LaunchPegLens {
 
         if (_user != address(0)) {
             data.userData.balanceOf = ERC721A(_launchPeg).balanceOf(_user);
-            data.userData.allowlist = IBaseLaunchPeg(_launchPeg).allowlist(
-                _user
-            );
+            data.userData.allowanceForAllowlistMint = IBaseLaunchPeg(_launchPeg)
+                .allowlist(_user);
         }
 
         return data;
