@@ -37,6 +37,11 @@ abstract contract BatchReveal {
         int128 end;
     }
 
+    /// @dev Emitted on revealNextBatch() and forceReveal()
+    /// @param batchNumber The batch revealed
+    /// @param batchSeed The random number drawn
+    event Reveal(uint256 batchNumber, uint256 batchSeed);
+
     /// @dev BatchReveal constructor
     /// @param _revealBatchSize Size of the batch reveal
     /// @param _collectionSize Needs to be sent by child contract
@@ -238,6 +243,7 @@ abstract contract BatchReveal {
         lastTokenRevealed += revealBatchSize;
         _setBatchSeed(batchNumber);
 
+        emit Reveal(batchNumber, batchToSeed[batchNumber]);
         return true;
     }
 
@@ -250,5 +256,6 @@ abstract contract BatchReveal {
         }
 
         _setBatchSeed(batchNumber);
+        emit Reveal(batchNumber, batchToSeed[batchNumber]);
     }
 }

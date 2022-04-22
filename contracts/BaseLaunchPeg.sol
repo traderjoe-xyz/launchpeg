@@ -83,6 +83,22 @@ abstract contract BaseLaunchPeg is
     /// @param owner The new project owner
     event ProjectOwnerUpdated(address indexed owner);
 
+    /// @dev Emitted on setBaseURI()
+    /// @param baseURI The new base URI
+    event BaseUriSet(string baseURI);
+
+    /// @dev Emitted on setUnrevealedURI()
+    /// @param unrevealedURI The new base URI
+    event UnrevealedUriSet(string unrevealedURI);
+
+    /// @dev Emitted on seedAllowlist()
+    event AllowlistSeeded();
+
+    /// @dev Emitted on _setDefaultRoyalty()
+    /// @param receiver Royalty fee collector
+    /// @param feePercent Royalty fee percent in basis point
+    event DefaultRoyaltySet(address indexed receiver, uint256 feePercent);
+
     modifier isEOA() {
         if (tx.origin != msg.sender) {
             revert LaunchPeg__Unauthorized();
@@ -166,6 +182,7 @@ abstract contract BaseLaunchPeg is
         onlyOwner
     {
         _setDefaultRoyalty(_receiver, _feePercent);
+        emit DefaultRoyaltySet(_receiver, _feePercent);
     }
 
     /// @notice Set amount of NFTs mintable per address during the allowlist phase
@@ -182,6 +199,8 @@ abstract contract BaseLaunchPeg is
         for (uint256 i = 0; i < addressesLength; i++) {
             allowlist[_addresses[i]] = _numNfts[i];
         }
+
+        emit AllowlistSeeded();
     }
 
     /// @notice Set the base URI
@@ -189,6 +208,7 @@ abstract contract BaseLaunchPeg is
     /// @dev Only callable by project owner
     function setBaseURI(string calldata _baseURI) external override onlyOwner {
         baseURI = _baseURI;
+        emit BaseUriSet(baseURI);
     }
 
     /// @notice Set the unrevealed URI
@@ -199,6 +219,7 @@ abstract contract BaseLaunchPeg is
         onlyOwner
     {
         unrevealedURI = _unrevealedURI;
+        emit UnrevealedUriSet(unrevealedURI);
     }
 
     /// @notice Set the project owner
