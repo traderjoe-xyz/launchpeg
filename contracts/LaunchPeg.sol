@@ -48,11 +48,11 @@ contract LaunchPeg is BaseLaunchPeg, ILaunchPeg {
     uint256 public override auctionEndPrice;
 
     /// @notice Duration of the auction in seconds
-    /// @dev auctionSaleStartTime - mintlistStartTime
+    /// @dev mintlistStartTime - auctionSaleStartTime
     uint256 public override auctionSaleDuration;
 
     /// @notice Time elapsed between each drop in price
-    /// @dev in seconds
+    /// @dev In seconds
     uint256 public override auctionDropInterval;
 
     /// @notice Amount in AVAX deducted at each interval
@@ -63,18 +63,18 @@ contract LaunchPeg is BaseLaunchPeg, ILaunchPeg {
     uint256 private lastAuctionPrice;
 
     /// @notice The discount applied to the last auction price during the allowlist mint
-    /// @dev in basis points e.g 500 for 5%
+    /// @dev In basis points e.g 500 for 5%
     uint256 public override mintlistDiscountPercent;
 
     /// @notice The discount applied to the last auction price during the public sale
-    /// @dev in basis points e.g 2500 for 25%
+    /// @dev In basis points e.g 2500 for 25%
     uint256 public override publicSaleDiscountPercent;
 
     /// @dev Emitted on initializePhases()
     /// @param name Contract name
     /// @param symbol Token symbol
     /// @param projectOwner Owner of the project
-    /// @param maxBatchSize  Max amout of NFTs that can be minted at once
+    /// @param maxBatchSize  Max amount of NFTs that can be minted at once
     /// @param collectionSize The collection size (e.g 10000)
     /// @param amountForAuction Amount of NFTs available for the auction (e.g 8000)
     /// @param amountForMintlist  Amount of NFTs available for the allowlist mint (e.g 1000)
@@ -142,7 +142,7 @@ contract LaunchPeg is BaseLaunchPeg, ILaunchPeg {
     /// @param _symbol ERC721 symbol
     /// @param _projectOwner The project owner
     /// @param _royaltyReceiver Royalty fee collector
-    /// @param _maxBatchSize Max amout of NFTs that can be minted at once
+    /// @param _maxBatchSize Max amount of NFTs that can be minted at once
     /// @param _collectionSize The collection size (e.g 10000)
     /// @param _amountForAuction Amount of NFTs available for the auction (e.g 8000)
     /// @param _amountForMintlist Amount of NFTs available for the allowlist mint (e.g 1000)
@@ -227,12 +227,18 @@ contract LaunchPeg is BaseLaunchPeg, ILaunchPeg {
         ) {
             revert LaunchPeg__InvalidPercent();
         }
+        if (_auctionDropInterval == 0) {
+            revert LaunchPeg__InvalidAuctionDropInterval();
+        }
 
         auctionSaleStartTime = _auctionSaleStartTime;
         auctionStartPrice = _auctionStartPrice;
         lastAuctionPrice = _auctionStartPrice;
         auctionEndPrice = _auctionEndPrice;
         auctionSaleDuration = _mintlistStartTime - _auctionSaleStartTime;
+        if (auctionSaleDuration == 0) {
+            revert LaunchPeg__InvalidAuctionSaleDuration();
+        }
         auctionDropInterval = _auctionDropInterval;
         auctionDropPerStep =
             (_auctionStartPrice - _auctionEndPrice) /
@@ -274,7 +280,7 @@ contract LaunchPeg is BaseLaunchPeg, ILaunchPeg {
     }
 
     /// @notice Mint NFTs during the dutch auction
-    /// The price decreases every `auctionDropInterval` by `auctionDropPerStep`
+    /// @dev The price decreases every `auctionDropInterval` by `auctionDropPerStep`
     /// @param _quantity Quantity of NFTs to buy
     function auctionMint(uint256 _quantity)
         external
@@ -283,21 +289,21 @@ contract LaunchPeg is BaseLaunchPeg, ILaunchPeg {
         isEOA
         atPhase(Phase.DutchAuction)
     {
-        uint256 _remainingSupply = (amountForAuction + amountMintedByDevs) -
+        uint256 remainingSupply = (amountForAuction + _amountMintedByDevs) -
             totalSupply();
-        if (_remainingSupply == 0) {
+        if (remainingSupply == 0) {
             revert LaunchPeg__MaxSupplyReached();
         }
-        if (_remainingSupply < _quantity) {
-            _quantity = _remainingSupply;
+        if (remainingSupply < _quantity) {
+            _quantity = remainingSupply;
         }
         if (numberMinted(msg.sender) + _quantity > maxPerAddressDuringMint) {
             revert LaunchPeg__CanNotMintThisMany();
         }
         lastAuctionPrice = getAuctionPrice(auctionSaleStartTime);
         uint256 totalCost = lastAuctionPrice * _quantity;
-        refundIfOver(totalCost);
-        _mint(msg.sender, _quantity, '', false);
+        _refundIfOver(totalCost);
+        _mint(msg.sender, _quantity, "", false);
         amountMintedDuringAuction = amountMintedDuringAuction + _quantity;
         emit Mint(
             msg.sender,
@@ -320,18 +326,18 @@ contract LaunchPeg is BaseLaunchPeg, ILaunchPeg {
         if (allowlist[msg.sender] <= 0) {
             revert LaunchPeg__NotEligibleForAllowlistMint();
         }
-        uint256 _remainingAuctionSupply = amountForAuction -
+        uint256 remainingAuctionSupply = amountForAuction -
             amountMintedDuringAuction;
         if (
-            totalSupply() + _remainingAuctionSupply + 1 >
-            amountForAuction + amountForMintlist + amountMintedByDevs
+            totalSupply() + remainingAuctionSupply + 1 >
+            amountForAuction + amountForMintlist + _amountMintedByDevs
         ) {
             revert LaunchPeg__MaxSupplyReached();
         }
         allowlist[msg.sender]--;
         uint256 price = getMintlistPrice();
-        refundIfOver(price);
-        _mint(msg.sender, 1, '', false);
+        _refundIfOver(price);
+        _mint(msg.sender, 1, "", false);
         emit Mint(msg.sender, 1, price, _totalMinted() - 1, Phase.Mintlist);
     }
 
@@ -354,7 +360,7 @@ contract LaunchPeg is BaseLaunchPeg, ILaunchPeg {
     {
         if (
             totalSupply() + _quantity >
-            collectionSize - (amountForDevs - amountMintedByDevs)
+            collectionSize - (amountForDevs - _amountMintedByDevs)
         ) {
             revert LaunchPeg__MaxSupplyReached();
         }
@@ -362,8 +368,8 @@ contract LaunchPeg is BaseLaunchPeg, ILaunchPeg {
             revert LaunchPeg__CanNotMintThisMany();
         }
         uint256 price = getPublicSalePrice();
-        refundIfOver(price * _quantity);
-        _mint(msg.sender, _quantity, '', false);
+        _refundIfOver(price * _quantity);
+        _mint(msg.sender, _quantity, "", false);
         emit Mint(
             msg.sender,
             _quantity,
@@ -374,6 +380,7 @@ contract LaunchPeg is BaseLaunchPeg, ILaunchPeg {
     }
 
     /// @notice Returns the price of the public sale
+    /// @return publicSalePrice Public sale price
     function getPublicSalePrice() public view override returns (uint256) {
         return
             lastAuctionPrice -
@@ -382,6 +389,8 @@ contract LaunchPeg is BaseLaunchPeg, ILaunchPeg {
     }
 
     /// @notice Returns the current price of the dutch auction
+    /// @param _saleStartTime Auction sale start time
+    /// @return auctionSalePrice Auction sale price
     function getAuctionPrice(uint256 _saleStartTime)
         public
         view
@@ -401,6 +410,7 @@ contract LaunchPeg is BaseLaunchPeg, ILaunchPeg {
     }
 
     /// @notice Returns the current phase
+    /// @return phase Current phase
     function currentPhase() public view override returns (Phase) {
         if (
             auctionSaleStartTime == 0 ||
@@ -428,7 +438,9 @@ contract LaunchPeg is BaseLaunchPeg, ILaunchPeg {
     /// https://eips.ethereum.org/EIPS/eip-165#how-interfaces-are-identified[EIP section]
     /// to learn more about how these ids are created.
     /// This function call must use less than 30 000 gas.
-    function supportsInterface(bytes4 interfaceId)
+    /// @param _interfaceId InterfaceId to consider. Comes from type(InterfaceContract).interfaceId
+    /// @return isInterfaceSupported True if the considered interface is supported
+    function supportsInterface(bytes4 _interfaceId)
         public
         view
         virtual
@@ -436,7 +448,7 @@ contract LaunchPeg is BaseLaunchPeg, ILaunchPeg {
         returns (bool)
     {
         return
-            interfaceId == type(ILaunchPeg).interfaceId ||
-            super.supportsInterface(interfaceId);
+            _interfaceId == type(ILaunchPeg).interfaceId ||
+            super.supportsInterface(_interfaceId);
     }
 }

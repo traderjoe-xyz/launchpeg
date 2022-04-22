@@ -141,6 +141,7 @@ describe('FlatLaunchPeg', () => {
 
     it('Mint reverts when maxSupply is reached', async () => {
       config.collectionSize = 10
+      config.amountForDevs = 0
       config.maxBatchSize = 10
       config.batchRevealSize = 10
       await deployFlatLaunchPeg()

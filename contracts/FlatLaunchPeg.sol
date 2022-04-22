@@ -41,7 +41,7 @@ contract FlatLaunchPeg is BaseLaunchPeg, IFlatLaunchPeg {
     /// @param _symbol ERC721 symbol
     /// @param _projectOwner The project owner
     /// @param _royaltyReceiver Royalty fee collector
-    /// @param _maxBatchSize Max amout of NFTs that can be minted at once
+    /// @param _maxBatchSize Max amount of NFTs that can be minted at once
     /// @param _collectionSize The collection size (e.g 10000)
     /// @param _amountForDevs Amount of NFTs reserved for `projectOwner` (e.g 200)
     /// @param _batchRevealSize Size of the batch reveal
@@ -96,8 +96,8 @@ contract FlatLaunchPeg is BaseLaunchPeg, IFlatLaunchPeg {
             revert LaunchPeg__MaxSupplyReached();
         }
         allowlist[msg.sender]--;
-        refundIfOver(mintlistPrice);
-        _mint(msg.sender, 1, '', false);
+        _refundIfOver(mintlistPrice);
+        _mint(msg.sender, 1, "", false);
         emit Mint(msg.sender, 1, mintlistPrice, _totalMinted() - 1);
     }
 
@@ -114,8 +114,8 @@ contract FlatLaunchPeg is BaseLaunchPeg, IFlatLaunchPeg {
             revert LaunchPeg__MaxSupplyReached();
         }
         uint256 total = salePrice * _quantity;
-        refundIfOver(total);
-        _mint(msg.sender, _quantity, '', false);
+        _refundIfOver(total);
+        _mint(msg.sender, _quantity, "", false);
         emit Mint(msg.sender, _quantity, total, _totalMinted() - _quantity);
     }
 
@@ -124,7 +124,9 @@ contract FlatLaunchPeg is BaseLaunchPeg, IFlatLaunchPeg {
     /// https://eips.ethereum.org/EIPS/eip-165#how-interfaces-are-identified[EIP section]
     /// to learn more about how these ids are created.
     /// This function call must use less than 30 000 gas.
-    function supportsInterface(bytes4 interfaceId)
+    /// @param _interfaceId InterfaceId to consider. Comes from type(Interface).interfaceId
+    /// @return isInterfaceSupported True if the considered interface is supported
+    function supportsInterface(bytes4 _interfaceId)
         public
         view
         virtual
@@ -132,7 +134,7 @@ contract FlatLaunchPeg is BaseLaunchPeg, IFlatLaunchPeg {
         returns (bool)
     {
         return
-            interfaceId == type(IFlatLaunchPeg).interfaceId ||
-            super.supportsInterface(interfaceId);
+            _interfaceId == type(IFlatLaunchPeg).interfaceId ||
+            super.supportsInterface(_interfaceId);
     }
 }
