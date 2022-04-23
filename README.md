@@ -107,4 +107,7 @@ yarn verify-launchpeg-fuji --contract-address <contract-address> --config-filena
 
 yarn deploy-flat-launchpeg-fuji --config-filename <config-filename>
 yarn verify-flat-launchpeg-fuji --contract-address <contract-address> --config-filename <config-filename>
+
+yarn deploy-lens-fuji 
+yarn verify-lens-fuji --contract-address <contract-address>
 ```

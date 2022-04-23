@@ -18,6 +18,8 @@
     "verify-launchpeg-fuji": "npx hardhat verify-launch-peg --network fuji",
     "deploy-flat-launchpeg-fuji": "npx hardhat deploy-flat-launch-peg --network fuji",
     "verify-flat-launchpeg-fuji": "npx hardhat verify-flat-launch-peg --network fuji",
+    "deploy-lens-fuji": "npx hardhat deploy-lens --network fuji",
+    "verify-lens-fuji": "npx hardhat verify-lens --network fuji ",
     "test": "hardhat test",
     "coverage": " hardhat coverage"
   },

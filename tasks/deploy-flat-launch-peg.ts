@@ -28,8 +28,6 @@ task('deploy-flat-launch-peg', 'Deploy FlatLaunchPeg contract')
 
     await flatLaunchPeg.deployTransaction.wait()
 
-    console.log('-- Initializating phases --')
-
     if (launchConfig.joeFeePercent && launchConfig.joeFeeCollector) {
       console.log('-- Initializating Joe fee --')
       await flatLaunchPeg.initializeJoeFee(launchConfig.joeFeePercent, launchConfig.joeFeeCollector)

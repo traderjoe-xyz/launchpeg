@@ -1,36 +1,35 @@
 //SPDX-License-Identifier: CC0
 pragma solidity ^0.8.4;
 
+import "./interfaces/IBatchReveal.sol";
+
 // Creator: Tubby Cats
 /// https://github.com/tubby-cats/batch-nft-reveal
 
 /// @title BatchReveal
 /// @notice Implements a gas efficient way of revealing NFT URIs gradually
-abstract contract BatchReveal {
+abstract contract BatchReveal is IBatchReveal {
     /// @dev Initialized on parent contract creation
     uint256 private immutable collectionSize;
     int128 private immutable intCollectionSize;
 
-    /// @notice Size of the batch reveal
-    /// @dev Must divide collectionSize
-    uint256 public immutable revealBatchSize;
+    /// @inheritdoc IBatchReveal
+    uint256 public immutable override revealBatchSize;
 
-    /// @notice Randomized seeds used to shuffle TokenURIs
-    mapping(uint256 => uint256) public batchToSeed;
+    /// @inheritdoc IBatchReveal
+    mapping(uint256 => uint256) public override batchToSeed;
 
-    /// @notice Last token that has been revealed
-    uint256 public lastTokenRevealed = 0;
+    /// @inheritdoc IBatchReveal
+    uint256 public override lastTokenRevealed = 0;
 
     /// @dev Size of the array that will store already taken URIs numbers
     uint256 private immutable _rangeLength;
 
-    /// @notice Timestamp for the start of the reveal process
-    /// @dev Can be set to zero for immediate reveal after token mint
-    uint256 public revealStartTime;
+    /// @inheritdoc IBatchReveal
+    uint256 public override revealStartTime;
 
-    /// @notice Time interval for gradual reveal
-    /// @dev Can be set to zero in order to reveal the collection all at once
-    uint256 public revealInterval;
+    /// @inheritdoc IBatchReveal
+    uint256 public override revealInterval;
 
     struct Range {
         int128 start;
