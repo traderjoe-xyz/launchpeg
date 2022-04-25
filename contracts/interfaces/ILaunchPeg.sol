@@ -38,6 +38,10 @@ interface ILaunchPeg is IBaseLaunchPeg {
 
     function publicSaleDiscountPercent() external view returns (uint256);
 
+    function amountMintedDuringAuction() external view returns (uint256);
+
+    function lastAuctionPrice() external view returns (uint256);
+
     function initializePhases(
         uint256 _auctionSaleStartTime,
         uint256 _auctionStartPrice,
