@@ -63,12 +63,12 @@ contract LaunchPeg is BaseLaunchPeg, ILaunchPeg {
     /// @dev In basis points e.g 2500 for 25%
     uint256 public override publicSaleDiscountPercent;
 
-    /// @dev Tracks the amount of NFTs minted during the dutch auction
-    uint256 private amountMintedDuringAuction;
+    /// @notice Tracks the amount of NFTs minted during the dutch auction
+    uint256 public override amountMintedDuringAuction;
 
     /// @notice The price of the last NFT sold during the auction
     /// @dev lastAuctionPrice is scaled to 1e18
-    uint256 private lastAuctionPrice;
+    uint256 public override lastAuctionPrice;
 
     /// @dev Emitted on initializePhases()
     /// @param name Contract name
