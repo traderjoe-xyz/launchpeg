@@ -315,30 +315,37 @@ contract LaunchPeg is BaseLaunchPeg, ILaunchPeg {
     }
 
     /// @notice Mint NFTs during the allowlist mint
-    /// @dev One NFT at a time
-    function allowlistMint()
+    /// @param _quantity Quantity of NFTs to mint
+    function allowlistMint(uint256 _quantity)
         external
         payable
         override
         isEOA
         atPhase(Phase.Mintlist)
     {
-        if (allowlist[msg.sender] <= 0) {
+        if (_quantity > allowlist[msg.sender]) {
             revert LaunchPeg__NotEligibleForAllowlistMint();
         }
         uint256 remainingAuctionSupply = amountForAuction -
             amountMintedDuringAuction;
         if (
-            totalSupply() + remainingAuctionSupply + 1 >
+            totalSupply() + remainingAuctionSupply + _quantity >
             amountForAuction + amountForMintlist + _amountMintedByDevs
         ) {
             revert LaunchPeg__MaxSupplyReached();
         }
-        allowlist[msg.sender]--;
+        allowlist[msg.sender] -= _quantity;
         uint256 price = getMintlistPrice();
-        _refundIfOver(price);
-        _mint(msg.sender, 1, "", false);
-        emit Mint(msg.sender, 1, price, _totalMinted() - 1, Phase.Mintlist);
+        uint256 totalCost = price * _quantity;
+        _refundIfOver(totalCost);
+        _mint(msg.sender, _quantity, "", false);
+        emit Mint(
+            msg.sender,
+            _quantity,
+            price,
+            _totalMinted() - _quantity,
+            Phase.Mintlist
+        );
     }
 
     /// @notice Mint NFTs during the public sale

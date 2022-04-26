@@ -83,7 +83,7 @@ describe('FlatLaunchPeg', () => {
   describe('Mintlist phase', () => {
     it('One NFT is transfered when user is on allowlist', async () => {
       await flatLaunchPeg.connect(dev).seedAllowlist([bob.address], [1])
-      await flatLaunchPeg.connect(bob).allowlistMint({ value: config.flatMintListSalePrice })
+      await flatLaunchPeg.connect(bob).allowlistMint(1, { value: config.flatMintListSalePrice })
       expect(await flatLaunchPeg.balanceOf(bob.address)).to.eq(1)
     })
 
@@ -91,24 +91,24 @@ describe('FlatLaunchPeg', () => {
       const price = config.flatMintListSalePrice
 
       await flatLaunchPeg.connect(dev).seedAllowlist([bob.address], [2])
-      await flatLaunchPeg.connect(bob).allowlistMint({ value: price.mul(2) }) // intentionally sending more AVAX to test refund
-      await flatLaunchPeg.connect(bob).allowlistMint({ value: price })
+      await flatLaunchPeg.connect(bob).allowlistMint(1, { value: price.mul(2) }) // intentionally sending more AVAX to test refund
+      await flatLaunchPeg.connect(bob).allowlistMint(1, { value: price })
 
-      await expect(flatLaunchPeg.connect(bob).allowlistMint({ value: price })).to.be.revertedWith(
+      await expect(flatLaunchPeg.connect(bob).allowlistMint(1, { value: price })).to.be.revertedWith(
         'LaunchPeg__NotEligibleForAllowlistMint()'
       )
       expect(await flatLaunchPeg.balanceOf(bob.address)).to.eq(2)
     })
 
     it('Mint reverts when the caller is not on allowlist during mint phase', async () => {
-      await expect(flatLaunchPeg.connect(bob).allowlistMint()).to.be.revertedWith(
+      await expect(flatLaunchPeg.connect(bob).allowlistMint(1)).to.be.revertedWith(
         'LaunchPeg__NotEligibleForAllowlistMint()'
       )
     })
 
     it("Mint reverts when the caller didn't send enough AVAX", async () => {
       await flatLaunchPeg.connect(dev).seedAllowlist([alice.address], [1])
-      await expect(flatLaunchPeg.connect(alice).allowlistMint()).to.be.revertedWith('LaunchPeg__NotEnoughAVAX(0)')
+      await expect(flatLaunchPeg.connect(alice).allowlistMint(1)).to.be.revertedWith('LaunchPeg__NotEnoughAVAX(0)')
     })
 
     it('Seed allowlist reverts when addresses does not match numSlots length', async () => {
