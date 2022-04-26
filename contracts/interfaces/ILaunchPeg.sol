@@ -57,7 +57,7 @@ interface ILaunchPeg is IBaseLaunchPeg {
 
     function auctionMint(uint256 _quantity) external payable;
 
-    function allowlistMint() external payable;
+    function allowlistMint(uint256 _quantity) external payable;
 
     function publicSaleMint(uint256 _quantity) external payable;
 

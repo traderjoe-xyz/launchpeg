@@ -87,18 +87,24 @@ contract FlatLaunchPeg is BaseLaunchPeg, IFlatLaunchPeg {
     }
 
     /// @notice Mint NFTs during the allowlist mint
-    /// @dev One NFT at a time
-    function allowlistMint() external payable override {
-        if (allowlist[msg.sender] == 0) {
+    /// @param _quantity Quantity of NFTs to mint
+    function allowlistMint(uint256 _quantity) external payable override {
+        if (_quantity > allowlist[msg.sender]) {
             revert LaunchPeg__NotEligibleForAllowlistMint();
         }
-        if (totalSupply() >= collectionSize) {
+        if (totalSupply() + _quantity > collectionSize) {
             revert LaunchPeg__MaxSupplyReached();
         }
-        allowlist[msg.sender]--;
-        _refundIfOver(mintlistPrice);
-        _mint(msg.sender, 1, "", false);
-        emit Mint(msg.sender, 1, mintlistPrice, _totalMinted() - 1);
+        allowlist[msg.sender] -= _quantity;
+        uint256 totalCost = mintlistPrice * _quantity;
+        _refundIfOver(totalCost);
+        _mint(msg.sender, _quantity, "", false);
+        emit Mint(
+            msg.sender,
+            _quantity,
+            mintlistPrice,
+            _totalMinted() - _quantity
+        );
     }
 
     /// @notice Mint NFTs during the public sale
