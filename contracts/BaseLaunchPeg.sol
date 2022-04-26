@@ -205,7 +205,7 @@ abstract contract BaseLaunchPeg is
 
     /// @notice Set the base URI
     /// @dev This sets the URI for revealed tokens
-    /// @dev Only callable by project owner
+    /// Only callable by project owner
     function setBaseURI(string calldata _baseURI) external override onlyOwner {
         baseURI = _baseURI;
         emit BaseUriSet(baseURI);
@@ -230,6 +230,10 @@ abstract contract BaseLaunchPeg is
         override
         onlyOwner
     {
+        if (_projectOwner == address(0)) {
+            revert LaunchPeg__InvalidProjectOwner();
+        }
+
         projectOwner = _projectOwner;
         emit ProjectOwnerUpdated(projectOwner);
     }
@@ -289,22 +293,22 @@ abstract contract BaseLaunchPeg is
     }
 
     /// @notice Tells you if a batch can be revealed
-    /// @return hasToRevealInfo Returns a bool saying wether a reveal can be triggered or not
-    /// And the number of the next batch that will be revealed
+    /// @return bool Whether reveal can be triggered or not
+    /// @return uint256 The number of the next batch that will be revealed
     function hasBatchToReveal() external view override returns (bool, uint256) {
         return _hasBatchToReveal(totalSupply());
     }
 
     /// @notice Returns the ownership data of a specific token ID
-    /// @param tokenId Token ID
+    /// @param _tokenId Token ID
     /// @return TokenOwnership Ownership struct for a specific token ID
-    function getOwnershipData(uint256 tokenId)
+    function getOwnershipData(uint256 _tokenId)
         external
         view
         override
         returns (TokenOwnership memory)
     {
-        return _ownershipOf(tokenId);
+        return _ownershipOf(_tokenId);
     }
 
     /// @notice Returns the Uniform Resource Identifier (URI) for `tokenId` token.
@@ -330,15 +334,15 @@ abstract contract BaseLaunchPeg is
     }
 
     /// @notice Returns the number of NFTs minted by a specific address
-    /// @param owner The owner of the NFTs
+    /// @param _owner The owner of the NFTs
     /// @return numberMinted Number of NFTs minted
-    function numberMinted(address owner)
+    function numberMinted(address _owner)
         public
         view
         override
         returns (uint256)
     {
-        return _numberMinted(owner);
+        return _numberMinted(_owner);
     }
 
     /// @dev Returns true if this contract implements the interface defined by

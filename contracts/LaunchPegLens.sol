@@ -39,6 +39,8 @@ contract LaunchPegLens {
         uint256 auctionPrice;
         uint256 mintlistPrice;
         uint256 publicSalePrice;
+        uint256 amountMintedDuringAuction;
+        uint256 lastAuctionPrice;
     }
 
     struct FlatLaunchPegData {
@@ -59,6 +61,7 @@ contract LaunchPegLens {
         uint256 allowanceForAllowlistMint;
     }
 
+    /// Global struct that is returned by getAllLaunchPegs()
     struct LensData {
         address id;
         LaunchPegType launchType;
@@ -75,28 +78,21 @@ contract LaunchPegLens {
         FlatLaunchPeg
     }
 
+    /// @notice ILaunchpegInterface identifier
     bytes4 public immutable launchPegInterface;
+
+    /// @notice IFlatLaunchpegInterface identifier
     bytes4 public immutable flatLaunchPegInterface;
 
+    /// @dev LaunchPegLens constructor
     constructor() {
         launchPegInterface = type(ILaunchPeg).interfaceId;
         flatLaunchPegInterface = type(IFlatLaunchPeg).interfaceId;
     }
 
-    function getAllLaunchPegs(address[] memory _addressList, address _user)
-        external
-        view
-        returns (LensData[] memory)
-    {
-        LensData[] memory LensDatas = new LensData[](_addressList.length);
-
-        for (uint256 i = 0; i < LensDatas.length; i++) {
-            LensDatas[i] = getLaunchPegData(_addressList[i], _user);
-        }
-
-        return LensDatas;
-    }
-
+    /// @notice Gets the type of Launchpeg
+    /// @param _contract Contract address to consider
+    /// @return LaunchPegType Type of Launchpeg implementation (Dutch Auction / Flat / Unknown)
     function getLaunchPegType(address _contract)
         public
         view
@@ -113,6 +109,29 @@ contract LaunchPegLens {
         }
     }
 
+    /// @notice Fetch Launchpeg data from a list of addresses
+    /// Will revert if a contract in the list is not a Launchpeg
+    /// @param _addressList List of contract adresses to consider
+    /// @param _user Address to consider for NFT balances and mintlist allocations
+    /// @return LensDataList List of contracts datas
+    function getAllLaunchPegs(address[] memory _addressList, address _user)
+        external
+        view
+        returns (LensData[] memory)
+    {
+        LensData[] memory LensDatas = new LensData[](_addressList.length);
+
+        for (uint256 i = 0; i < LensDatas.length; i++) {
+            LensDatas[i] = getLaunchPegData(_addressList[i], _user);
+        }
+
+        return LensDatas;
+    }
+
+    /// @notice Fetch Launchpeg data from the provided address
+    /// @param _launchPeg Contract address to consider
+    /// @param _user Address to consider for NFT balances and mintlist allocations
+    /// @return LensData Contract data
     function getLaunchPegData(address _launchPeg, address _user)
         public
         view
@@ -177,6 +196,11 @@ contract LaunchPegLens {
                 .getMintlistPrice();
             data.launchPegData.publicSalePrice = ILaunchPeg(_launchPeg)
                 .getPublicSalePrice();
+            data.launchPegData.amountMintedDuringAuction = ILaunchPeg(
+                _launchPeg
+            ).amountMintedDuringAuction();
+            data.launchPegData.lastAuctionPrice = ILaunchPeg(_launchPeg)
+                .lastAuctionPrice();
         }
 
         if (data.launchType == LaunchPegType.FlatLaunchPeg) {

@@ -53,11 +53,11 @@ abstract contract BatchReveal is IBatchReveal {
 
     // Forked from openzeppelin
     /// @dev Returns the smallest of two numbers.
-    /// @param a First number to consider
-    /// @param b Second number to consider
+    /// @param _a First number to consider
+    /// @param _b Second number to consider
     /// @return min Minimum between the two params
-    function _min(int128 a, int128 b) internal pure returns (int128) {
-        return a < b ? a : b;
+    function _min(int128 _a, int128 _b) internal pure returns (int128) {
+        return _a < _b ? _a : _b;
     }
 
     /// @notice Fills the range array

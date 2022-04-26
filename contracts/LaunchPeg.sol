@@ -393,6 +393,7 @@ contract LaunchPeg is BaseLaunchPeg, ILaunchPeg {
     }
 
     /// @notice Returns the price of the allowlist mint
+    /// @return mintListSalePrice Mint List sale price
     function getMintlistPrice() public view override returns (uint256) {
         return
             lastAuctionPrice -
