@@ -236,9 +236,6 @@ contract LaunchPeg is BaseLaunchPeg, ILaunchPeg {
         lastAuctionPrice = _auctionStartPrice;
         auctionEndPrice = _auctionEndPrice;
         auctionSaleDuration = _mintlistStartTime - _auctionSaleStartTime;
-        // if (auctionSaleDuration == 0) {
-        //     revert LaunchPeg__InvalidAuctionSaleDuration();
-        // }
         auctionDropInterval = _auctionDropInterval;
         auctionDropPerStep =
             (_auctionStartPrice - _auctionEndPrice) /
