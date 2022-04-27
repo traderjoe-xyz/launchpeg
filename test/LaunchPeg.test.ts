@@ -67,6 +67,30 @@ describe('LaunchPeg', () => {
     it('Amount reserved for devs, auction, mintlist but be lower than collection size', async () => {
       config.collectionSize = config.collectionSize - 1000
       await expect(deployLaunchPeg()).to.be.revertedWith('LaunchPeg__LargerCollectionSizeNeeded()')
+
+      config.amountForDevs = config.collectionSize + 1
+      await expect(deployLaunchPeg()).to.be.revertedWith('LaunchPeg__LargerCollectionSizeNeeded()')
+    })
+
+    it('Zero address should not be configurable as project owner', async () => {
+      await expect(
+        launchPegCF.deploy(
+          'JoePEG',
+          'JOEPEG',
+          ethers.constants.AddressZero,
+          royaltyReceiver.address,
+          config.maxBatchSize,
+          config.collectionSize,
+          config.amountForAuction,
+          config.amountForMintlist,
+          config.amountForDevs,
+          config.batchRevealSize
+        )
+      ).to.be.revertedWith('LaunchPeg__InvalidProjectOwner()')
+
+      await expect(launchPeg.connect(dev).setProjectOwner(ethers.constants.AddressZero)).to.be.revertedWith(
+        'LaunchPeg__InvalidProjectOwner()'
+      )
     })
 
     it('Phases can be initialized only once', async () => {
@@ -75,6 +99,18 @@ describe('LaunchPeg', () => {
       await initializePhases(launchPeg, config, Phase.DutchAuction)
       await expect(initializePhases(launchPeg, config, Phase.DutchAuction)).to.be.revertedWith(
         'LaunchPeg__AuctionAlreadyInitialized()'
+      )
+    })
+
+    it('Auction dates should be correct', async () => {
+      config.auctionDropInterval = BigNumber.from(0)
+      await expect(initializePhases(launchPeg, config, Phase.DutchAuction)).to.be.revertedWith(
+        'LaunchPeg__InvalidAuctionDropInterval()'
+      )
+
+      config.auctionStartTime = BigNumber.from(0)
+      await expect(initializePhases(launchPeg, config, Phase.DutchAuction)).to.be.revertedWith(
+        'LaunchPeg__InvalidAuctionStartTime()'
       )
     })
 
@@ -98,6 +134,14 @@ describe('LaunchPeg', () => {
 
       await expect(initializePhases(launchPeg, config, Phase.DutchAuction)).to.be.revertedWith(
         'LaunchPeg__PublicSaleBeforeMintlist()'
+      )
+    })
+
+    it('Public sale and mintlist discount must be < 100%', async () => {
+      config.mintlistDiscount = 10_001
+
+      await expect(initializePhases(launchPeg, config, Phase.DutchAuction)).to.be.revertedWith(
+        'LaunchPeg__InvalidPercent()'
       )
     })
   })
@@ -147,6 +191,19 @@ describe('LaunchPeg', () => {
         .connect(alice)
         .auctionMint(config.maxBatchSize, { value: config.startPrice.mul(config.maxBatchSize) })
       expect(await launchPeg.balanceOf(alice.address)).to.eq(config.maxBatchSize)
+    })
+
+    it('Ownership data is correct', async () => {
+      await initializePhases(launchPeg, config, Phase.DutchAuction)
+
+      await launchPeg
+        .connect(alice)
+        .auctionMint(config.maxBatchSize, { value: config.startPrice.mul(config.maxBatchSize) })
+
+      let ownershipData = await launchPeg.getOwnershipData(1)
+
+      expect(ownershipData[0]).to.eq(alice.address)
+      expect(ownershipData[2]).to.eq(false)
     })
 
     it('Refund caller when too much AVAX sent', async () => {
@@ -347,6 +404,9 @@ describe('LaunchPeg', () => {
 
   describe('Project owner mint', () => {
     it('Mint up to max limit', async () => {
+      await expect(launchPeg.connect(projectOwner).devMint(config.amountForDevs - 1)).to.be.revertedWith(
+        'LaunchPeg__CanOnlyMintMultipleOfMaxBatchSize()'
+      )
       await launchPeg.connect(projectOwner).devMint(config.amountForDevs)
       await expect(launchPeg.connect(projectOwner).devMint(1)).to.be.revertedWith('LaunchPeg__MaxSupplyReached()')
       expect(await launchPeg.balanceOf(projectOwner.address)).to.eq(config.amountForDevs)
@@ -409,6 +469,15 @@ describe('LaunchPeg', () => {
         ethers.utils.parseEther('0.01')
       )
       expect(await feeCollector.getBalance()).to.be.eq(initialFeeCollectorBalance.add(fee))
+    })
+
+    it('Royalty fees should be correctly set up', async () => {
+      let royaltyPercent = 500
+      let royaltyCollector = bob
+      await launchPeg.setRoyaltyInfo(royaltyCollector.address, royaltyPercent)
+
+      let price = ethers.utils.parseEther('1')
+      expect((await launchPeg.royaltyInfo(1, price))[1]).to.eq(price.mul(royaltyPercent).div(10_000))
     })
   })
 
