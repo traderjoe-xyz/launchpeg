@@ -254,12 +254,12 @@ describe('LaunchPeg', () => {
   })
 
   describe('Mintlist phase', () => {
-    it('NFT is transfered when user is on allowlist', async () => {
+    it('NFT is transfered when user is on allowList', async () => {
       await initializePhases(launchPeg, config, Phase.Mintlist)
 
       await launchPeg.seedAllowlist([bob.address], [5])
       const discount = config.startPrice.mul(config.mintlistDiscount).div(10000)
-      await launchPeg.connect(bob).allowlistMint(5, { value: config.startPrice.sub(discount).mul(5) })
+      await launchPeg.connect(bob).allowListMint(5, { value: config.startPrice.sub(discount).mul(5) })
       expect(await launchPeg.balanceOf(bob.address)).to.eq(5)
     })
 
@@ -270,10 +270,10 @@ describe('LaunchPeg', () => {
       const price = config.startPrice.sub(discount)
 
       await launchPeg.seedAllowlist([bob.address], [4])
-      await launchPeg.connect(bob).allowlistMint(2, { value: price.mul(3) }) // intentionally sending more AVAX to test refund
-      await launchPeg.connect(bob).allowlistMint(1, { value: price })
+      await launchPeg.connect(bob).allowListMint(2, { value: price.mul(3) }) // intentionally sending more AVAX to test refund
+      await launchPeg.connect(bob).allowListMint(1, { value: price })
 
-      await expect(launchPeg.connect(bob).allowlistMint(2, { value: price.mul(2) })).to.be.revertedWith(
+      await expect(launchPeg.connect(bob).allowListMint(2, { value: price.mul(2) })).to.be.revertedWith(
         'LaunchPeg__NotEligibleForAllowlistMint()'
       )
       expect(await launchPeg.balanceOf(bob.address)).to.eq(3)
@@ -282,13 +282,13 @@ describe('LaunchPeg', () => {
     it('Mint reverts when not started yet', async () => {
       await initializePhases(launchPeg, config, Phase.DutchAuction)
 
-      await expect(launchPeg.connect(bob).allowlistMint(1)).to.be.revertedWith('LaunchPeg__WrongPhase()')
+      await expect(launchPeg.connect(bob).allowListMint(1)).to.be.revertedWith('LaunchPeg__WrongPhase()')
     })
 
-    it('Mint reverts when the caller is not on allowlist during mint phase', async () => {
+    it('Mint reverts when the caller is not on allowList during mint phase', async () => {
       await initializePhases(launchPeg, config, Phase.Mintlist)
 
-      await expect(launchPeg.connect(bob).allowlistMint(1)).to.be.revertedWith(
+      await expect(launchPeg.connect(bob).allowListMint(1)).to.be.revertedWith(
         'LaunchPeg__NotEligibleForAllowlistMint()'
       )
     })
@@ -297,17 +297,17 @@ describe('LaunchPeg', () => {
       await initializePhases(launchPeg, config, Phase.Mintlist)
 
       await launchPeg.seedAllowlist([alice.address], [1])
-      await expect(launchPeg.connect(alice).allowlistMint(1)).to.be.revertedWith('LaunchPeg__NotEnoughAVAX(0)')
+      await expect(launchPeg.connect(alice).allowListMint(1)).to.be.revertedWith('LaunchPeg__NotEnoughAVAX(0)')
     })
 
     it('Mint reverts during public sale', async () => {
       await initializePhases(launchPeg, config, Phase.PublicSale)
 
       await launchPeg.seedAllowlist([alice.address], [1])
-      await expect(launchPeg.connect(alice).allowlistMint(1)).to.be.revertedWith('LaunchPeg__WrongPhase')
+      await expect(launchPeg.connect(alice).allowListMint(1)).to.be.revertedWith('LaunchPeg__WrongPhase')
     })
 
-    it('Seed allowlist reverts when addresses does not match numSlots length', async () => {
+    it('Seed allowList reverts when addresses does not match numSlots length', async () => {
       await expect(launchPeg.seedAllowlist([alice.address, bob.address], [1])).to.be.revertedWith(
         'LaunchPeg__WrongAddressesAndNumSlotsLength()'
       )

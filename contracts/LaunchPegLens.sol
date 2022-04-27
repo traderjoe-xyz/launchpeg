@@ -216,7 +216,7 @@ contract LaunchPegLens {
         if (_user != address(0)) {
             data.userData.balanceOf = ERC721A(_launchPeg).balanceOf(_user);
             data.userData.allowanceForAllowlistMint = IBaseLaunchPeg(_launchPeg)
-                .allowlist(_user);
+                .allowList(_user);
         }
 
         return data;

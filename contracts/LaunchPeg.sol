@@ -14,13 +14,13 @@ import "./LaunchPegErrors.sol";
 
 /// @title LaunchPeg
 /// @author Trader Joe
-/// @notice Implements a fair and gas efficient NFT launch mechanism. The sale takes place in 3 phases: dutch auction, allowlist mint, public sale.
+/// @notice Implements a fair and gas efficient NFT launch mechanism. The sale takes place in 3 phases: dutch auction, allowList mint, public sale.
 contract LaunchPeg is BaseLaunchPeg, ILaunchPeg {
     /// @notice Amount of NFTs available for the auction (e.g 8000)
     /// Unsold items are put up for sale during the public sale.
     uint256 public immutable override amountForAuction;
 
-    /// @notice Amount of NFTs available for the allowlist mint (e.g 1000)
+    /// @notice Amount of NFTs available for the allowList mint (e.g 1000)
     /// Unsold items are put up for sale during the public sale.
     uint256 public immutable override amountForMintlist;
 
@@ -28,12 +28,12 @@ contract LaunchPeg is BaseLaunchPeg, ILaunchPeg {
     /// @dev Timestamp
     uint256 public override auctionSaleStartTime;
 
-    /// @notice Start time of the allowlist mint in seconds
+    /// @notice Start time of the allowList mint in seconds
     /// @dev A timestamp greater than the dutch auction start
     uint256 public override mintlistStartTime;
 
     /// @notice Start time of the public sale in seconds
-    /// @dev A timestamp greater than the allowlist mint start
+    /// @dev A timestamp greater than the allowList mint start
     uint256 public override publicSaleStartTime;
 
     /// @notice Auction start price in AVAX
@@ -55,7 +55,7 @@ contract LaunchPeg is BaseLaunchPeg, ILaunchPeg {
     /// @notice Amount in AVAX deducted at each interval
     uint256 public override auctionDropPerStep;
 
-    /// @notice The discount applied to the last auction price during the allowlist mint
+    /// @notice The discount applied to the last auction price during the allowList mint
     /// @dev In basis points e.g 500 for 5%
     uint256 public override mintlistDiscountPercent;
 
@@ -74,17 +74,17 @@ contract LaunchPeg is BaseLaunchPeg, ILaunchPeg {
     /// @param name Contract name
     /// @param symbol Token symbol
     /// @param projectOwner Owner of the project
-    /// @param maxBatchSize  Max amount of NFTs that can be minted at once
+    /// @param maxBatchSize Max amount of NFTs that can be minted at once
     /// @param collectionSize The collection size (e.g 10000)
     /// @param amountForAuction Amount of NFTs available for the auction (e.g 8000)
-    /// @param amountForMintlist  Amount of NFTs available for the allowlist mint (e.g 1000)
+    /// @param amountForMintlist Amount of NFTs available for the allowList mint (e.g 1000)
     /// @param amountForDevs Amount of NFTs reserved for `projectOwner` (e.g 200)
     /// @param auctionSaleStartTime Auction start time in seconds
     /// @param auctionStartPrice Auction start price in AVAX
     /// @param auctionEndPrice Auction floor price in AVAX
     /// @param auctionDropInterval Time elapsed between each drop in price in seconds
     /// @param mintlistStartTime Allowlist mint start time in seconds
-    /// @param mintlistDiscountPercent Discount applied to the last auction price during the allowlist mint
+    /// @param mintlistDiscountPercent Discount applied to the last auction price during the allowList mint
     /// @param publicSaleStartTime Public sale start time in seconds
     /// @param publicSaleDiscountPercent Discount applied to the last auction price during the public sale
     event Initialized(
@@ -116,7 +116,7 @@ contract LaunchPeg is BaseLaunchPeg, ILaunchPeg {
         uint256 revealBatchSize
     );
 
-    /// @dev Emitted on auctionMint(), allowlistMint(), publicSaleMint()
+    /// @dev Emitted on auctionMint(), allowListMint(), publicSaleMint()
     /// @param sender The address that minted
     /// @param quantity Amount of NFTs minted
     /// @param price Price in AVAX for the NFTs
@@ -145,7 +145,7 @@ contract LaunchPeg is BaseLaunchPeg, ILaunchPeg {
     /// @param _maxBatchSize Max amount of NFTs that can be minted at once
     /// @param _collectionSize The collection size (e.g 10000)
     /// @param _amountForAuction Amount of NFTs available for the auction (e.g 8000)
-    /// @param _amountForMintlist Amount of NFTs available for the allowlist mint (e.g 1000)
+    /// @param _amountForMintlist Amount of NFTs available for the allowList mint (e.g 1000)
     /// @param _amountForDevs Amount of NFTs reserved for `projectOwner` (e.g 200)
     /// @param _batchRevealSize Size of the batch reveal
     constructor(
@@ -189,7 +189,7 @@ contract LaunchPeg is BaseLaunchPeg, ILaunchPeg {
     /// @param _auctionEndPrice Auction floor price in AVAX
     /// @param _auctionDropInterval Time elapsed between each drop in price in seconds
     /// @param _mintlistStartTime Allowlist mint start time in seconds
-    /// @param _mintlistDiscountPercent Discount applied to the last auction price during the allowlist mint
+    /// @param _mintlistDiscountPercent Discount applied to the last auction price during the allowList mint
     /// @param _publicSaleStartTime Public sale start time in seconds
     /// @param _publicSaleDiscountPercent Discount applied to the last auction price during the public sale
     /// @param _revealStartTime Start of the token URIs reveal in seconds
@@ -311,16 +311,16 @@ contract LaunchPeg is BaseLaunchPeg, ILaunchPeg {
         );
     }
 
-    /// @notice Mint NFTs during the allowlist mint
+    /// @notice Mint NFTs during the allowList mint
     /// @param _quantity Quantity of NFTs to mint
-    function allowlistMint(uint256 _quantity)
+    function allowListMint(uint256 _quantity)
         external
         payable
         override
         isEOA
         atPhase(Phase.Mintlist)
     {
-        if (_quantity > allowlist[msg.sender]) {
+        if (_quantity > allowList[msg.sender]) {
             revert LaunchPeg__NotEligibleForAllowlistMint();
         }
         uint256 remainingAuctionSupply = amountForAuction -
@@ -331,7 +331,7 @@ contract LaunchPeg is BaseLaunchPeg, ILaunchPeg {
         ) {
             revert LaunchPeg__MaxSupplyReached();
         }
-        allowlist[msg.sender] -= _quantity;
+        allowList[msg.sender] -= _quantity;
         uint256 price = getMintlistPrice();
         uint256 totalCost = price * _quantity;
         _refundIfOver(totalCost);
@@ -396,7 +396,7 @@ contract LaunchPeg is BaseLaunchPeg, ILaunchPeg {
         }
     }
 
-    /// @notice Returns the price of the allowlist mint
+    /// @notice Returns the price of the allowList mint
     /// @return mintListSalePrice Mint List sale price
     function getMintlistPrice() public view override returns (uint256) {
         return
@@ -441,7 +441,7 @@ contract LaunchPeg is BaseLaunchPeg, ILaunchPeg {
     /// @dev Returns true if this contract implements the interface defined by
     /// `interfaceId`. See the corresponding
     /// https://eips.ethereum.org/EIPS/eip-165#how-interfaces-are-identified[EIP section]
-    /// to learn more about how these ids are created.
+    /// to learn more about how these IDs are created.
     /// This function call must use less than 30 000 gas.
     /// @param _interfaceId InterfaceId to consider. Comes from type(InterfaceContract).interfaceId
     /// @return isInterfaceSupported True if the considered interface is supported

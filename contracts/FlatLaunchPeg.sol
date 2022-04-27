@@ -7,7 +7,7 @@ import "./BaseLaunchPeg.sol";
 
 /// @title FlatLaunchPeg
 /// @author Trader Joe
-/// @notice Implements a simple minting NFT contract with an allowlist and public sale phase.
+/// @notice Implements a simple minting NFT contract with an allowList and public sale phase.
 contract FlatLaunchPeg is BaseLaunchPeg, IFlatLaunchPeg {
     /// @notice Price of one NFT for people on the mint list
     /// @dev mintlistPrice is scaled to 1e18
@@ -20,7 +20,7 @@ contract FlatLaunchPeg is BaseLaunchPeg, IFlatLaunchPeg {
     /// @notice Determine wether or not users are allowed to buy from public sale
     bool public override isPublicSaleActive = false;
 
-    /// @dev Emitted on allowlistMint(), publicSaleMint()
+    /// @dev Emitted on allowListMint(), publicSaleMint()
     /// @param sender The address that minted
     /// @param quantity Amount of NFTs minted
     /// @param price Price in AVAX for the NFTs
@@ -86,16 +86,16 @@ contract FlatLaunchPeg is BaseLaunchPeg, IFlatLaunchPeg {
         emit PublicSaleStateChanged(_isPublicSaleActive);
     }
 
-    /// @notice Mint NFTs during the allowlist mint
+    /// @notice Mint NFTs during the allowList mint
     /// @param _quantity Quantity of NFTs to mint
-    function allowlistMint(uint256 _quantity) external payable override {
-        if (_quantity > allowlist[msg.sender]) {
+    function allowListMint(uint256 _quantity) external payable override {
+        if (_quantity > allowList[msg.sender]) {
             revert LaunchPeg__NotEligibleForAllowlistMint();
         }
         if (totalSupply() + _quantity > collectionSize) {
             revert LaunchPeg__MaxSupplyReached();
         }
-        allowlist[msg.sender] -= _quantity;
+        allowList[msg.sender] -= _quantity;
         uint256 totalCost = mintlistPrice * _quantity;
         _refundIfOver(totalCost);
         _mint(msg.sender, _quantity, "", false);
@@ -128,7 +128,7 @@ contract FlatLaunchPeg is BaseLaunchPeg, IFlatLaunchPeg {
     /// @dev Returns true if this contract implements the interface defined by
     /// `interfaceId`. See the corresponding
     /// https://eips.ethereum.org/EIPS/eip-165#how-interfaces-are-identified[EIP section]
-    /// to learn more about how these ids are created.
+    /// to learn more about how these IDs are created.
     /// This function call must use less than 30 000 gas.
     /// @param _interfaceId InterfaceId to consider. Comes from type(Interface).interfaceId
     /// @return isInterfaceSupported True if the considered interface is supported

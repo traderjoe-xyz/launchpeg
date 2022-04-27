@@ -13,7 +13,7 @@ interface IFlatLaunchPeg is IBaseLaunchPeg {
 
     function isPublicSaleActive() external view returns (bool);
 
-    function allowlistMint(uint256 _quantity) external payable;
+    function allowListMint(uint256 _quantity) external payable;
 
     function publicSaleMint(uint256 _quantity) external payable;
 

@@ -7,9 +7,9 @@ import "@openzeppelin/contracts/token/common/ERC2981.sol";
 
 import "erc721a/contracts/ERC721A.sol";
 
-import "./interfaces/IBaseLaunchPeg.sol";
-import "./LaunchPegErrors.sol";
 import "./BatchReveal.sol";
+import "./LaunchPegErrors.sol";
+import "./interfaces/IBaseLaunchPeg.sol";
 
 /// @title BaseLaunchPeg
 /// @author Trader Joe
@@ -57,8 +57,8 @@ abstract contract BaseLaunchPeg is
     /// @notice Token URI before the collection reveal
     string public unrevealedURI;
 
-    /// @notice The amount of NFTs each allowed address can mint during the allowlist mint
-    mapping(address => uint256) public override allowlist;
+    /// @notice The amount of NFTs each allowed address can mint during the allowList mint
+    mapping(address => uint256) public override allowList;
 
     /// @dev Tracks the amount of NFTs minted by `projectOwner`
     uint256 internal _amountMintedByDevs;
@@ -85,11 +85,11 @@ abstract contract BaseLaunchPeg is
 
     /// @dev Emitted on setBaseURI()
     /// @param baseURI The new base URI
-    event BaseUriSet(string baseURI);
+    event BaseURISet(string baseURI);
 
     /// @dev Emitted on setUnrevealedURI()
     /// @param unrevealedURI The new base URI
-    event UnrevealedUriSet(string unrevealedURI);
+    event UnrevealedURISet(string unrevealedURI);
 
     /// @dev Emitted on seedAllowlist()
     event AllowlistSeeded();
@@ -132,7 +132,7 @@ abstract contract BaseLaunchPeg is
         uint256 _amountForDevs,
         uint256 _batchRevealSize
     ) ERC721A(_name, _symbol) BatchReveal(_batchRevealSize, _collectionSize) {
-        if (_collectionSize % _batchRevealSize != 0) {
+        if (_collectionSize % _batchRevealSize != 0 || _batchRevealSize == 0) {
             revert LaunchPeg__InvalidBatchRevealSize();
         }
 
@@ -185,8 +185,8 @@ abstract contract BaseLaunchPeg is
         emit DefaultRoyaltySet(_receiver, _feePercent);
     }
 
-    /// @notice Set amount of NFTs mintable per address during the allowlist phase
-    /// @param _addresses List of addresses allowed to mint during the allowlist phase
+    /// @notice Set amount of NFTs mintable per address during the allowList phase
+    /// @param _addresses List of addresses allowed to mint during the allowList phase
     /// @param _numNfts List of NFT quantities mintable per address
     function seedAllowlist(
         address[] memory _addresses,
@@ -197,7 +197,7 @@ abstract contract BaseLaunchPeg is
             revert LaunchPeg__WrongAddressesAndNumSlotsLength();
         }
         for (uint256 i = 0; i < addressesLength; i++) {
-            allowlist[_addresses[i]] = _numNfts[i];
+            allowList[_addresses[i]] = _numNfts[i];
         }
 
         emit AllowlistSeeded();
@@ -206,20 +206,22 @@ abstract contract BaseLaunchPeg is
     /// @notice Set the base URI
     /// @dev This sets the URI for revealed tokens
     /// Only callable by project owner
+    /// @param _baseURI Base URI to be set
     function setBaseURI(string calldata _baseURI) external override onlyOwner {
         baseURI = _baseURI;
-        emit BaseUriSet(baseURI);
+        emit BaseURISet(baseURI);
     }
 
     /// @notice Set the unrevealed URI
     /// @dev Only callable by project owner
+    /// @param _unrevealedURI Unrevealed URI to be set
     function setUnrevealedURI(string calldata _unrevealedURI)
         external
         override
         onlyOwner
     {
         unrevealedURI = _unrevealedURI;
-        emit UnrevealedUriSet(unrevealedURI);
+        emit UnrevealedURISet(unrevealedURI);
     }
 
     /// @notice Set the project owner
@@ -313,7 +315,7 @@ abstract contract BaseLaunchPeg is
 
     /// @notice Returns the Uniform Resource Identifier (URI) for `tokenId` token.
     /// @param _id Token id
-    /// @return URI IPFS token URI
+    /// @return URI Token URI
     function tokenURI(uint256 _id)
         public
         view
@@ -348,7 +350,7 @@ abstract contract BaseLaunchPeg is
     /// @dev Returns true if this contract implements the interface defined by
     /// `interfaceId`. See the corresponding
     /// https://eips.ethereum.org/EIPS/eip-165#how-interfaces-are-identified[EIP section]
-    /// to learn more about how these ids are created.
+    /// to learn more about how these IDs are created.
     /// This function call must use less than 30 000 gas.
     /// @param _interfaceId InterfaceId to consider. Comes from type(InterfaceContract).interfaceId
     /// @return isInterfaceSupported True if the considered interface is supported

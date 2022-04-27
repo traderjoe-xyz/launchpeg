@@ -24,7 +24,7 @@ interface IBaseLaunchPeg is IERC721, IERC721Metadata {
 
     function projectOwner() external view returns (address);
 
-    function allowlist(address) external view returns (uint256);
+    function allowList(address) external view returns (uint256);
 
     function initializeJoeFee(uint256 _joeFeePercent, address _joeFeeCollector)
         external;
