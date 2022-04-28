@@ -88,7 +88,12 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
 
     /// @notice Mint NFTs during the allowList mint
     /// @param _quantity Quantity of NFTs to mint
-    function allowListMint(uint256 _quantity) external payable override {
+    function allowListMint(uint256 _quantity)
+        external
+        payable
+        override
+        nonReentrant
+    {
         if (_quantity > allowList[msg.sender]) {
             revert Launchpeg__NotEligibleForAllowlistMint();
         }
@@ -97,8 +102,8 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
         }
         allowList[msg.sender] -= _quantity;
         uint256 totalCost = mintlistPrice * _quantity;
-        _refundIfOver(totalCost);
         _mint(msg.sender, _quantity, "", false);
+        _refundIfOver(totalCost);
         emit Mint(
             msg.sender,
             _quantity,
@@ -109,7 +114,12 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
 
     /// @notice Mint NFTs during the public sale
     /// @param _quantity Quantity of NFTs to mint
-    function publicSaleMint(uint256 _quantity) external payable override {
+    function publicSaleMint(uint256 _quantity)
+        external
+        payable
+        override
+        nonReentrant
+    {
         if (!isPublicSaleActive) {
             revert Launchpeg__PublicSaleClosed();
         }
@@ -120,8 +130,8 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
             revert Launchpeg__MaxSupplyReached();
         }
         uint256 total = salePrice * _quantity;
-        _refundIfOver(total);
         _mint(msg.sender, _quantity, "", false);
+        _refundIfOver(total);
         emit Mint(msg.sender, _quantity, total, _totalMinted() - _quantity);
     }
 
