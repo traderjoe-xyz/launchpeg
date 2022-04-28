@@ -132,10 +132,6 @@ abstract contract BaseLaunchpeg is
         uint256 _amountForDevs,
         uint256 _batchRevealSize
     ) ERC721A(_name, _symbol) BatchReveal(_batchRevealSize, _collectionSize) {
-        if (_collectionSize % _batchRevealSize != 0 || _batchRevealSize == 0) {
-            revert Launchpeg__InvalidBatchRevealSize();
-        }
-
         if (_projectOwner == address(0)) {
             revert Launchpeg__InvalidProjectOwner();
         }

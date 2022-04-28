@@ -2,6 +2,7 @@
 pragma solidity ^0.8.4;
 
 import "./interfaces/IBatchReveal.sol";
+import "./LaunchpegErrors.sol";
 
 // Creator: Tubby Cats
 /// https://github.com/tubby-cats/batch-nft-reveal
@@ -48,6 +49,9 @@ abstract contract BatchReveal is IBatchReveal {
     /// @param _revealBatchSize Size of the batch reveal
     /// @param _collectionSize Needs to be sent by child contract
     constructor(uint256 _revealBatchSize, uint256 _collectionSize) {
+        if (_collectionSize % _revealBatchSize != 0 || _revealBatchSize == 0) {
+            revert Launchpeg__InvalidBatchRevealSize();
+        }
         revealBatchSize = _revealBatchSize;
         collectionSize = _collectionSize;
         _rangeLength = (_collectionSize / _revealBatchSize) * 2;
