@@ -1,15 +1,15 @@
 import '@nomiclabs/hardhat-ethers'
 import { task } from 'hardhat/config'
 
-task('deploy-lens', 'Deploy LaunchPegLens contract').setAction(async ({}, hre) => {
-  console.log('-- Deploying LaunchPegLens --')
+task('deploy-lens', 'Deploy LaunchpegLens contract').setAction(async ({}, hre) => {
+  console.log('-- Deploying LaunchpegLens --')
   const ethers = hre.ethers
 
-  const LaunchPegLensFactory = await ethers.getContractFactory('LaunchPegLens')
+  const LaunchpegLensFactory = await ethers.getContractFactory('LaunchpegLens')
 
-  const launchPegLens = await LaunchPegLensFactory.deploy()
+  const launchpegLens = await LaunchpegLensFactory.deploy()
 
-  await launchPegLens.deployTransaction.wait()
+  await launchpegLens.deployTransaction.wait()
 
-  console.log(`-- Contract deployed at ${launchPegLens.address} --`)
+  console.log(`-- Contract deployed at ${launchpegLens.address} --`)
 })

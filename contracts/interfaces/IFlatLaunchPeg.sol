@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import "./IBaseLaunchPeg.sol";
+import "./IBaseLaunchpeg.sol";
 
-/// @title ILaunchPeg
+/// @title ILaunchpeg
 /// @author Trader Joe
-/// @notice Defines the basic interface of FlatLaunchPeg
-interface IFlatLaunchPeg is IBaseLaunchPeg {
+/// @notice Defines the basic interface of FlatLaunchpeg
+interface IFlatLaunchpeg is IBaseLaunchpeg {
     function mintlistPrice() external view returns (uint256);
 
     function salePrice() external view returns (uint256);

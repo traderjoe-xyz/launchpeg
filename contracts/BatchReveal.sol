@@ -13,22 +13,25 @@ abstract contract BatchReveal is IBatchReveal {
     uint256 private immutable collectionSize;
     int128 private immutable intCollectionSize;
 
-    /// @inheritdoc IBatchReveal
+    /// @notice Size of the batch reveal
+    /// @dev Must divide collectionSize
     uint256 public immutable override revealBatchSize;
 
-    /// @inheritdoc IBatchReveal
+    /// @notice Randomized seeds used to shuffle TokenURIs
     mapping(uint256 => uint256) public override batchToSeed;
 
-    /// @inheritdoc IBatchReveal
+    /// @notice Last token that has been revealed
     uint256 public override lastTokenRevealed = 0;
 
     /// @dev Size of the array that will store already taken URIs numbers
     uint256 private immutable _rangeLength;
 
-    /// @inheritdoc IBatchReveal
+    /// @notice Timestamp for the start of the reveal process
+    /// @dev Can be set to zero for immediate reveal after token mint
     uint256 public override revealStartTime;
 
-    /// @inheritdoc IBatchReveal
+    /// @notice Time interval for gradual reveal
+    /// @dev Can be set to zero in order to reveal the collection all at once
     uint256 public override revealInterval;
 
     struct Range {
@@ -205,8 +208,8 @@ abstract contract BatchReveal is IBatchReveal {
 
     /// @dev Returns true if a batch can be revealed
     /// @param _totalSupply Number of token already minted
-    /// @return hasToRevealInfo Returns a bool saying wether a reveal can be triggered or not
-    /// And the number of the next batch that will be revealed
+    /// @return hasToRevealInfo Returns a bool saying whether a reveal can be triggered or not
+    /// and the number of the next batch that will be revealed
     function _hasBatchToReveal(uint256 _totalSupply)
         internal
         view
@@ -229,7 +232,7 @@ abstract contract BatchReveal is IBatchReveal {
 
     /// @dev Reveals next batch if possible
     /// @param _totalSupply Number of token already minted
-    ///@return isRevealed Returns false if it is not possible to reveal the next batch
+    /// @return isRevealed Returns false if it is not possible to reveal the next batch
     function _revealNextBatch(uint256 _totalSupply) internal returns (bool) {
         uint256 batchNumber;
         bool canReveal;

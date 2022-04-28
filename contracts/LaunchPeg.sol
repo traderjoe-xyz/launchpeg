@@ -8,14 +8,14 @@ import "@openzeppelin/contracts/utils/Strings.sol";
 import "erc721a/contracts/ERC721A.sol";
 import "./BatchReveal.sol";
 
-import "./BaseLaunchPeg.sol";
-import "./interfaces/ILaunchPeg.sol";
-import "./LaunchPegErrors.sol";
+import "./BaseLaunchpeg.sol";
+import "./interfaces/ILaunchpeg.sol";
+import "./LaunchpegErrors.sol";
 
-/// @title LaunchPeg
+/// @title Launchpeg
 /// @author Trader Joe
 /// @notice Implements a fair and gas efficient NFT launch mechanism. The sale takes place in 3 phases: dutch auction, allowList mint, public sale.
-contract LaunchPeg is BaseLaunchPeg, ILaunchPeg {
+contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
     /// @notice Amount of NFTs available for the auction (e.g 8000)
     /// Unsold items are put up for sale during the public sale.
     uint256 public immutable override amountForAuction;
@@ -132,12 +132,12 @@ contract LaunchPeg is BaseLaunchPeg, ILaunchPeg {
 
     modifier atPhase(Phase _phase) {
         if (currentPhase() != _phase) {
-            revert LaunchPeg__WrongPhase();
+            revert Launchpeg__WrongPhase();
         }
         _;
     }
 
-    /// @dev LaunchPeg constructor
+    /// @dev Launchpeg constructor
     /// @param _name ERC721 name
     /// @param _symbol ERC721 symbol
     /// @param _projectOwner The project owner
@@ -160,7 +160,7 @@ contract LaunchPeg is BaseLaunchPeg, ILaunchPeg {
         uint256 _amountForDevs,
         uint256 _batchRevealSize
     )
-        BaseLaunchPeg(
+        BaseLaunchpeg(
             _name,
             _symbol,
             _projectOwner,
@@ -175,7 +175,7 @@ contract LaunchPeg is BaseLaunchPeg, ILaunchPeg {
             _amountForAuction + _amountForMintlist + _amountForDevs >
             _collectionSize
         ) {
-            revert LaunchPeg__LargerCollectionSizeNeeded();
+            revert Launchpeg__LargerCollectionSizeNeeded();
         }
 
         amountForAuction = _amountForAuction;
@@ -207,28 +207,28 @@ contract LaunchPeg is BaseLaunchPeg, ILaunchPeg {
         uint256 _revealInterval
     ) external override atPhase(Phase.NotStarted) {
         if (auctionSaleStartTime != 0) {
-            revert LaunchPeg__AuctionAlreadyInitialized();
+            revert Launchpeg__AuctionAlreadyInitialized();
         }
         if (_auctionSaleStartTime == 0) {
-            revert LaunchPeg__InvalidAuctionStartTime();
+            revert Launchpeg__InvalidAuctionStartTime();
         }
         if (_auctionStartPrice <= _auctionEndPrice) {
-            revert LaunchPeg__EndPriceGreaterThanStartPrice();
+            revert Launchpeg__EndPriceGreaterThanStartPrice();
         }
         if (_mintlistStartTime <= _auctionSaleStartTime) {
-            revert LaunchPeg__MintlistBeforeAuction();
+            revert Launchpeg__MintlistBeforeAuction();
         }
         if (_publicSaleStartTime <= _mintlistStartTime) {
-            revert LaunchPeg__PublicSaleBeforeMintlist();
+            revert Launchpeg__PublicSaleBeforeMintlist();
         }
         if (
             _mintlistDiscountPercent > 10000 ||
             _publicSaleDiscountPercent > 10000
         ) {
-            revert LaunchPeg__InvalidPercent();
+            revert Launchpeg__InvalidPercent();
         }
         if (_auctionDropInterval == 0) {
-            revert LaunchPeg__InvalidAuctionDropInterval();
+            revert Launchpeg__InvalidAuctionDropInterval();
         }
 
         auctionSaleStartTime = _auctionSaleStartTime;
@@ -289,13 +289,13 @@ contract LaunchPeg is BaseLaunchPeg, ILaunchPeg {
         uint256 remainingSupply = (amountForAuction + _amountMintedByDevs) -
             totalSupply();
         if (remainingSupply == 0) {
-            revert LaunchPeg__MaxSupplyReached();
+            revert Launchpeg__MaxSupplyReached();
         }
         if (remainingSupply < _quantity) {
             _quantity = remainingSupply;
         }
         if (numberMinted(msg.sender) + _quantity > maxPerAddressDuringMint) {
-            revert LaunchPeg__CanNotMintThisMany();
+            revert Launchpeg__CanNotMintThisMany();
         }
         lastAuctionPrice = getAuctionPrice(auctionSaleStartTime);
         uint256 totalCost = lastAuctionPrice * _quantity;
@@ -321,7 +321,7 @@ contract LaunchPeg is BaseLaunchPeg, ILaunchPeg {
         atPhase(Phase.Mintlist)
     {
         if (_quantity > allowList[msg.sender]) {
-            revert LaunchPeg__NotEligibleForAllowlistMint();
+            revert Launchpeg__NotEligibleForAllowlistMint();
         }
         uint256 remainingAuctionSupply = amountForAuction -
             amountMintedDuringAuction;
@@ -329,7 +329,7 @@ contract LaunchPeg is BaseLaunchPeg, ILaunchPeg {
             totalSupply() + remainingAuctionSupply + _quantity >
             amountForAuction + amountForMintlist + _amountMintedByDevs
         ) {
-            revert LaunchPeg__MaxSupplyReached();
+            revert Launchpeg__MaxSupplyReached();
         }
         allowList[msg.sender] -= _quantity;
         uint256 price = getMintlistPrice();
@@ -358,10 +358,10 @@ contract LaunchPeg is BaseLaunchPeg, ILaunchPeg {
             totalSupply() + _quantity >
             collectionSize - (amountForDevs - _amountMintedByDevs)
         ) {
-            revert LaunchPeg__MaxSupplyReached();
+            revert Launchpeg__MaxSupplyReached();
         }
         if (numberMinted(msg.sender) + _quantity > maxPerAddressDuringMint) {
-            revert LaunchPeg__CanNotMintThisMany();
+            revert Launchpeg__CanNotMintThisMany();
         }
         uint256 price = getPublicSalePrice();
         _refundIfOver(price * _quantity);
@@ -449,11 +449,11 @@ contract LaunchPeg is BaseLaunchPeg, ILaunchPeg {
         public
         view
         virtual
-        override(BaseLaunchPeg, IERC165)
+        override(BaseLaunchpeg, IERC165)
         returns (bool)
     {
         return
-            _interfaceId == type(ILaunchPeg).interfaceId ||
+            _interfaceId == type(ILaunchpeg).interfaceId ||
             super.supportsInterface(_interfaceId);
     }
 }

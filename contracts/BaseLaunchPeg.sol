@@ -8,17 +8,17 @@ import "@openzeppelin/contracts/token/common/ERC2981.sol";
 import "erc721a/contracts/ERC721A.sol";
 
 import "./BatchReveal.sol";
-import "./LaunchPegErrors.sol";
-import "./interfaces/IBaseLaunchPeg.sol";
+import "./LaunchpegErrors.sol";
+import "./interfaces/IBaseLaunchpeg.sol";
 
-/// @title BaseLaunchPeg
+/// @title BaseLaunchpeg
 /// @author Trader Joe
-/// @notice Implements the functionalities shared between LaunchPeg and FlatLaunchPeg contracts.
-abstract contract BaseLaunchPeg is
+/// @notice Implements the functionalities shared between Launchpeg and FlatLaunchpeg contracts.
+abstract contract BaseLaunchpeg is
     ERC721A,
     Ownable,
     ReentrancyGuard,
-    IBaseLaunchPeg,
+    IBaseLaunchpeg,
     BatchReveal,
     ERC2981
 {
@@ -101,19 +101,19 @@ abstract contract BaseLaunchPeg is
 
     modifier isEOA() {
         if (tx.origin != msg.sender) {
-            revert LaunchPeg__Unauthorized();
+            revert Launchpeg__Unauthorized();
         }
         _;
     }
 
     modifier onlyProjectOwner() {
         if (projectOwner != msg.sender) {
-            revert LaunchPeg__Unauthorized();
+            revert Launchpeg__Unauthorized();
         }
         _;
     }
 
-    /// @dev BaseLaunchPeg constructor
+    /// @dev BaseLaunchpeg constructor
     /// @param _name ERC721 name
     /// @param _symbol ERC721 symbol
     /// @param _projectOwner The project owner
@@ -133,15 +133,15 @@ abstract contract BaseLaunchPeg is
         uint256 _batchRevealSize
     ) ERC721A(_name, _symbol) BatchReveal(_batchRevealSize, _collectionSize) {
         if (_collectionSize % _batchRevealSize != 0 || _batchRevealSize == 0) {
-            revert LaunchPeg__InvalidBatchRevealSize();
+            revert Launchpeg__InvalidBatchRevealSize();
         }
 
         if (_projectOwner == address(0)) {
-            revert LaunchPeg__InvalidProjectOwner();
+            revert Launchpeg__InvalidProjectOwner();
         }
 
         if (_amountForDevs > _collectionSize) {
-            revert LaunchPeg__LargerCollectionSizeNeeded();
+            revert Launchpeg__LargerCollectionSizeNeeded();
         }
 
         projectOwner = _projectOwner;
@@ -163,10 +163,10 @@ abstract contract BaseLaunchPeg is
         onlyOwner
     {
         if (_joeFeePercent > BASIS_POINT_PRECISION) {
-            revert LaunchPeg__InvalidPercent();
+            revert Launchpeg__InvalidPercent();
         }
         if (_joeFeeCollector == address(0)) {
-            revert LaunchPeg__InvalidJoeFeeCollector();
+            revert Launchpeg__InvalidJoeFeeCollector();
         }
         joeFeePercent = _joeFeePercent;
         joeFeeCollector = _joeFeeCollector;
@@ -194,7 +194,7 @@ abstract contract BaseLaunchPeg is
     ) external override onlyOwner {
         uint256 addressesLength = _addresses.length;
         if (addressesLength != _numNfts.length) {
-            revert LaunchPeg__WrongAddressesAndNumSlotsLength();
+            revert Launchpeg__WrongAddressesAndNumSlotsLength();
         }
         for (uint256 i = 0; i < addressesLength; i++) {
             allowList[_addresses[i]] = _numNfts[i];
@@ -233,7 +233,7 @@ abstract contract BaseLaunchPeg is
         onlyOwner
     {
         if (_projectOwner == address(0)) {
-            revert LaunchPeg__InvalidProjectOwner();
+            revert Launchpeg__InvalidProjectOwner();
         }
 
         projectOwner = _projectOwner;
@@ -245,10 +245,10 @@ abstract contract BaseLaunchPeg is
     /// @param _quantity Quantity of NFTs to mint
     function devMint(uint256 _quantity) external override onlyProjectOwner {
         if (_amountMintedByDevs + _quantity > amountForDevs) {
-            revert LaunchPeg__MaxSupplyReached();
+            revert Launchpeg__MaxSupplyReached();
         }
         if (_quantity % maxBatchSize != 0) {
-            revert LaunchPeg__CanOnlyMintMultipleOfMaxBatchSize();
+            revert Launchpeg__CanOnlyMintMultipleOfMaxBatchSize();
         }
         _amountMintedByDevs = _amountMintedByDevs + _quantity;
         uint256 numChunks = _quantity / maxBatchSize;
@@ -270,13 +270,13 @@ abstract contract BaseLaunchPeg is
 
             (sent, ) = joeFeeCollector.call{value: fee}("");
             if (!sent) {
-                revert LaunchPeg__TransferFailed();
+                revert Launchpeg__TransferFailed();
             }
         }
 
         (sent, ) = msg.sender.call{value: amount}("");
         if (!sent) {
-            revert LaunchPeg__TransferFailed();
+            revert Launchpeg__TransferFailed();
         }
 
         emit AvaxWithdraw(msg.sender, amount, fee);
@@ -285,7 +285,7 @@ abstract contract BaseLaunchPeg is
     /// @notice Reveals the next batch if the reveal conditions are met
     function revealNextBatch() external override isEOA {
         if (!_revealNextBatch(totalSupply())) {
-            revert LaunchPeg__RevealNextBatchNotAvailable();
+            revert Launchpeg__RevealNextBatchNotAvailable();
         }
     }
 
@@ -368,12 +368,12 @@ abstract contract BaseLaunchPeg is
     /// @param _price The price paid by the sender for minting NFTs
     function _refundIfOver(uint256 _price) internal {
         if (msg.value < _price) {
-            revert LaunchPeg__NotEnoughAVAX(msg.value);
+            revert Launchpeg__NotEnoughAVAX(msg.value);
         }
         if (msg.value > _price) {
             (bool success, ) = msg.sender.call{value: msg.value - _price}("");
             if (!success) {
-                revert LaunchPeg__TransferFailed();
+                revert Launchpeg__TransferFailed();
             }
         }
     }

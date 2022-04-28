@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import "./IBaseLaunchPeg.sol";
+import "./IBaseLaunchpeg.sol";
 
-/// @title ILaunchPeg
+/// @title ILaunchpeg
 /// @author Trader Joe
-/// @notice Defines the basic interface of LaunchPeg
-interface ILaunchPeg is IBaseLaunchPeg {
+/// @notice Defines the basic interface of Launchpeg
+interface ILaunchpeg is IBaseLaunchpeg {
     enum Phase {
         NotStarted,
         DutchAuction,

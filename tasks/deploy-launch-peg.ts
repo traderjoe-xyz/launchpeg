@@ -2,18 +2,18 @@ import '@nomiclabs/hardhat-ethers'
 import { task } from 'hardhat/config'
 import { loadLaunchConfig } from './utils'
 
-task('deploy-launch-peg', 'Deploy LaunchPeg contract')
+task('deploy-launch-peg', 'Deploy Launchpeg contract')
   .addParam('configFilename')
   .setAction(async ({ configFilename }, hre) => {
-    console.log('-- Deploying LaunchPeg --')
+    console.log('-- Deploying Launchpeg --')
     const ethers = hre.ethers
 
     const launchConfig = loadLaunchConfig(configFilename)
     console.log(launchConfig)
 
-    const LaunchPegFactory = await ethers.getContractFactory('LaunchPeg')
+    const LaunchpegFactory = await ethers.getContractFactory('Launchpeg')
 
-    const launchPeg = await LaunchPegFactory.deploy(
+    const launchpeg = await LaunchpegFactory.deploy(
       launchConfig.name,
       launchConfig.symbol,
       launchConfig.projectOwner,
@@ -26,11 +26,11 @@ task('deploy-launch-peg', 'Deploy LaunchPeg contract')
       launchConfig.batchRevealSize
     )
 
-    await launchPeg.deployTransaction.wait()
+    await launchpeg.deployTransaction.wait()
 
     console.log('-- Initializating phases --')
 
-    const initTx = await launchPeg.initializePhases(
+    const initTx = await launchpeg.initializePhases(
       launchConfig.auctionSaleStartTime,
       launchConfig.auctionStartPrice,
       launchConfig.auctionEndPrice,
@@ -47,8 +47,8 @@ task('deploy-launch-peg', 'Deploy LaunchPeg contract')
 
     if (launchConfig.joeFeePercent && launchConfig.joeFeeCollector) {
       console.log('-- Initializating Joe fee --')
-      await launchPeg.initializeJoeFee(launchConfig.joeFeePercent, launchConfig.joeFeeCollector)
+      await launchpeg.initializeJoeFee(launchConfig.joeFeePercent, launchConfig.joeFeeCollector)
     }
 
-    console.log(`-- Contract deployed at ${launchPeg.address} --`)
+    console.log(`-- Contract deployed at ${launchpeg.address} --`)
   })

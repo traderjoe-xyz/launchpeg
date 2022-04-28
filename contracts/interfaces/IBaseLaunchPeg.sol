@@ -6,10 +6,10 @@ import "@openzeppelin/contracts/token/ERC721/extensions/IERC721Metadata.sol";
 
 import "erc721a/contracts/ERC721A.sol";
 
-/// @title IBaseLaunchPeg
+/// @title IBaseLaunchpeg
 /// @author Trader Joe
-/// @notice Defines the basic interface of BaseLaunchPeg
-interface IBaseLaunchPeg is IERC721, IERC721Metadata {
+/// @notice Defines the basic interface of BaseLaunchpeg
+interface IBaseLaunchpeg is IERC721, IERC721Metadata {
     function collectionSize() external view returns (uint256);
 
     function amountForDevs() external view returns (uint256);

@@ -1,8 +1,8 @@
-# LaunchPEG
+# Launchpeg
 
 This repository contains two [ERC721A](https://github.com/chiru-labs/ERC721A) implementations: 
-- **LaunchPeg** implements a fair and gas efficient NFT launch mechanism in three phases: dutch auction, allowList mint and public sale.
-- **FlatLaunchPeg** implements a simple minting NFT contract with an allowList and public sale phase.
+- **Launchpeg** implements a fair and gas efficient NFT launch mechanism in three phases: dutch auction, allowList mint and public sale.
+- **FlatLaunchpeg** implements a simple minting NFT contract with an allowList and public sale phase.
 
 Both contracts implement [BatchReveal](https://github.com/tubby-cats/batch-nft-reveal) developed by Tubby Cats. This is an on-chain shuffling algorithm used to reveal NFTs in batches.
 
@@ -10,13 +10,13 @@ Both contracts implement [BatchReveal](https://github.com/tubby-cats/batch-nft-r
 
 ### Contracts
 
-#### BaseLaunchPeg
+#### BaseLaunchpeg
 
-An abstract contract inherited by both `LaunchPeg` and `FlatLaunchPeg`. It contains common functionalities.
+An abstract contract inherited by both `Launchpeg` and `FlatLaunchpeg`. It contains common functionalities.
 
 Each address is allowed to mint up to `maxPerAddressDuringMint` NFTs.
 
-#### LaunchPeg
+#### Launchpeg
 The sale takes place in three phases:
 
 It starts with a dutch auction: the price gradually decreases over time until the end of the phase or when all tokens allocated are sold.
@@ -25,7 +25,7 @@ The allowList mint starts right after the dutch auction: whitelisted users can m
 
 Once the allowList mint ends, all remaining NFTs are sold in the public sale at a discount from the last auction price.
 
-#### FlatLaunchPeg
+#### FlatLaunchpeg
 
 In this contract, the sale is simpler; all NFTs are minted at a fixed price and takes place in two phases: an allowList mint and public sale that can be enabled / disabled with `setPublicSaleActive`. 
 
@@ -95,7 +95,7 @@ SNOWTRACE_API_KEY=
 
 The deploy task takes a config file as parameter. This file contains all the required parameters to initialize a contract.
 
-There are two templates available in `/tasks/config`: `example.json` for `LaunchPeg` and `flat-example.json` for `FlatLaunchPeg`.
+There are two templates available in `/tasks/config`: `example.json` for `Launchpeg` and `flat-example.json` for `FlatLaunchpeg`.
 
 Once the configuration is ready, you may run:
 ```

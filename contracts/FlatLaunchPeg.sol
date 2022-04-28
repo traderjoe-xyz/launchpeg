@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import "./LaunchPegErrors.sol";
-import "./interfaces/IFlatLaunchPeg.sol";
-import "./BaseLaunchPeg.sol";
+import "./LaunchpegErrors.sol";
+import "./interfaces/IFlatLaunchpeg.sol";
+import "./BaseLaunchpeg.sol";
 
-/// @title FlatLaunchPeg
+/// @title FlatLaunchpeg
 /// @author Trader Joe
 /// @notice Implements a simple minting NFT contract with an allowList and public sale phase.
-contract FlatLaunchPeg is BaseLaunchPeg, IFlatLaunchPeg {
+contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
     /// @notice Price of one NFT for people on the mint list
     /// @dev mintlistPrice is scaled to 1e18
     uint256 public immutable override mintlistPrice;
@@ -36,7 +36,7 @@ contract FlatLaunchPeg is BaseLaunchPeg, IFlatLaunchPeg {
     /// @param isActive True if the public sale is open, false otherwise
     event PublicSaleStateChanged(bool isActive);
 
-    /// @dev FlatLaunchPeg constructor
+    /// @dev FlatLaunchpeg constructor
     /// @param _name ERC721 name
     /// @param _symbol ERC721 symbol
     /// @param _projectOwner The project owner
@@ -59,7 +59,7 @@ contract FlatLaunchPeg is BaseLaunchPeg, IFlatLaunchPeg {
         uint256 _salePrice,
         uint256 _mintlistPrice
     )
-        BaseLaunchPeg(
+        BaseLaunchpeg(
             _name,
             _symbol,
             _projectOwner,
@@ -90,10 +90,10 @@ contract FlatLaunchPeg is BaseLaunchPeg, IFlatLaunchPeg {
     /// @param _quantity Quantity of NFTs to mint
     function allowListMint(uint256 _quantity) external payable override {
         if (_quantity > allowList[msg.sender]) {
-            revert LaunchPeg__NotEligibleForAllowlistMint();
+            revert Launchpeg__NotEligibleForAllowlistMint();
         }
         if (totalSupply() + _quantity > collectionSize) {
-            revert LaunchPeg__MaxSupplyReached();
+            revert Launchpeg__MaxSupplyReached();
         }
         allowList[msg.sender] -= _quantity;
         uint256 totalCost = mintlistPrice * _quantity;
@@ -111,13 +111,13 @@ contract FlatLaunchPeg is BaseLaunchPeg, IFlatLaunchPeg {
     /// @param _quantity Quantity of NFTs to mint
     function publicSaleMint(uint256 _quantity) external payable override {
         if (!isPublicSaleActive) {
-            revert LaunchPeg__PublicSaleClosed();
+            revert Launchpeg__PublicSaleClosed();
         }
         if (_quantity > maxPerAddressDuringMint) {
-            revert LaunchPeg__CanNotMintThisMany();
+            revert Launchpeg__CanNotMintThisMany();
         }
         if (totalSupply() + _quantity > collectionSize) {
-            revert LaunchPeg__MaxSupplyReached();
+            revert Launchpeg__MaxSupplyReached();
         }
         uint256 total = salePrice * _quantity;
         _refundIfOver(total);
@@ -136,11 +136,11 @@ contract FlatLaunchPeg is BaseLaunchPeg, IFlatLaunchPeg {
         public
         view
         virtual
-        override(BaseLaunchPeg, IERC165)
+        override(BaseLaunchpeg, IERC165)
         returns (bool)
     {
         return
-            _interfaceId == type(IFlatLaunchPeg).interfaceId ||
+            _interfaceId == type(IFlatLaunchpeg).interfaceId ||
             super.supportsInterface(_interfaceId);
     }
 }

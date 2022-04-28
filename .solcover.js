@@ -1,4 +1,4 @@
 module.exports = {
-  skipFiles: ["interfaces/", "LaunchPegLens.sol"],
+  skipFiles: ["interfaces/", "LaunchpegLens.sol"],
   configureYulOptimizer: true,
 };

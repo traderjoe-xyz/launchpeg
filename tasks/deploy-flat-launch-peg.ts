@@ -2,18 +2,18 @@ import '@nomiclabs/hardhat-ethers'
 import { task } from 'hardhat/config'
 import { loadLaunchConfig } from './utils'
 
-task('deploy-flat-launch-peg', 'Deploy FlatLaunchPeg contract')
+task('deploy-flat-launch-peg', 'Deploy FlatLaunchpeg contract')
   .addParam('configFilename')
   .setAction(async ({ configFilename }, hre) => {
-    console.log('-- Deploying FlatLaunchPeg --')
+    console.log('-- Deploying FlatLaunchpeg --')
     const ethers = hre.ethers
 
     const launchConfig = loadLaunchConfig(configFilename)
     console.log(launchConfig)
 
-    const FlatLaunchPegFactory = await ethers.getContractFactory('FlatLaunchPeg')
+    const FlatLaunchpegFactory = await ethers.getContractFactory('FlatLaunchpeg')
 
-    const flatLaunchPeg = await FlatLaunchPegFactory.deploy(
+    const flatLaunchpeg = await FlatLaunchpegFactory.deploy(
       launchConfig.name,
       launchConfig.symbol,
       launchConfig.projectOwner,
@@ -26,12 +26,12 @@ task('deploy-flat-launch-peg', 'Deploy FlatLaunchPeg contract')
       launchConfig.mintlistPrice
     )
 
-    await flatLaunchPeg.deployTransaction.wait()
+    await flatLaunchpeg.deployTransaction.wait()
 
     if (launchConfig.joeFeePercent && launchConfig.joeFeeCollector) {
       console.log('-- Initializating Joe fee --')
-      await flatLaunchPeg.initializeJoeFee(launchConfig.joeFeePercent, launchConfig.joeFeeCollector)
+      await flatLaunchpeg.initializeJoeFee(launchConfig.joeFeePercent, launchConfig.joeFeeCollector)
     }
 
-    console.log(`-- Contract deployed at ${flatLaunchPeg.address} --`)
+    console.log(`-- Contract deployed at ${flatLaunchpeg.address} --`)
   })

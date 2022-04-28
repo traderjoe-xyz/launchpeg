@@ -2,7 +2,7 @@ import '@nomiclabs/hardhat-ethers'
 import { task } from 'hardhat/config'
 import { loadLaunchConfig } from './utils'
 
-task('verify-flat-launch-peg', 'Verify FlatLaunchPeg contract')
+task('verify-flat-launch-peg', 'Verify FlatLaunchpeg contract')
   .addParam('contractAddress')
   .addParam('configFilename')
   .setAction(async ({ contractAddress, configFilename }, hre) => {

@@ -2,7 +2,7 @@ import { ethers } from 'hardhat'
 import { BigNumber, Contract } from 'ethers'
 import { duration, advanceTimeAndBlock, latest } from './time'
 
-export interface LaunchPegConfig {
+export interface LaunchpegConfig {
   auctionStartTime: BigNumber
   mintlistStartTime: BigNumber
   publicSaleStartTime: BigNumber
@@ -30,7 +30,7 @@ const PUBLIC_SALE_START_OFFSET = 200
 const REVEAL_START_OFFSET = 400
 const REVEAL_INTERVAL = 50
 
-export const getDefaultLaunchPegConfig = async (): Promise<LaunchPegConfig> => {
+export const getDefaultLaunchpegConfig = async (): Promise<LaunchpegConfig> => {
   const auctionStartTime = await latest()
   return {
     auctionStartTime,
@@ -63,8 +63,8 @@ export enum Phase {
   Reveal,
 }
 
-export const initializePhases = async (launchPeg: Contract, config: LaunchPegConfig, currentPhase: Phase) => {
-  await launchPeg.initializePhases(
+export const initializePhases = async (launchpeg: Contract, config: LaunchpegConfig, currentPhase: Phase) => {
+  await launchpeg.initializePhases(
     config.auctionStartTime,
     config.startPrice,
     config.endPrice,
@@ -76,8 +76,8 @@ export const initializePhases = async (launchPeg: Contract, config: LaunchPegCon
     config.batchRevealStart,
     config.batchRevealInterval
   )
-  await launchPeg.setUnrevealedURI(config.unrevealedTokenURI)
-  await launchPeg.setBaseURI(config.baseTokenURI)
+  await launchpeg.setUnrevealedURI(config.unrevealedTokenURI)
+  await launchpeg.setBaseURI(config.baseTokenURI)
   await advanceTimeAndBlockToPhase(currentPhase)
 }
 

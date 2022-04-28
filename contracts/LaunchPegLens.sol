@@ -2,18 +2,18 @@
 
 pragma solidity ^0.8.4;
 
-import "./BaseLaunchPeg.sol";
-import "./interfaces/IFlatLaunchPeg.sol";
-import "./interfaces/ILaunchPeg.sol";
+import "./BaseLaunchpeg.sol";
+import "./interfaces/IFlatLaunchpeg.sol";
+import "./interfaces/ILaunchpeg.sol";
 import "./interfaces/IBatchReveal.sol";
 import "erc721a/contracts/ERC721A.sol";
 
-error LaunchPegLens__InvalidContract();
+error LaunchpegLens__InvalidContract();
 
-/// @title LaunchPeg Lens
+/// @title Launchpeg Lens
 /// @author Trader Joe
 /// @notice Helper contract to fetch launchpegs data
-contract LaunchPegLens {
+contract LaunchpegLens {
     struct CollectionData {
         string name;
         string symbol;
@@ -22,7 +22,7 @@ contract LaunchPegLens {
         uint256 totalSupply;
     }
 
-    struct LaunchPegData {
+    struct LaunchpegData {
         uint256 amountForAuction;
         uint256 amountForMintlist;
         uint256 auctionSaleStartTime;
@@ -35,7 +35,7 @@ contract LaunchPegLens {
         uint256 auctionDropPerStep;
         uint256 mintlistDiscountPercent;
         uint256 publicSaleDiscountPercent;
-        ILaunchPeg.Phase currentPhase;
+        ILaunchpeg.Phase currentPhase;
         uint256 auctionPrice;
         uint256 mintlistPrice;
         uint256 publicSalePrice;
@@ -43,7 +43,7 @@ contract LaunchPegLens {
         uint256 lastAuctionPrice;
     }
 
-    struct FlatLaunchPegData {
+    struct FlatLaunchpegData {
         uint256 mintlistPrice;
         uint256 salePrice;
         bool isPublicSaleActive;
@@ -61,51 +61,51 @@ contract LaunchPegLens {
         uint256 allowanceForAllowlistMint;
     }
 
-    /// Global struct that is returned by getAllLaunchPegs()
+    /// Global struct that is returned by getAllLaunchpegs()
     struct LensData {
         address id;
-        LaunchPegType launchType;
+        LaunchpegType launchType;
         CollectionData collectionData;
-        LaunchPegData launchPegData;
-        FlatLaunchPegData flatLaunchPegData;
+        LaunchpegData launchpegData;
+        FlatLaunchpegData flatLaunchpegData;
         RevealData revealData;
         UserData userData;
     }
 
-    enum LaunchPegType {
+    enum LaunchpegType {
         Unknown,
-        LaunchPeg,
-        FlatLaunchPeg
+        Launchpeg,
+        FlatLaunchpeg
     }
 
     /// @notice ILaunchpegInterface identifier
-    bytes4 public immutable launchPegInterface;
+    bytes4 public immutable launchpegInterface;
 
     /// @notice IFlatLaunchpegInterface identifier
-    bytes4 public immutable flatLaunchPegInterface;
+    bytes4 public immutable flatLaunchpegInterface;
 
-    /// @dev LaunchPegLens constructor
+    /// @dev LaunchpegLens constructor
     constructor() {
-        launchPegInterface = type(ILaunchPeg).interfaceId;
-        flatLaunchPegInterface = type(IFlatLaunchPeg).interfaceId;
+        launchpegInterface = type(ILaunchpeg).interfaceId;
+        flatLaunchpegInterface = type(IFlatLaunchpeg).interfaceId;
     }
 
     /// @notice Gets the type of Launchpeg
     /// @param _contract Contract address to consider
-    /// @return LaunchPegType Type of Launchpeg implementation (Dutch Auction / Flat / Unknown)
-    function getLaunchPegType(address _contract)
+    /// @return LaunchpegType Type of Launchpeg implementation (Dutch Auction / Flat / Unknown)
+    function getLaunchpegType(address _contract)
         public
         view
-        returns (LaunchPegType)
+        returns (LaunchpegType)
     {
-        if (BaseLaunchPeg(_contract).supportsInterface(launchPegInterface)) {
-            return LaunchPegType.LaunchPeg;
+        if (BaseLaunchpeg(_contract).supportsInterface(launchpegInterface)) {
+            return LaunchpegType.Launchpeg;
         } else if (
-            BaseLaunchPeg(_contract).supportsInterface(flatLaunchPegInterface)
+            BaseLaunchpeg(_contract).supportsInterface(flatLaunchpegInterface)
         ) {
-            return LaunchPegType.FlatLaunchPeg;
+            return LaunchpegType.FlatLaunchpeg;
         } else {
-            return LaunchPegType.Unknown;
+            return LaunchpegType.Unknown;
         }
     }
 
@@ -114,7 +114,7 @@ contract LaunchPegLens {
     /// @param _addressList List of contract adresses to consider
     /// @param _user Address to consider for NFT balances and mintlist allocations
     /// @return LensDataList List of contracts datas
-    function getAllLaunchPegs(address[] memory _addressList, address _user)
+    function getAllLaunchpegs(address[] memory _addressList, address _user)
         external
         view
         returns (LensData[] memory)
@@ -122,100 +122,100 @@ contract LaunchPegLens {
         LensData[] memory LensDatas = new LensData[](_addressList.length);
 
         for (uint256 i = 0; i < LensDatas.length; i++) {
-            LensDatas[i] = getLaunchPegData(_addressList[i], _user);
+            LensDatas[i] = getLaunchpegData(_addressList[i], _user);
         }
 
         return LensDatas;
     }
 
     /// @notice Fetch Launchpeg data from the provided address
-    /// @param _launchPeg Contract address to consider
+    /// @param _launchpeg Contract address to consider
     /// @param _user Address to consider for NFT balances and mintlist allocations
     /// @return LensData Contract data
-    function getLaunchPegData(address _launchPeg, address _user)
+    function getLaunchpegData(address _launchpeg, address _user)
         public
         view
         returns (LensData memory)
     {
         LensData memory data;
-        data.id = _launchPeg;
-        data.launchType = getLaunchPegType(_launchPeg);
+        data.id = _launchpeg;
+        data.launchType = getLaunchpegType(_launchpeg);
 
-        if (data.launchType == LaunchPegType.Unknown) {
-            revert LaunchPegLens__InvalidContract();
+        if (data.launchType == LaunchpegType.Unknown) {
+            revert LaunchpegLens__InvalidContract();
         }
 
-        data.collectionData.name = ERC721A(_launchPeg).name();
-        data.collectionData.symbol = ERC721A(_launchPeg).symbol();
-        data.collectionData.collectionSize = BaseLaunchPeg(_launchPeg)
+        data.collectionData.name = ERC721A(_launchpeg).name();
+        data.collectionData.symbol = ERC721A(_launchpeg).symbol();
+        data.collectionData.collectionSize = BaseLaunchpeg(_launchpeg)
             .collectionSize();
-        data.collectionData.maxBatchSize = BaseLaunchPeg(_launchPeg)
+        data.collectionData.maxBatchSize = BaseLaunchpeg(_launchpeg)
             .maxBatchSize();
-        data.collectionData.totalSupply = ERC721A(_launchPeg).totalSupply();
+        data.collectionData.totalSupply = ERC721A(_launchpeg).totalSupply();
 
-        data.revealData.revealBatchSize = IBatchReveal(_launchPeg)
+        data.revealData.revealBatchSize = IBatchReveal(_launchpeg)
             .revealBatchSize();
-        data.revealData.lastTokenRevealed = IBatchReveal(_launchPeg)
+        data.revealData.lastTokenRevealed = IBatchReveal(_launchpeg)
             .lastTokenRevealed();
-        data.revealData.revealStartTime = IBatchReveal(_launchPeg)
+        data.revealData.revealStartTime = IBatchReveal(_launchpeg)
             .revealStartTime();
-        data.revealData.revealInterval = IBatchReveal(_launchPeg)
+        data.revealData.revealInterval = IBatchReveal(_launchpeg)
             .revealInterval();
 
-        if (data.launchType == LaunchPegType.LaunchPeg) {
-            data.launchPegData.amountForAuction = ILaunchPeg(_launchPeg)
+        if (data.launchType == LaunchpegType.Launchpeg) {
+            data.launchpegData.amountForAuction = ILaunchpeg(_launchpeg)
                 .amountForAuction();
-            data.launchPegData.amountForMintlist = ILaunchPeg(_launchPeg)
+            data.launchpegData.amountForMintlist = ILaunchpeg(_launchpeg)
                 .amountForMintlist();
-            data.launchPegData.auctionSaleStartTime = ILaunchPeg(_launchPeg)
+            data.launchpegData.auctionSaleStartTime = ILaunchpeg(_launchpeg)
                 .auctionSaleStartTime();
-            data.launchPegData.mintlistStartTime = ILaunchPeg(_launchPeg)
+            data.launchpegData.mintlistStartTime = ILaunchpeg(_launchpeg)
                 .mintlistStartTime();
-            data.launchPegData.publicSaleStartTime = ILaunchPeg(_launchPeg)
+            data.launchpegData.publicSaleStartTime = ILaunchpeg(_launchpeg)
                 .publicSaleStartTime();
-            data.launchPegData.auctionStartPrice = ILaunchPeg(_launchPeg)
+            data.launchpegData.auctionStartPrice = ILaunchpeg(_launchpeg)
                 .auctionStartPrice();
-            data.launchPegData.auctionEndPrice = ILaunchPeg(_launchPeg)
+            data.launchpegData.auctionEndPrice = ILaunchpeg(_launchpeg)
                 .auctionEndPrice();
-            data.launchPegData.auctionSaleDuration = ILaunchPeg(_launchPeg)
+            data.launchpegData.auctionSaleDuration = ILaunchpeg(_launchpeg)
                 .auctionSaleDuration();
-            data.launchPegData.auctionDropInterval = ILaunchPeg(_launchPeg)
+            data.launchpegData.auctionDropInterval = ILaunchpeg(_launchpeg)
                 .auctionDropInterval();
-            data.launchPegData.auctionDropPerStep = ILaunchPeg(_launchPeg)
+            data.launchpegData.auctionDropPerStep = ILaunchpeg(_launchpeg)
                 .auctionDropPerStep();
-            data.launchPegData.mintlistDiscountPercent = ILaunchPeg(_launchPeg)
+            data.launchpegData.mintlistDiscountPercent = ILaunchpeg(_launchpeg)
                 .mintlistDiscountPercent();
-            data.launchPegData.publicSaleDiscountPercent = ILaunchPeg(
-                _launchPeg
+            data.launchpegData.publicSaleDiscountPercent = ILaunchpeg(
+                _launchpeg
             ).publicSaleDiscountPercent();
-            data.launchPegData.currentPhase = ILaunchPeg(_launchPeg)
+            data.launchpegData.currentPhase = ILaunchpeg(_launchpeg)
                 .currentPhase();
-            data.launchPegData.auctionPrice = ILaunchPeg(_launchPeg)
-                .getAuctionPrice(data.launchPegData.auctionSaleStartTime);
-            data.launchPegData.mintlistPrice = ILaunchPeg(_launchPeg)
+            data.launchpegData.auctionPrice = ILaunchpeg(_launchpeg)
+                .getAuctionPrice(data.launchpegData.auctionSaleStartTime);
+            data.launchpegData.mintlistPrice = ILaunchpeg(_launchpeg)
                 .getMintlistPrice();
-            data.launchPegData.publicSalePrice = ILaunchPeg(_launchPeg)
+            data.launchpegData.publicSalePrice = ILaunchpeg(_launchpeg)
                 .getPublicSalePrice();
-            data.launchPegData.amountMintedDuringAuction = ILaunchPeg(
-                _launchPeg
+            data.launchpegData.amountMintedDuringAuction = ILaunchpeg(
+                _launchpeg
             ).amountMintedDuringAuction();
-            data.launchPegData.lastAuctionPrice = ILaunchPeg(_launchPeg)
+            data.launchpegData.lastAuctionPrice = ILaunchpeg(_launchpeg)
                 .lastAuctionPrice();
         }
 
-        if (data.launchType == LaunchPegType.FlatLaunchPeg) {
-            data.flatLaunchPegData.mintlistPrice = IFlatLaunchPeg(_launchPeg)
+        if (data.launchType == LaunchpegType.FlatLaunchpeg) {
+            data.flatLaunchpegData.mintlistPrice = IFlatLaunchpeg(_launchpeg)
                 .mintlistPrice();
-            data.flatLaunchPegData.salePrice = IFlatLaunchPeg(_launchPeg)
+            data.flatLaunchpegData.salePrice = IFlatLaunchpeg(_launchpeg)
                 .salePrice();
-            data.flatLaunchPegData.isPublicSaleActive = IFlatLaunchPeg(
-                _launchPeg
+            data.flatLaunchpegData.isPublicSaleActive = IFlatLaunchpeg(
+                _launchpeg
             ).isPublicSaleActive();
         }
 
         if (_user != address(0)) {
-            data.userData.balanceOf = ERC721A(_launchPeg).balanceOf(_user);
-            data.userData.allowanceForAllowlistMint = IBaseLaunchPeg(_launchPeg)
+            data.userData.balanceOf = ERC721A(_launchpeg).balanceOf(_user);
+            data.userData.allowanceForAllowlistMint = IBaseLaunchpeg(_launchpeg)
                 .allowList(_user);
         }
 
