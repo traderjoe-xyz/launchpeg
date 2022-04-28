@@ -285,6 +285,7 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
         override
         isEOA
         atPhase(Phase.DutchAuction)
+        nonReentrant
     {
         uint256 remainingSupply = (amountForAuction + _amountMintedByDevs) -
             totalSupply();
@@ -299,9 +300,9 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
         }
         lastAuctionPrice = getAuctionPrice(auctionSaleStartTime);
         uint256 totalCost = lastAuctionPrice * _quantity;
-        _refundIfOver(totalCost);
-        _mint(msg.sender, _quantity, "", false);
         amountMintedDuringAuction = amountMintedDuringAuction + _quantity;
+        _mint(msg.sender, _quantity, "", false);
+        _refundIfOver(totalCost);
         emit Mint(
             msg.sender,
             _quantity,
@@ -319,6 +320,7 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
         override
         isEOA
         atPhase(Phase.Mintlist)
+        nonReentrant
     {
         if (_quantity > allowList[msg.sender]) {
             revert Launchpeg__NotEligibleForAllowlistMint();
@@ -334,8 +336,8 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
         allowList[msg.sender] -= _quantity;
         uint256 price = getMintlistPrice();
         uint256 totalCost = price * _quantity;
-        _refundIfOver(totalCost);
         _mint(msg.sender, _quantity, "", false);
+        _refundIfOver(totalCost);
         emit Mint(
             msg.sender,
             _quantity,
@@ -353,6 +355,7 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
         override
         isEOA
         atPhase(Phase.PublicSale)
+        nonReentrant
     {
         if (
             totalSupply() + _quantity >
@@ -364,8 +367,8 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
             revert Launchpeg__CanNotMintThisMany();
         }
         uint256 price = getPublicSalePrice();
-        _refundIfOver(price * _quantity);
         _mint(msg.sender, _quantity, "", false);
+        _refundIfOver(price * _quantity);
         emit Mint(
             msg.sender,
             _quantity,
