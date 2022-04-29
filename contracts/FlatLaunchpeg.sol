@@ -88,12 +88,7 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
 
     /// @notice Mint NFTs during the allowList mint
     /// @param _quantity Quantity of NFTs to mint
-    function allowListMint(uint256 _quantity)
-        external
-        payable
-        override
-        nonReentrant
-    {
+    function allowListMint(uint256 _quantity) external payable override {
         if (_quantity > allowList[msg.sender]) {
             revert Launchpeg__NotEligibleForAllowlistMint();
         }
@@ -114,12 +109,7 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
 
     /// @notice Mint NFTs during the public sale
     /// @param _quantity Quantity of NFTs to mint
-    function publicSaleMint(uint256 _quantity)
-        external
-        payable
-        override
-        nonReentrant
-    {
+    function publicSaleMint(uint256 _quantity) external payable override {
         if (!isPublicSaleActive) {
             revert Launchpeg__PublicSaleClosed();
         }

@@ -283,9 +283,7 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
         external
         payable
         override
-        isEOA
         atPhase(Phase.DutchAuction)
-        nonReentrant
     {
         uint256 remainingSupply = (amountForAuction + _amountMintedByDevs) -
             totalSupply();
@@ -318,9 +316,7 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
         external
         payable
         override
-        isEOA
         atPhase(Phase.Mintlist)
-        nonReentrant
     {
         if (_quantity > allowList[msg.sender]) {
             revert Launchpeg__NotEligibleForAllowlistMint();
@@ -353,9 +349,7 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
         external
         payable
         override
-        isEOA
         atPhase(Phase.PublicSale)
-        nonReentrant
     {
         if (
             totalSupply() + _quantity >
