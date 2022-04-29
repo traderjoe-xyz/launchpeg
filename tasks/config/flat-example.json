@@ -1,0 +1,14 @@
+{
+  "name": "FlatJoePEG",
+  "symbol": "FPEG",
+  "projectOwner": "0x0000000000000000000000000000000000000000",
+  "royaltyReceiver": "0x0000000000000000000000000000000000000000",
+  "maxBatchSize": "5",
+  "collectionSize": "10000",
+  "amountForDevs": "200",
+  "batchRevealSize": "1000",
+  "joeFeePercent": "100",
+  "joeFeeCollector": "0x0000000000000000000000000000000000000000",
+  "mintlistPrice": "5000000000000000000",
+  "salePrice": "10000000000000000000"
+}

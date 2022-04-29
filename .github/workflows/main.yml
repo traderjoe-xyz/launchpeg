@@ -3,8 +3,9 @@ name: Run test
 on:
   push:
     branches: [main]
-  pull_request:
-    branches: [main]
+  pull_request: 
+    branches: 
+      - '**'
 
 jobs:
   run_hardhat_test:
@@ -18,9 +19,9 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
       - uses: actions/checkout@v2
-      - name: Install
+      - name: Install yarn
         run: yarn --frozen-lockfile
-      - name: Build
-        run: yarn build
+      - name: Install dependencies
+        run: yarn install
       - name: Run tests
         run: yarn test
