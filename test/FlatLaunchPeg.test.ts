@@ -43,7 +43,8 @@ describe('FlatLaunchpeg', () => {
   })
 
   const deployFlatLaunchpeg = async () => {
-    flatLaunchpeg = await flatLaunchpegCF.deploy(
+    flatLaunchpeg = await flatLaunchpegCF.deploy('JoePEG', 'JOEPEG')
+    await flatLaunchpeg.initialize(
       'JoePEG',
       'JOEPEG',
       projectOwner.address,

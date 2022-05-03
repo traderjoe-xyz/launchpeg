@@ -42,6 +42,19 @@ interface ILaunchpeg is IBaseLaunchpeg {
 
     function lastAuctionPrice() external view returns (uint256);
 
+    function initialize(
+        string memory _name,
+        string memory _symbol,
+        address _projectOwner,
+        address _royaltyReceiver,
+        uint256 _maxBatchSize,
+        uint256 _collectionSize,
+        uint256 _amountForAuction,
+        uint256 _amountForMintlist,
+        uint256 _amountForDevs,
+        uint256 _batchRevealSize
+    ) external;
+
     function initializePhases(
         uint256 _auctionSaleStartTime,
         uint256 _auctionStartPrice,

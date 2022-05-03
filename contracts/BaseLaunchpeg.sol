@@ -25,17 +25,17 @@ abstract contract BaseLaunchpeg is
     using Strings for uint256;
 
     /// @notice The collection size (e.g 10000)
-    uint256 public immutable override collectionSize;
+    uint256 public override collectionSize;
 
     /// @notice Amount of NFTs reserved for `projectOwner` (e.g 200)
     /// @dev It can be minted any time via `devMint`
-    uint256 public immutable override amountForDevs;
+    uint256 public override amountForDevs;
 
     /// @notice Max amount of NFTs that can be minted at once
-    uint256 public immutable override maxBatchSize;
+    uint256 public override maxBatchSize;
 
     /// @notice Max amount of NFTs an address can mint
-    uint256 public immutable override maxPerAddressDuringMint;
+    uint256 public override maxPerAddressDuringMint;
 
     /// @notice The fees collected by Joepegs on the sale benefits
     /// @dev In basis points e.g 100 for 1%
@@ -62,6 +62,11 @@ abstract contract BaseLaunchpeg is
 
     /// @dev Tracks the amount of NFTs minted by `projectOwner`
     uint256 internal _amountMintedByDevs;
+
+    /// @dev Made to override ERC721's name()
+    string private _launchegName;
+    /// @dev Made to override ERC721's symbol()
+    string private _launchegSymbol;
 
     /// @dev Emitted on initializeJoeFee()
     /// @param feePercent The fees collected by Joepegs on the sale benefits
@@ -113,7 +118,7 @@ abstract contract BaseLaunchpeg is
         _;
     }
 
-    /// @dev BaseLaunchpeg constructor
+    /// @dev BaseLaunchpeg initialization
     /// @param _name ERC721 name
     /// @param _symbol ERC721 symbol
     /// @param _projectOwner The project owner
@@ -122,7 +127,7 @@ abstract contract BaseLaunchpeg is
     /// @param _collectionSize The collection size (e.g 10000)
     /// @param _amountForDevs Amount of NFTs reserved for `projectOwner` (e.g 200)
     /// @param _batchRevealSize Size of the batch reveal
-    constructor(
+    function initializeBaseLaunchpeg(
         string memory _name,
         string memory _symbol,
         address _projectOwner,
@@ -131,7 +136,9 @@ abstract contract BaseLaunchpeg is
         uint256 _collectionSize,
         uint256 _amountForDevs,
         uint256 _batchRevealSize
-    ) ERC721A(_name, _symbol) BatchReveal(_batchRevealSize, _collectionSize) {
+    ) internal {
+        initializeBatchReveal(_batchRevealSize, _collectionSize);
+
         if (_projectOwner == address(0)) {
             revert Launchpeg__InvalidProjectOwner();
         }
@@ -139,6 +146,9 @@ abstract contract BaseLaunchpeg is
         if (_amountForDevs > _collectionSize) {
             revert Launchpeg__LargerCollectionSizeNeeded();
         }
+
+        _launchegName = _name;
+        _launchegSymbol = _symbol;
 
         projectOwner = _projectOwner;
         // Default royalty is 5%
@@ -307,6 +317,28 @@ abstract contract BaseLaunchpeg is
         returns (TokenOwnership memory)
     {
         return _ownershipOf(_tokenId);
+    }
+
+    /// @notice Returns the collection name
+    /// @return Name Collection name
+    function name()
+        public
+        view
+        override(ERC721A, IERC721Metadata)
+        returns (string memory)
+    {
+        return _launchegName;
+    }
+
+    /// @notice Returns the collection symbol
+    /// @return Symbol Collection symbol
+    function symbol()
+        public
+        view
+        override(ERC721A, IERC721Metadata)
+        returns (string memory)
+    {
+        return _launchegSymbol;
     }
 
     /// @notice Returns the Uniform Resource Identifier (URI) for `tokenId` token.

@@ -44,7 +44,9 @@ describe('Launchpeg', () => {
   })
 
   const deployLaunchpeg = async () => {
-    launchpeg = await launchpegCF.deploy(
+    launchpeg = await launchpegCF.deploy('JoePEG', 'JOEPEG')
+
+    await launchpeg.initialize(
       'JoePEG',
       'JOEPEG',
       projectOwner.address,
@@ -73,8 +75,9 @@ describe('Launchpeg', () => {
     })
 
     it('Zero address should not be configurable as project owner', async () => {
+      launchpeg = await launchpegCF.deploy('JoePEG', 'JOEPEG')
       await expect(
-        launchpegCF.deploy(
+        launchpeg.initialize(
           'JoePEG',
           'JOEPEG',
           ethers.constants.AddressZero,

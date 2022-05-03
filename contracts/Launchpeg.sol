@@ -18,11 +18,11 @@ import "./LaunchpegErrors.sol";
 contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
     /// @notice Amount of NFTs available for the auction (e.g 8000)
     /// Unsold items are put up for sale during the public sale.
-    uint256 public immutable override amountForAuction;
+    uint256 public override amountForAuction;
 
     /// @notice Amount of NFTs available for the allowList mint (e.g 1000)
     /// Unsold items are put up for sale during the public sale.
-    uint256 public immutable override amountForMintlist;
+    uint256 public override amountForMintlist;
 
     /// @notice Start time of the dutch auction in seconds
     /// @dev Timestamp
@@ -138,6 +138,13 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
     }
 
     /// @dev Launchpeg constructor
+    /// Won't be used by the contract factory but is necessary for the ERC721A contract
+    /// name() and symbol() are overriden in BaseLaunchpeg
+    constructor(string memory _name, string memory _symbol)
+        ERC721A(_name, _symbol)
+    {}
+
+    /// @dev Launchpeg initialization
     /// @param _name ERC721 name
     /// @param _symbol ERC721 symbol
     /// @param _projectOwner The project owner
@@ -148,7 +155,7 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
     /// @param _amountForMintlist Amount of NFTs available for the allowList mint (e.g 1000)
     /// @param _amountForDevs Amount of NFTs reserved for `projectOwner` (e.g 200)
     /// @param _batchRevealSize Size of the batch reveal
-    constructor(
+    function initialize(
         string memory _name,
         string memory _symbol,
         address _projectOwner,
@@ -159,8 +166,8 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
         uint256 _amountForMintlist,
         uint256 _amountForDevs,
         uint256 _batchRevealSize
-    )
-        BaseLaunchpeg(
+    ) external {
+        initializeBaseLaunchpeg(
             _name,
             _symbol,
             _projectOwner,
@@ -169,8 +176,7 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
             _collectionSize,
             _amountForDevs,
             _batchRevealSize
-        )
-    {
+        );
         if (
             _amountForAuction + _amountForMintlist + _amountForDevs >
             _collectionSize
