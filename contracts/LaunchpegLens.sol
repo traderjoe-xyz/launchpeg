@@ -6,6 +6,7 @@ import "./BaseLaunchpeg.sol";
 import "./interfaces/IFlatLaunchpeg.sol";
 import "./interfaces/ILaunchpeg.sol";
 import "./interfaces/IBatchReveal.sol";
+import "./interfaces/ILaunchpegFactory.sol";
 import "erc721a-upgradeable/contracts/ERC721AUpgradeable.sol";
 
 error LaunchpegLens__InvalidContract();
@@ -84,10 +85,14 @@ contract LaunchpegLens {
     /// @notice IFlatLaunchpegInterface identifier
     bytes4 public immutable flatLaunchpegInterface;
 
+    /// @notice LaunchpegFactory address
+    address public immutable launchpegFactory;
+
     /// @dev LaunchpegLens constructor
-    constructor() {
+    constructor(address _launchpegFactory) {
         launchpegInterface = type(ILaunchpeg).interfaceId;
         flatLaunchpegInterface = type(IFlatLaunchpeg).interfaceId;
+        launchpegFactory = _launchpegFactory;
     }
 
     /// @notice Gets the type of Launchpeg
@@ -111,18 +116,34 @@ contract LaunchpegLens {
 
     /// @notice Fetch Launchpeg data from a list of addresses
     /// Will revert if a contract in the list is not a Launchpeg
-    /// @param _addressList List of contract adresses to consider
+    /// @param _offset Index to start at when looking up launchpegs
+    /// @param _limit Maximum number of launchpegs datas to return
     /// @param _user Address to consider for NFT balances and mintlist allocations
     /// @return LensDataList List of contracts datas
-    function getAllLaunchpegs(address[] memory _addressList, address _user)
-        external
-        view
-        returns (LensData[] memory)
-    {
-        LensData[] memory LensDatas = new LensData[](_addressList.length);
+    function getAllLaunchpegs(
+        uint256 _offset,
+        uint256 _limit,
+        address _user
+    ) external view returns (LensData[] memory) {
+        LensData[] memory LensDatas;
+        uint256 numLaunchpegs = ILaunchpegFactory(launchpegFactory)
+            .numLaunchpegs();
+
+        if (_offset >= numLaunchpegs || _limit == 0) {
+            return LensDatas;
+        }
+
+        uint256 end = _offset + _limit > numLaunchpegs
+            ? numLaunchpegs
+            : _offset + _limit;
+
+        LensDatas = new LensData[](end - _offset);
 
         for (uint256 i = 0; i < LensDatas.length; i++) {
-            LensDatas[i] = getLaunchpegData(_addressList[i], _user);
+            LensDatas[i] = getLaunchpegData(
+                ILaunchpegFactory(launchpegFactory).allLaunchpegs(i),
+                _user
+            );
         }
 
         return LensDatas;
