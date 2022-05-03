@@ -36,13 +36,6 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
     /// @param isActive True if the public sale is open, false otherwise
     event PublicSaleStateChanged(bool isActive);
 
-    /// @dev FlatLaunchpeg constructor
-    /// Won't be used by the contract factory but is necessary for the ERC721A contract
-    /// name() and symbol() are overriden in BaseLaunchpeg
-    constructor(string memory _name, string memory _symbol)
-        ERC721A(_name, _symbol)
-    {}
-
     /// @dev FlatLaunchpeg initialization
     /// @param _name ERC721 name
     /// @param _symbol ERC721 symbol
@@ -65,7 +58,7 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
         uint256 _batchRevealSize,
         uint256 _salePrice,
         uint256 _mintlistPrice
-    ) external {
+    ) external override initializer {
         initializeBaseLaunchpeg(
             _name,
             _symbol,
@@ -142,7 +135,7 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
         public
         view
         virtual
-        override(BaseLaunchpeg, IERC165)
+        override(BaseLaunchpeg, IERC165Upgradeable)
         returns (bool)
     {
         return

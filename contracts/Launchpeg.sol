@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "@openzeppelin/contracts/utils/Strings.sol";
+// import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/StringsUpgradeable.sol";
 
-import "erc721a/contracts/ERC721A.sol";
+import "erc721a-upgradeable/contracts/ERC721AUpgradeable.sol";
 import "./BatchReveal.sol";
 
 import "./BaseLaunchpeg.sol";
@@ -137,13 +137,6 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
         _;
     }
 
-    /// @dev Launchpeg constructor
-    /// Won't be used by the contract factory but is necessary for the ERC721A contract
-    /// name() and symbol() are overriden in BaseLaunchpeg
-    constructor(string memory _name, string memory _symbol)
-        ERC721A(_name, _symbol)
-    {}
-
     /// @dev Launchpeg initialization
     /// @param _name ERC721 name
     /// @param _symbol ERC721 symbol
@@ -166,7 +159,7 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
         uint256 _amountForMintlist,
         uint256 _amountForDevs,
         uint256 _batchRevealSize
-    ) external {
+    ) external override initializer {
         initializeBaseLaunchpeg(
             _name,
             _symbol,
@@ -452,7 +445,7 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
         public
         view
         virtual
-        override(BaseLaunchpeg, IERC165)
+        override(BaseLaunchpeg, IERC165Upgradeable)
         returns (bool)
     {
         return

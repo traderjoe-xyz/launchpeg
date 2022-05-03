@@ -44,7 +44,7 @@ describe('Launchpeg', () => {
   })
 
   const deployLaunchpeg = async () => {
-    launchpeg = await launchpegCF.deploy('JoePEG', 'JOEPEG')
+    launchpeg = await launchpegCF.deploy()
 
     await launchpeg.initialize(
       'JoePEG',
@@ -75,7 +75,7 @@ describe('Launchpeg', () => {
     })
 
     it('Zero address should not be configurable as project owner', async () => {
-      launchpeg = await launchpegCF.deploy('JoePEG', 'JOEPEG')
+      launchpeg = await launchpegCF.deploy()
       await expect(
         launchpeg.initialize(
           'JoePEG',
@@ -90,6 +90,19 @@ describe('Launchpeg', () => {
           config.batchRevealSize
         )
       ).to.be.revertedWith('Launchpeg__InvalidProjectOwner()')
+
+      launchpeg.initialize(
+        'JoePEG',
+        'JOEPEG',
+        projectOwner.address,
+        royaltyReceiver.address,
+        config.maxBatchSize,
+        config.collectionSize,
+        config.amountForAuction,
+        config.amountForMintlist,
+        config.amountForDevs,
+        config.batchRevealSize
+      )
 
       await expect(launchpeg.connect(dev).setProjectOwner(ethers.constants.AddressZero)).to.be.revertedWith(
         'Launchpeg__InvalidProjectOwner()'

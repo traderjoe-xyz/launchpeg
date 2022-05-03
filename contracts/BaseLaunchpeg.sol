@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "@openzeppelin/contracts/token/common/ERC2981.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/common/ERC2981Upgradeable.sol";
 
-import "erc721a/contracts/ERC721A.sol";
+import "erc721a-upgradeable/contracts/ERC721AUpgradeable.sol";
 
 import "./BatchReveal.sol";
 import "./LaunchpegErrors.sol";
@@ -15,14 +15,14 @@ import "./interfaces/IBaseLaunchpeg.sol";
 /// @author Trader Joe
 /// @notice Implements the functionalities shared between Launchpeg and FlatLaunchpeg contracts.
 abstract contract BaseLaunchpeg is
-    ERC721A,
-    Ownable,
-    ReentrancyGuard,
     IBaseLaunchpeg,
+    ERC721AUpgradeable,
     BatchReveal,
-    ERC2981
+    OwnableUpgradeable,
+    ReentrancyGuardUpgradeable,
+    ERC2981Upgradeable
 {
-    using Strings for uint256;
+    using StringsUpgradeable for uint256;
 
     /// @notice The collection size (e.g 10000)
     uint256 public override collectionSize;
@@ -62,11 +62,6 @@ abstract contract BaseLaunchpeg is
 
     /// @dev Tracks the amount of NFTs minted by `projectOwner`
     uint256 internal _amountMintedByDevs;
-
-    /// @dev Made to override ERC721's name()
-    string private _launchegName;
-    /// @dev Made to override ERC721's symbol()
-    string private _launchegSymbol;
 
     /// @dev Emitted on initializeJoeFee()
     /// @param feePercent The fees collected by Joepegs on the sale benefits
@@ -136,7 +131,9 @@ abstract contract BaseLaunchpeg is
         uint256 _collectionSize,
         uint256 _amountForDevs,
         uint256 _batchRevealSize
-    ) internal {
+    ) internal onlyInitializing {
+        __Ownable_init();
+        __ERC721A_init(_name, _symbol);
         initializeBatchReveal(_batchRevealSize, _collectionSize);
 
         if (_projectOwner == address(0)) {
@@ -146,9 +143,6 @@ abstract contract BaseLaunchpeg is
         if (_amountForDevs > _collectionSize) {
             revert Launchpeg__LargerCollectionSizeNeeded();
         }
-
-        _launchegName = _name;
-        _launchegSymbol = _symbol;
 
         projectOwner = _projectOwner;
         // Default royalty is 5%
@@ -319,35 +313,13 @@ abstract contract BaseLaunchpeg is
         return _ownershipOf(_tokenId);
     }
 
-    /// @notice Returns the collection name
-    /// @return Name Collection name
-    function name()
-        public
-        view
-        override(ERC721A, IERC721Metadata)
-        returns (string memory)
-    {
-        return _launchegName;
-    }
-
-    /// @notice Returns the collection symbol
-    /// @return Symbol Collection symbol
-    function symbol()
-        public
-        view
-        override(ERC721A, IERC721Metadata)
-        returns (string memory)
-    {
-        return _launchegSymbol;
-    }
-
     /// @notice Returns the Uniform Resource Identifier (URI) for `tokenId` token.
     /// @param _id Token id
     /// @return URI Token URI
     function tokenURI(uint256 _id)
         public
         view
-        override(ERC721A, IERC721Metadata)
+        override(ERC721AUpgradeable, IERC721MetadataUpgradeable)
         returns (string memory)
     {
         if (_id >= lastTokenRevealed) {
@@ -386,7 +358,7 @@ abstract contract BaseLaunchpeg is
         public
         view
         virtual
-        override(ERC721A, ERC2981, IERC165)
+        override(ERC721AUpgradeable, ERC2981Upgradeable, IERC165Upgradeable)
         returns (bool)
     {
         return super.supportsInterface(_interfaceId);

@@ -6,7 +6,7 @@ import "./BaseLaunchpeg.sol";
 import "./interfaces/IFlatLaunchpeg.sol";
 import "./interfaces/ILaunchpeg.sol";
 import "./interfaces/IBatchReveal.sol";
-import "erc721a/contracts/ERC721A.sol";
+import "erc721a-upgradeable/contracts/ERC721AUpgradeable.sol";
 
 error LaunchpegLens__InvalidContract();
 
@@ -145,13 +145,14 @@ contract LaunchpegLens {
             revert LaunchpegLens__InvalidContract();
         }
 
-        data.collectionData.name = ERC721A(_launchpeg).name();
-        data.collectionData.symbol = ERC721A(_launchpeg).symbol();
+        data.collectionData.name = ERC721AUpgradeable(_launchpeg).name();
+        data.collectionData.symbol = ERC721AUpgradeable(_launchpeg).symbol();
         data.collectionData.collectionSize = BaseLaunchpeg(_launchpeg)
             .collectionSize();
         data.collectionData.maxBatchSize = BaseLaunchpeg(_launchpeg)
             .maxBatchSize();
-        data.collectionData.totalSupply = ERC721A(_launchpeg).totalSupply();
+        data.collectionData.totalSupply = ERC721AUpgradeable(_launchpeg)
+            .totalSupply();
 
         data.revealData.revealBatchSize = IBatchReveal(_launchpeg)
             .revealBatchSize();
@@ -214,7 +215,9 @@ contract LaunchpegLens {
         }
 
         if (_user != address(0)) {
-            data.userData.balanceOf = ERC721A(_launchpeg).balanceOf(_user);
+            data.userData.balanceOf = ERC721AUpgradeable(_launchpeg).balanceOf(
+                _user
+            );
             data.userData.allowanceForAllowlistMint = IBaseLaunchpeg(_launchpeg)
                 .allowList(_user);
         }
