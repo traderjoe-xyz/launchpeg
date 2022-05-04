@@ -89,6 +89,7 @@ contract LaunchpegLens {
     address public immutable launchpegFactory;
 
     /// @dev LaunchpegLens constructor
+    /// @param _launchpegFactory Address of the LaunchpegFactory
     constructor(address _launchpegFactory) {
         launchpegInterface = type(ILaunchpeg).interfaceId;
         flatLaunchpegInterface = type(IFlatLaunchpeg).interfaceId;
@@ -114,10 +115,9 @@ contract LaunchpegLens {
         }
     }
 
-    /// @notice Fetch Launchpeg data from a list of addresses
-    /// Will revert if a contract in the list is not a Launchpeg
-    /// @param _offset Index to start at when looking up launchpegs
-    /// @param _limit Maximum number of launchpegs datas to return
+    /// @notice Fetch Launchpeg data
+    /// @param _offset Index to start at when looking up Launchpegs
+    /// @param _limit Maximum number of Launchpegs datas to return
     /// @param _user Address to consider for NFT balances and mintlist allocations
     /// @return LensDataList List of contracts datas
     function getAllLaunchpegs(
