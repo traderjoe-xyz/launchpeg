@@ -8,6 +8,7 @@ import "@openzeppelin/contracts/proxy/Clones.sol";
 import "./interfaces/ILaunchpegFactory.sol";
 import "./interfaces/ILaunchpeg.sol";
 import "./interfaces/IFlatLaunchpeg.sol";
+import "./LaunchpegErrors.sol";
 
 /// @title Launchpeg Factory
 /// @author Trader Joe
@@ -28,6 +29,10 @@ contract LaunchpegFactory is
 
     /// @notice initializes the launchpeg factory
     /// @dev Uses clone factory pattern to save space
+    /// @param _launchpegImplementation Launchpeg contract to be cloned
+    /// @param _flatLaunchpegImplementation FlatLaunchpeg contract to be cloned
+    /// @param _joeFeePercent Default fee percentage
+    /// @param _joeFeeCollector Default fee collector
     function initialize(
         address _launchpegImplementation,
         address _flatLaunchpegImplementation,
@@ -35,6 +40,20 @@ contract LaunchpegFactory is
         address _joeFeeCollector
     ) public initializer {
         __Ownable_init();
+
+        if (_launchpegImplementation == address(0)) {
+            revert LaunchpegFactory__InvalidImplementation();
+        }
+        if (_flatLaunchpegImplementation == address(0)) {
+            revert LaunchpegFactory__InvalidImplementation();
+        }
+        if (_joeFeePercent > 10_000) {
+            revert Launchpeg__InvalidPercent();
+        }
+        if (_joeFeeCollector == address(0)) {
+            revert Launchpeg__InvalidJoeFeeCollector();
+        }
+
         launchpegImplementation = _launchpegImplementation;
         flatLaunchpegImplementation = _flatLaunchpegImplementation;
         joeFeePercent = _joeFeePercent;
@@ -95,6 +114,20 @@ contract LaunchpegFactory is
 
         OwnableUpgradeable(launchpeg).transferOwnership(msg.sender);
 
+        emit LaunchpegCreated(
+            launchpeg,
+            _name,
+            _symbol,
+            _projectOwner,
+            _royaltyReceiver,
+            _maxBatchSize,
+            _collectionSize,
+            _amountForAuction,
+            _amountForMintlist,
+            _amountForDevs,
+            _batchRevealSize
+        );
+
         return launchpeg;
     }
 
@@ -146,6 +179,20 @@ contract LaunchpegFactory is
 
         OwnableUpgradeable(flatLaunchpeg).transferOwnership(msg.sender);
 
+        emit FlatLaunchpegCreated(
+            flatLaunchpeg,
+            _name,
+            _symbol,
+            _projectOwner,
+            _royaltyReceiver,
+            _maxBatchSize,
+            _collectionSize,
+            _amountForDevs,
+            _batchRevealSize,
+            _salePrice,
+            _mintlistPrice
+        );
+
         return flatLaunchpeg;
     }
 
@@ -156,7 +203,12 @@ contract LaunchpegFactory is
         override
         onlyOwner
     {
+        if (_launchpegImplementation == address(0)) {
+            revert LaunchpegFactory__InvalidImplementation();
+        }
+
         launchpegImplementation = _launchpegImplementation;
+        emit SetLaunchpegImplementation(_launchpegImplementation);
     }
 
     /// @notice Set address for flatLaunchpegImplementation
@@ -164,7 +216,12 @@ contract LaunchpegFactory is
     function setFlatLaunchpegImplementation(
         address _flatLaunchpegImplementation
     ) external override onlyOwner {
+        if (_flatLaunchpegImplementation == address(0)) {
+            revert LaunchpegFactory__InvalidImplementation();
+        }
+
         flatLaunchpegImplementation = _flatLaunchpegImplementation;
+        emit SetFlatLaunchpegImplementation(_flatLaunchpegImplementation);
     }
 
     /// @notice Set percentage of protocol fees
@@ -174,7 +231,12 @@ contract LaunchpegFactory is
         override
         onlyOwner
     {
+        if (_joeFeePercent > 10_000) {
+            revert Launchpeg__InvalidPercent();
+        }
+
         joeFeePercent = _joeFeePercent;
+        emit SetDefaultJoeFeePercent(_joeFeePercent);
     }
 
     /// @notice Set default address to collect protocol fees
@@ -184,6 +246,11 @@ contract LaunchpegFactory is
         override
         onlyOwner
     {
+        if (_joeFeeCollector == address(0)) {
+            revert Launchpeg__InvalidJoeFeeCollector();
+        }
+
         joeFeeCollector = _joeFeeCollector;
+        emit SetDefaultJoeFeeCollector(_joeFeeCollector);
     }
 }

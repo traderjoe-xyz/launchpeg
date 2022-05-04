@@ -145,12 +145,18 @@ describe('LaunchpegFactory', () => {
       const newAddress = '0x44c14d53D7B7672d7fD6E4A97fDA1A5f68F62aB6'
       await launchpegFactory.setLaunchpegImplementation(newAddress)
       expect(await launchpegFactory.launchpegImplementation()).to.equal(newAddress)
+      await expect(launchpegFactory.setLaunchpegImplementation(ethers.constants.AddressZero)).to.be.revertedWith(
+        'LaunchpegFactory__InvalidImplementation()'
+      )
     })
 
     it('Should set the new FlatLaunchpeg implementation', async () => {
       const newAddress = '0x44c14d53D7B7672d7fD6E4A97fDA1A5f68F62aB6'
       await launchpegFactory.setFlatLaunchpegImplementation(newAddress)
       expect(await launchpegFactory.flatLaunchpegImplementation()).to.equal(newAddress)
+      await expect(launchpegFactory.setFlatLaunchpegImplementation(ethers.constants.AddressZero)).to.be.revertedWith(
+        'LaunchpegFactory__InvalidImplementation()'
+      )
     })
 
     it('Should set the new fee configuration', async () => {
@@ -175,6 +181,11 @@ describe('LaunchpegFactory', () => {
 
       expect(await launchpeg0.joeFeePercent()).to.equal(newFees)
       expect(await launchpeg0.joeFeeCollector()).to.equal(bob.address)
+
+      await expect(launchpegFactory.setDefaultJoeFeePercent(20_000)).to.be.revertedWith('Launchpeg__InvalidPercent()')
+      await expect(launchpegFactory.setDefaultJoeFeeCollector(ethers.constants.AddressZero)).to.be.revertedWith(
+        'Launchpeg__InvalidJoeFeeCollector()'
+      )
     })
   })
 
