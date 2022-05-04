@@ -1,6 +1,8 @@
 //SPDX-License-Identifier: CC0
 pragma solidity ^0.8.4;
 
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+
 import "./interfaces/IBatchReveal.sol";
 import "./LaunchpegErrors.sol";
 
@@ -9,7 +11,7 @@ import "./LaunchpegErrors.sol";
 
 /// @title BatchReveal
 /// @notice Implements a gas efficient way of revealing NFT URIs gradually
-abstract contract BatchReveal is IBatchReveal {
+abstract contract BatchReveal is IBatchReveal, Initializable {
     /// @dev Initialized on parent contract creation
     uint256 private collectionSize;
     int128 private intCollectionSize;
@@ -51,7 +53,7 @@ abstract contract BatchReveal is IBatchReveal {
     function initializeBatchReveal(
         uint256 _revealBatchSize,
         uint256 _collectionSize
-    ) internal {
+    ) internal onlyInitializing {
         if (_collectionSize % _revealBatchSize != 0 || _revealBatchSize == 0) {
             revert Launchpeg__InvalidBatchRevealSize();
         }

@@ -18,16 +18,22 @@ contract LaunchpegFactory is
     Initializable,
     OwnableUpgradeable
 {
+    /// @notice Launchpeg contract to be cloned
     address public override launchpegImplementation;
+    /// @notice FlatLaunchpeg contract to be cloned
     address public override flatLaunchpegImplementation;
 
+    /// @notice Default fee percentage
     uint256 public override joeFeePercent;
+    /// @notice Default fee collector
     address public override joeFeeCollector;
 
+    /// @notice Checks if an address is stored as a Launchpeg
     mapping(address => bool) public override isLaunchpeg;
+    /// @notice Launchpegs address list
     address[] public override allLaunchpegs;
 
-    /// @notice initializes the launchpeg factory
+    /// @notice Initializes the Launchpeg factory
     /// @dev Uses clone factory pattern to save space
     /// @param _launchpegImplementation Launchpeg contract to be cloned
     /// @param _flatLaunchpegImplementation FlatLaunchpeg contract to be cloned
@@ -60,13 +66,13 @@ contract LaunchpegFactory is
         joeFeeCollector = _joeFeeCollector;
     }
 
-    /// @notice Returns the number of launch events
-    /// @return LaunchpegNumber The number of launch events ever created
+    /// @notice Returns the number of Launchpegs
+    /// @return LaunchpegNumber The number of Launchpegs ever created
     function numLaunchpegs() external view override returns (uint256) {
         return allLaunchpegs.length;
     }
 
-    /// @dev Launchpeg creation
+    /// @notice Launchpeg creation
     /// @param _name ERC721 name
     /// @param _symbol ERC721 symbol
     /// @param _projectOwner The project owner
@@ -77,6 +83,7 @@ contract LaunchpegFactory is
     /// @param _amountForMintlist Amount of NFTs available for the allowList mint (e.g 1000)
     /// @param _amountForDevs Amount of NFTs reserved for `projectOwner` (e.g 200)
     /// @param _batchRevealSize Size of the batch reveal
+    /// @return launchpeg New Launchpeg address
     function createLaunchpeg(
         string memory _name,
         string memory _symbol,
@@ -131,7 +138,7 @@ contract LaunchpegFactory is
         return launchpeg;
     }
 
-    // @dev FlatLaunchpeg creation
+    /// @notice FlatLaunchpeg creation
     /// @param _name ERC721 name
     /// @param _symbol ERC721 symbol
     /// @param _projectOwner The project owner
@@ -142,6 +149,7 @@ contract LaunchpegFactory is
     /// @param _batchRevealSize Size of the batch reveal
     /// @param _salePrice Price of the public sale in Avax
     /// @param _mintlistPrice Price of the whitelist sale in Avax
+    /// @return flatLaunchpeg New FlatLaunchpeg address
     function createFlatLaunchpeg(
         string memory _name,
         string memory _symbol,

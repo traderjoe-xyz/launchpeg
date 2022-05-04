@@ -137,7 +137,8 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
         _;
     }
 
-    /// @dev Launchpeg initialization
+    /// @notice Launchpeg initialization
+    /// Can only be called once
     /// @param _name ERC721 name
     /// @param _symbol ERC721 symbol
     /// @param _projectOwner The project owner
