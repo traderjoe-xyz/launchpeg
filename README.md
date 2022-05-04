@@ -92,7 +92,7 @@ DEPLOY_PRIVATE_KEY=
 # The snowtrace API key used to verify contracts
 SNOWTRACE_API_KEY=
 ```
-
+Deploying Factory and Lens is made using `yarn hardhat deploy`. Creating Launchpegs then uses deploy scripts :
 The deploy task takes a config file as parameter. This file contains all the required parameters to initialize a contract.
 
 There are two templates available in `/tasks/config`: `example.json` for `Launchpeg` and `flat-example.json` for `FlatLaunchpeg`.
@@ -102,13 +102,9 @@ Once the configuration is ready, you may run:
 yarn compile
 
 yarn deploy-launchpeg-fuji --config-filename <config-filename>
-yarn verify-launchpeg-fuji --contract-address <contract-address> --config-filename <config-filename>
-
 yarn deploy-flat-launchpeg-fuji --config-filename <config-filename>
-yarn verify-flat-launchpeg-fuji --contract-address <contract-address> --config-filename <config-filename>
 
-yarn deploy-lens-fuji 
-yarn verify-lens-fuji --contract-address <contract-address>
+yarn verify-fuji 
 ```
 
 ## License

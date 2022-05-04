@@ -1,19 +1,23 @@
 import '@nomiclabs/hardhat-ethers'
+import 'hardhat-deploy'
+import 'hardhat-deploy-ethers'
 import { task } from 'hardhat/config'
 import { loadLaunchConfig } from './utils'
 
-task('deploy-launch-peg', 'Deploy Launchpeg contract')
+task('deploy-launchpeg', 'Deploy Launchpeg contract')
   .addParam('configFilename')
   .setAction(async ({ configFilename }, hre) => {
     console.log('-- Deploying Launchpeg --')
+
     const ethers = hre.ethers
+    const factoryAddress = (await hre.deployments.get('LaunchpegFactory')).address
+    console.log(factoryAddress)
+
+    const factory = await ethers.getContractAt('LaunchpegFactory', factoryAddress)
 
     const launchConfig = loadLaunchConfig(configFilename)
-    console.log(launchConfig)
 
-    const LaunchpegFactory = await ethers.getContractFactory('Launchpeg')
-
-    const launchpeg = await LaunchpegFactory.deploy(
+    const creationTx = await factory.createLaunchpeg(
       launchConfig.name,
       launchConfig.symbol,
       launchConfig.projectOwner,
@@ -26,9 +30,16 @@ task('deploy-launch-peg', 'Deploy Launchpeg contract')
       launchConfig.batchRevealSize
     )
 
-    await launchpeg.deployTransaction.wait()
+    await creationTx.wait()
+
+    const launchpegNumber = await factory.numLaunchpegs()
+    const launchpegAddress = await factory.allLaunchpegs(launchpegNumber - 1)
+
+    console.log(`-- Contract deployed at ${launchpegAddress} --`)
 
     console.log('-- Initializating phases --')
+
+    const launchpeg = await ethers.getContractAt('Launchpeg', launchpegAddress)
 
     const initTx = await launchpeg.initializePhases(
       launchConfig.auctionSaleStartTime,
@@ -44,11 +55,4 @@ task('deploy-launch-peg', 'Deploy Launchpeg contract')
     )
 
     await initTx.wait()
-
-    if (launchConfig.joeFeePercent && launchConfig.joeFeeCollector) {
-      console.log('-- Initializating Joe fee --')
-      await launchpeg.initializeJoeFee(launchConfig.joeFeePercent, launchConfig.joeFeeCollector)
-    }
-
-    console.log(`-- Contract deployed at ${launchpeg.address} --`)
   })
