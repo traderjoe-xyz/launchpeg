@@ -102,7 +102,7 @@ describe('LaunchpegFactory', () => {
 
   describe('Launchpeg creation', () => {
     it('Should increment the number of Launchpegs', async () => {
-      expect(await launchpegFactory.numLaunchpegs()).to.equal(0)
+      expect(await launchpegFactory.numLaunchpegs(0)).to.equal(0)
 
       await launchpegFactory.createLaunchpeg(
         'JoePEG',
@@ -117,11 +117,11 @@ describe('LaunchpegFactory', () => {
         config.batchRevealSize
       )
 
-      expect(await launchpegFactory.numLaunchpegs()).to.equal(1)
+      expect(await launchpegFactory.numLaunchpegs(0)).to.equal(1)
     })
 
     it('Should create FlatLaunchpegs as well', async () => {
-      expect(await launchpegFactory.numLaunchpegs()).to.equal(0)
+      expect(await launchpegFactory.numLaunchpegs(1)).to.equal(0)
 
       await launchpegFactory.createFlatLaunchpeg(
         'JoePEG',
@@ -136,7 +136,7 @@ describe('LaunchpegFactory', () => {
         config.flatMintListSalePrice
       )
 
-      expect(await launchpegFactory.numLaunchpegs()).to.equal(1)
+      expect(await launchpegFactory.numLaunchpegs(1)).to.equal(1)
     })
   })
 
@@ -176,7 +176,7 @@ describe('LaunchpegFactory', () => {
         config.amountForDevs,
         config.batchRevealSize
       )
-      const launchpeg0Address = await launchpegFactory.allLaunchpegs(0)
+      const launchpeg0Address = await launchpegFactory.allLaunchpegs(0, 0)
       const launchpeg0 = await ethers.getContractAt('Launchpeg', launchpeg0Address)
 
       expect(await launchpeg0.joeFeePercent()).to.equal(newFees)

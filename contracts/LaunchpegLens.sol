@@ -116,18 +116,20 @@ contract LaunchpegLens {
     }
 
     /// @notice Fetch Launchpeg data
+    /// @param _type Type of Launchpeg to consider
     /// @param _offset Index to start at when looking up Launchpegs
     /// @param _limit Maximum number of Launchpegs datas to return
     /// @param _user Address to consider for NFT balances and mintlist allocations
     /// @return LensDataList List of contracts datas
-    function getAllLaunchpegs(
+    function getAllLaunchpegsFromType(
+        uint8 _type,
         uint256 _offset,
         uint256 _limit,
         address _user
     ) external view returns (LensData[] memory) {
         LensData[] memory LensDatas;
         uint256 numLaunchpegs = ILaunchpegFactory(launchpegFactory)
-            .numLaunchpegs();
+            .numLaunchpegs(_type);
 
         if (_offset >= numLaunchpegs || _limit == 0) {
             return LensDatas;
@@ -141,7 +143,7 @@ contract LaunchpegLens {
 
         for (uint256 i = 0; i < LensDatas.length; i++) {
             LensDatas[i] = getLaunchpegData(
-                ILaunchpegFactory(launchpegFactory).allLaunchpegs(i),
+                ILaunchpegFactory(launchpegFactory).allLaunchpegs(_type, i),
                 _user
             );
         }

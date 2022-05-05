@@ -24,14 +24,15 @@ contract LaunchpegFactory is
     address public override flatLaunchpegImplementation;
 
     /// @notice Default fee percentage
+    /// @dev In basis points e.g 100 for 1%
     uint256 public override joeFeePercent;
     /// @notice Default fee collector
     address public override joeFeeCollector;
 
-    /// @notice Checks if an address is stored as a Launchpeg
-    mapping(address => bool) public override isLaunchpeg;
-    /// @notice Launchpegs address list
-    address[] public override allLaunchpegs;
+    /// @notice Checks if an address is stored as a Launchpeg, by type of Launchpeg
+    mapping(uint8 => mapping(address => bool)) public override isLaunchpeg;
+    /// @notice Launchpegs address list by type of Launchpeg
+    mapping(uint8 => address[]) public override allLaunchpegs;
 
     /// @notice Initializes the Launchpeg factory
     /// @dev Uses clone factory pattern to save space
@@ -67,9 +68,15 @@ contract LaunchpegFactory is
     }
 
     /// @notice Returns the number of Launchpegs
+    /// @param _launchegType Type of Launchpeg to consider
     /// @return LaunchpegNumber The number of Launchpegs ever created
-    function numLaunchpegs() external view override returns (uint256) {
-        return allLaunchpegs.length;
+    function numLaunchpegs(uint8 _launchegType)
+        external
+        view
+        override
+        returns (uint256)
+    {
+        return allLaunchpegs[_launchegType].length;
     }
 
     /// @notice Launchpeg creation
@@ -98,8 +105,8 @@ contract LaunchpegFactory is
     ) external override onlyOwner returns (address) {
         address launchpeg = Clones.clone(launchpegImplementation);
 
-        isLaunchpeg[launchpeg] = true;
-        allLaunchpegs.push(launchpeg);
+        isLaunchpeg[0][launchpeg] = true;
+        allLaunchpegs[0].push(launchpeg);
 
         ILaunchpeg(launchpeg).initialize(
             _name,
@@ -164,8 +171,8 @@ contract LaunchpegFactory is
     ) external override onlyOwner returns (address) {
         address flatLaunchpeg = Clones.clone(flatLaunchpegImplementation);
 
-        isLaunchpeg[flatLaunchpeg] = true;
-        allLaunchpegs.push(flatLaunchpeg);
+        isLaunchpeg[1][flatLaunchpeg] = true;
+        allLaunchpegs[1].push(flatLaunchpeg);
 
         IFlatLaunchpeg(flatLaunchpeg).initialize(
             _name,

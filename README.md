@@ -92,7 +92,7 @@ DEPLOY_PRIVATE_KEY=
 # The snowtrace API key used to verify contracts
 SNOWTRACE_API_KEY=
 ```
-Deploying Factory and Lens is made using `yarn hardhat deploy`. Creating Launchpegs then uses deploy scripts :
+Deploying LaunchpegFactory and LaunchpegLens is made using `yarn hardhat deploy`. Creating Launchpegs then uses deploy scripts:
 The deploy task takes a config file as parameter. This file contains all the required parameters to initialize a contract.
 
 There are two templates available in `/tasks/config`: `example.json` for `Launchpeg` and `flat-example.json` for `FlatLaunchpeg`.
