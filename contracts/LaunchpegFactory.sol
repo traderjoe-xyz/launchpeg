@@ -30,9 +30,9 @@ contract LaunchpegFactory is
     address public override joeFeeCollector;
 
     /// @notice Checks if an address is stored as a Launchpeg, by type of Launchpeg
-    mapping(uint8 => mapping(address => bool)) public override isLaunchpeg;
+    mapping(uint256 => mapping(address => bool)) public override isLaunchpeg;
     /// @notice Launchpegs address list by type of Launchpeg
-    mapping(uint8 => address[]) public override allLaunchpegs;
+    mapping(uint256 => address[]) public override allLaunchpegs;
 
     /// @notice Initializes the Launchpeg factory
     /// @dev Uses clone factory pattern to save space
@@ -70,7 +70,7 @@ contract LaunchpegFactory is
     /// @notice Returns the number of Launchpegs
     /// @param _launchegType Type of Launchpeg to consider
     /// @return LaunchpegNumber The number of Launchpegs ever created
-    function numLaunchpegs(uint8 _launchegType)
+    function numLaunchpegs(uint256 _launchegType)
         external
         view
         override

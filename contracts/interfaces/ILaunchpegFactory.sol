@@ -48,17 +48,17 @@ interface ILaunchpegFactory {
 
     function joeFeeCollector() external view returns (address);
 
-    function isLaunchpeg(uint8 _type, address _contract)
+    function isLaunchpeg(uint256 _type, address _contract)
         external
         view
         returns (bool);
 
-    function allLaunchpegs(uint8 _launchpegType, uint256 _launchpegID)
+    function allLaunchpegs(uint256 _launchpegType, uint256 _launchpegID)
         external
         view
         returns (address);
 
-    function numLaunchpegs(uint8 _launchpegType)
+    function numLaunchpegs(uint256 _launchpegType)
         external
         view
         returns (uint256);
