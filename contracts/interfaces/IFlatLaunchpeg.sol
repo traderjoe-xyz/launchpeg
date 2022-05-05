@@ -13,6 +13,19 @@ interface IFlatLaunchpeg is IBaseLaunchpeg {
 
     function isPublicSaleActive() external view returns (bool);
 
+    function initialize(
+        string memory _name,
+        string memory _symbol,
+        address _projectOwner,
+        address _royaltyReceiver,
+        uint256 _maxBatchSize,
+        uint256 _collectionSize,
+        uint256 _amountForDevs,
+        uint256 _batchRevealSize,
+        uint256 _salePrice,
+        uint256 _mintlistPrice
+    ) external;
+
     function allowListMint(uint256 _quantity) external payable;
 
     function publicSaleMint(uint256 _quantity) external payable;

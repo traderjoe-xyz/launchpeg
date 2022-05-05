@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "@openzeppelin/contracts/utils/Strings.sol";
+import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/StringsUpgradeable.sol";
 
-import "erc721a/contracts/ERC721A.sol";
+import "erc721a-upgradeable/contracts/ERC721AUpgradeable.sol";
 import "./BatchReveal.sol";
 
 import "./BaseLaunchpeg.sol";
@@ -18,11 +17,11 @@ import "./LaunchpegErrors.sol";
 contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
     /// @notice Amount of NFTs available for the auction (e.g 8000)
     /// Unsold items are put up for sale during the public sale.
-    uint256 public immutable override amountForAuction;
+    uint256 public override amountForAuction;
 
     /// @notice Amount of NFTs available for the allowList mint (e.g 1000)
     /// Unsold items are put up for sale during the public sale.
-    uint256 public immutable override amountForMintlist;
+    uint256 public override amountForMintlist;
 
     /// @notice Start time of the dutch auction in seconds
     /// @dev Timestamp
@@ -137,7 +136,8 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
         _;
     }
 
-    /// @dev Launchpeg constructor
+    /// @notice Launchpeg initialization
+    /// Can only be called once
     /// @param _name ERC721 name
     /// @param _symbol ERC721 symbol
     /// @param _projectOwner The project owner
@@ -148,7 +148,7 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
     /// @param _amountForMintlist Amount of NFTs available for the allowList mint (e.g 1000)
     /// @param _amountForDevs Amount of NFTs reserved for `projectOwner` (e.g 200)
     /// @param _batchRevealSize Size of the batch reveal
-    constructor(
+    function initialize(
         string memory _name,
         string memory _symbol,
         address _projectOwner,
@@ -159,8 +159,8 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
         uint256 _amountForMintlist,
         uint256 _amountForDevs,
         uint256 _batchRevealSize
-    )
-        BaseLaunchpeg(
+    ) external override initializer {
+        initializeBaseLaunchpeg(
             _name,
             _symbol,
             _projectOwner,
@@ -169,8 +169,7 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
             _collectionSize,
             _amountForDevs,
             _batchRevealSize
-        )
-    {
+        );
         if (
             _amountForAuction + _amountForMintlist + _amountForDevs >
             _collectionSize
@@ -446,7 +445,7 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
         public
         view
         virtual
-        override(BaseLaunchpeg, IERC165)
+        override(BaseLaunchpeg, IERC165Upgradeable)
         returns (bool)
     {
         return

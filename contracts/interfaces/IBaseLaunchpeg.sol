@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
-import "@openzeppelin/contracts/token/ERC721/extensions/IERC721Metadata.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC721/IERC721Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/IERC721MetadataUpgradeable.sol";
 
-import "erc721a/contracts/ERC721A.sol";
+import "erc721a-upgradeable/contracts/ERC721AUpgradeable.sol";
 
 /// @title IBaseLaunchpeg
 /// @author Trader Joe
 /// @notice Defines the basic interface of BaseLaunchpeg
-interface IBaseLaunchpeg is IERC721, IERC721Metadata {
+interface IBaseLaunchpeg is IERC721Upgradeable, IERC721MetadataUpgradeable {
     function collectionSize() external view returns (uint256);
 
     function amountForDevs() external view returns (uint256);
@@ -55,7 +55,7 @@ interface IBaseLaunchpeg is IERC721, IERC721Metadata {
     function getOwnershipData(uint256 tokenId)
         external
         view
-        returns (ERC721A.TokenOwnership memory);
+        returns (ERC721AUpgradeable.TokenOwnership memory);
 
     function numberMinted(address owner) external view returns (uint256);
 }

@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "@openzeppelin/contracts/token/common/ERC2981.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/common/ERC2981Upgradeable.sol";
 
-import "erc721a/contracts/ERC721A.sol";
+import "erc721a-upgradeable/contracts/ERC721AUpgradeable.sol";
 
 import "./BatchReveal.sol";
 import "./LaunchpegErrors.sol";
@@ -15,27 +15,27 @@ import "./interfaces/IBaseLaunchpeg.sol";
 /// @author Trader Joe
 /// @notice Implements the functionalities shared between Launchpeg and FlatLaunchpeg contracts.
 abstract contract BaseLaunchpeg is
-    ERC721A,
-    Ownable,
-    ReentrancyGuard,
     IBaseLaunchpeg,
+    ERC721AUpgradeable,
     BatchReveal,
-    ERC2981
+    OwnableUpgradeable,
+    ReentrancyGuardUpgradeable,
+    ERC2981Upgradeable
 {
-    using Strings for uint256;
+    using StringsUpgradeable for uint256;
 
     /// @notice The collection size (e.g 10000)
-    uint256 public immutable override collectionSize;
+    uint256 public override collectionSize;
 
     /// @notice Amount of NFTs reserved for `projectOwner` (e.g 200)
     /// @dev It can be minted any time via `devMint`
-    uint256 public immutable override amountForDevs;
+    uint256 public override amountForDevs;
 
     /// @notice Max amount of NFTs that can be minted at once
-    uint256 public immutable override maxBatchSize;
+    uint256 public override maxBatchSize;
 
     /// @notice Max amount of NFTs an address can mint
-    uint256 public immutable override maxPerAddressDuringMint;
+    uint256 public override maxPerAddressDuringMint;
 
     /// @notice The fees collected by Joepegs on the sale benefits
     /// @dev In basis points e.g 100 for 1%
@@ -113,7 +113,7 @@ abstract contract BaseLaunchpeg is
         _;
     }
 
-    /// @dev BaseLaunchpeg constructor
+    /// @dev BaseLaunchpeg initialization
     /// @param _name ERC721 name
     /// @param _symbol ERC721 symbol
     /// @param _projectOwner The project owner
@@ -122,7 +122,7 @@ abstract contract BaseLaunchpeg is
     /// @param _collectionSize The collection size (e.g 10000)
     /// @param _amountForDevs Amount of NFTs reserved for `projectOwner` (e.g 200)
     /// @param _batchRevealSize Size of the batch reveal
-    constructor(
+    function initializeBaseLaunchpeg(
         string memory _name,
         string memory _symbol,
         address _projectOwner,
@@ -131,7 +131,11 @@ abstract contract BaseLaunchpeg is
         uint256 _collectionSize,
         uint256 _amountForDevs,
         uint256 _batchRevealSize
-    ) ERC721A(_name, _symbol) BatchReveal(_batchRevealSize, _collectionSize) {
+    ) internal onlyInitializing {
+        __Ownable_init();
+        __ERC721A_init(_name, _symbol);
+        initializeBatchReveal(_batchRevealSize, _collectionSize);
+
         if (_projectOwner == address(0)) {
             revert Launchpeg__InvalidProjectOwner();
         }
@@ -315,7 +319,7 @@ abstract contract BaseLaunchpeg is
     function tokenURI(uint256 _id)
         public
         view
-        override(ERC721A, IERC721Metadata)
+        override(ERC721AUpgradeable, IERC721MetadataUpgradeable)
         returns (string memory)
     {
         if (_id >= lastTokenRevealed) {
@@ -354,7 +358,7 @@ abstract contract BaseLaunchpeg is
         public
         view
         virtual
-        override(ERC721A, ERC2981, IERC165)
+        override(ERC721AUpgradeable, ERC2981Upgradeable, IERC165Upgradeable)
         returns (bool)
     {
         return super.supportsInterface(_interfaceId);

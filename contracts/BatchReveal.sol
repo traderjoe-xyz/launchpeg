@@ -1,6 +1,8 @@
 //SPDX-License-Identifier: CC0
 pragma solidity ^0.8.4;
 
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+
 import "./interfaces/IBatchReveal.sol";
 import "./LaunchpegErrors.sol";
 
@@ -9,14 +11,14 @@ import "./LaunchpegErrors.sol";
 
 /// @title BatchReveal
 /// @notice Implements a gas efficient way of revealing NFT URIs gradually
-abstract contract BatchReveal is IBatchReveal {
+abstract contract BatchReveal is IBatchReveal, Initializable {
     /// @dev Initialized on parent contract creation
-    uint256 private immutable collectionSize;
-    int128 private immutable intCollectionSize;
+    uint256 private collectionSize;
+    int128 private intCollectionSize;
 
     /// @notice Size of the batch reveal
     /// @dev Must divide collectionSize
-    uint256 public immutable override revealBatchSize;
+    uint256 public override revealBatchSize;
 
     /// @notice Randomized seeds used to shuffle TokenURIs
     mapping(uint256 => uint256) public override batchToSeed;
@@ -25,7 +27,7 @@ abstract contract BatchReveal is IBatchReveal {
     uint256 public override lastTokenRevealed = 0;
 
     /// @dev Size of the array that will store already taken URIs numbers
-    uint256 private immutable _rangeLength;
+    uint256 private _rangeLength;
 
     /// @notice Timestamp for the start of the reveal process
     /// @dev Can be set to zero for immediate reveal after token mint
@@ -45,10 +47,13 @@ abstract contract BatchReveal is IBatchReveal {
     /// @param batchSeed The random number drawn
     event Reveal(uint256 batchNumber, uint256 batchSeed);
 
-    /// @dev BatchReveal constructor
+    /// @dev BatchReveal initialization
     /// @param _revealBatchSize Size of the batch reveal
     /// @param _collectionSize Needs to be sent by child contract
-    constructor(uint256 _revealBatchSize, uint256 _collectionSize) {
+    function initializeBatchReveal(
+        uint256 _revealBatchSize,
+        uint256 _collectionSize
+    ) internal onlyInitializing {
         if (_collectionSize % _revealBatchSize != 0 || _revealBatchSize == 0) {
             revert Launchpeg__InvalidBatchRevealSize();
         }

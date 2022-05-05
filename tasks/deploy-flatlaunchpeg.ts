@@ -1,0 +1,38 @@
+import '@nomiclabs/hardhat-ethers'
+import 'hardhat-deploy'
+import 'hardhat-deploy-ethers'
+import { task } from 'hardhat/config'
+import { loadLaunchConfig } from './utils'
+
+task('deploy-flatlaunchpeg', 'Deploy FlatLaunchpeg contract')
+  .addParam('configFilename')
+  .setAction(async ({ configFilename }, hre) => {
+    console.log('-- Deploying FlatLaunchpeg --')
+
+    const ethers = hre.ethers
+
+    const factoryAddress = (await hre.deployments.get('LaunchpegFactory')).address
+    const factory = await ethers.getContractAt('LaunchpegFactory', factoryAddress)
+
+    const launchConfig = loadLaunchConfig(configFilename)
+
+    const creationTx = await factory.createFlatLaunchpeg(
+      launchConfig.name,
+      launchConfig.symbol,
+      launchConfig.projectOwner,
+      launchConfig.royaltyReceiver,
+      launchConfig.maxBatchSize,
+      launchConfig.collectionSize,
+      launchConfig.amountForDevs,
+      launchConfig.batchRevealSize,
+      launchConfig.salePrice,
+      launchConfig.mintlistPrice
+    )
+
+    await creationTx.wait()
+
+    const launchpegNumber = await factory.numLaunchpegs()
+    const launchpegAddress = await factory.allLaunchpegs(launchpegNumber - 1)
+
+    console.log(`-- Contract deployed at ${launchpegAddress} --`)
+  })

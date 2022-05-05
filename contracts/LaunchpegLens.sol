@@ -6,7 +6,8 @@ import "./BaseLaunchpeg.sol";
 import "./interfaces/IFlatLaunchpeg.sol";
 import "./interfaces/ILaunchpeg.sol";
 import "./interfaces/IBatchReveal.sol";
-import "erc721a/contracts/ERC721A.sol";
+import "./interfaces/ILaunchpegFactory.sol";
+import "erc721a-upgradeable/contracts/ERC721AUpgradeable.sol";
 
 error LaunchpegLens__InvalidContract();
 
@@ -84,10 +85,15 @@ contract LaunchpegLens {
     /// @notice IFlatLaunchpegInterface identifier
     bytes4 public immutable flatLaunchpegInterface;
 
+    /// @notice LaunchpegFactory address
+    address public immutable launchpegFactory;
+
     /// @dev LaunchpegLens constructor
-    constructor() {
+    /// @param _launchpegFactory Address of the LaunchpegFactory
+    constructor(address _launchpegFactory) {
         launchpegInterface = type(ILaunchpeg).interfaceId;
         flatLaunchpegInterface = type(IFlatLaunchpeg).interfaceId;
+        launchpegFactory = _launchpegFactory;
     }
 
     /// @notice Gets the type of Launchpeg
@@ -109,20 +115,37 @@ contract LaunchpegLens {
         }
     }
 
-    /// @notice Fetch Launchpeg data from a list of addresses
-    /// Will revert if a contract in the list is not a Launchpeg
-    /// @param _addressList List of contract adresses to consider
+    /// @notice Fetch Launchpeg data
+    /// @param _type Type of Launchpeg to consider
+    /// @param _offset Index to start at when looking up Launchpegs
+    /// @param _limit Maximum number of Launchpegs datas to return
     /// @param _user Address to consider for NFT balances and mintlist allocations
     /// @return LensDataList List of contracts datas
-    function getAllLaunchpegs(address[] memory _addressList, address _user)
-        external
-        view
-        returns (LensData[] memory)
-    {
-        LensData[] memory LensDatas = new LensData[](_addressList.length);
+    function getAllLaunchpegsFromType(
+        uint8 _type,
+        uint256 _offset,
+        uint256 _limit,
+        address _user
+    ) external view returns (LensData[] memory) {
+        LensData[] memory LensDatas;
+        uint256 numLaunchpegs = ILaunchpegFactory(launchpegFactory)
+            .numLaunchpegs(_type);
+
+        if (_offset >= numLaunchpegs || _limit == 0) {
+            return LensDatas;
+        }
+
+        uint256 end = _offset + _limit > numLaunchpegs
+            ? numLaunchpegs
+            : _offset + _limit;
+
+        LensDatas = new LensData[](end - _offset);
 
         for (uint256 i = 0; i < LensDatas.length; i++) {
-            LensDatas[i] = getLaunchpegData(_addressList[i], _user);
+            LensDatas[i] = getLaunchpegData(
+                ILaunchpegFactory(launchpegFactory).allLaunchpegs(_type, i),
+                _user
+            );
         }
 
         return LensDatas;
@@ -145,13 +168,14 @@ contract LaunchpegLens {
             revert LaunchpegLens__InvalidContract();
         }
 
-        data.collectionData.name = ERC721A(_launchpeg).name();
-        data.collectionData.symbol = ERC721A(_launchpeg).symbol();
+        data.collectionData.name = ERC721AUpgradeable(_launchpeg).name();
+        data.collectionData.symbol = ERC721AUpgradeable(_launchpeg).symbol();
         data.collectionData.collectionSize = BaseLaunchpeg(_launchpeg)
             .collectionSize();
         data.collectionData.maxBatchSize = BaseLaunchpeg(_launchpeg)
             .maxBatchSize();
-        data.collectionData.totalSupply = ERC721A(_launchpeg).totalSupply();
+        data.collectionData.totalSupply = ERC721AUpgradeable(_launchpeg)
+            .totalSupply();
 
         data.revealData.revealBatchSize = IBatchReveal(_launchpeg)
             .revealBatchSize();
@@ -214,7 +238,9 @@ contract LaunchpegLens {
         }
 
         if (_user != address(0)) {
-            data.userData.balanceOf = ERC721A(_launchpeg).balanceOf(_user);
+            data.userData.balanceOf = ERC721AUpgradeable(_launchpeg).balanceOf(
+                _user
+            );
             data.userData.allowanceForAllowlistMint = IBaseLaunchpeg(_launchpeg)
                 .allowList(_user);
         }

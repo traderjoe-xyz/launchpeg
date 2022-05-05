@@ -11,11 +11,11 @@ import "./BaseLaunchpeg.sol";
 contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
     /// @notice Price of one NFT for people on the mint list
     /// @dev mintlistPrice is scaled to 1e18
-    uint256 public immutable override mintlistPrice;
+    uint256 public override mintlistPrice;
 
     /// @notice Price of one NFT during the public sale
     /// @dev salePrice is scaled to 1e18
-    uint256 public immutable override salePrice;
+    uint256 public override salePrice;
 
     /// @notice Determine wether or not users are allowed to buy from public sale
     bool public override isPublicSaleActive = false;
@@ -36,7 +36,8 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
     /// @param isActive True if the public sale is open, false otherwise
     event PublicSaleStateChanged(bool isActive);
 
-    /// @dev FlatLaunchpeg constructor
+    /// @notice FlatLaunchpeg initialization
+    /// Can only be called once
     /// @param _name ERC721 name
     /// @param _symbol ERC721 symbol
     /// @param _projectOwner The project owner
@@ -47,7 +48,7 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
     /// @param _batchRevealSize Size of the batch reveal
     /// @param _salePrice Price of the public sale in Avax
     /// @param _mintlistPrice Price of the whitelist sale in Avax
-    constructor(
+    function initialize(
         string memory _name,
         string memory _symbol,
         address _projectOwner,
@@ -58,8 +59,8 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
         uint256 _batchRevealSize,
         uint256 _salePrice,
         uint256 _mintlistPrice
-    )
-        BaseLaunchpeg(
+    ) external override initializer {
+        initializeBaseLaunchpeg(
             _name,
             _symbol,
             _projectOwner,
@@ -68,8 +69,7 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
             _collectionSize,
             _amountForDevs,
             _batchRevealSize
-        )
-    {
+        );
         salePrice = _salePrice;
         mintlistPrice = _mintlistPrice;
     }
@@ -136,7 +136,7 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
         public
         view
         virtual
-        override(BaseLaunchpeg, IERC165)
+        override(BaseLaunchpeg, IERC165Upgradeable)
         returns (bool)
     {
         return
