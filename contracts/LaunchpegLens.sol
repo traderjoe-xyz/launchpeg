@@ -59,6 +59,7 @@ contract LaunchpegLens {
 
     struct UserData {
         uint256 balanceOf;
+        uint256 numberMinted;
         uint256 allowanceForAllowlistMint;
     }
 
@@ -241,6 +242,8 @@ contract LaunchpegLens {
             data.userData.balanceOf = ERC721AUpgradeable(_launchpeg).balanceOf(
                 _user
             );
+            data.userData.numberMinted = IBaseLaunchpeg(_launchpeg)
+                .numberMinted(_user);
             data.userData.allowanceForAllowlistMint = IBaseLaunchpeg(_launchpeg)
                 .allowList(_user);
         }
