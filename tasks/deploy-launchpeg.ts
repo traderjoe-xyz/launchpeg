@@ -32,8 +32,8 @@ task('deploy-launchpeg', 'Deploy Launchpeg contract')
 
     await creationTx.wait()
 
-    const launchpegNumber = await factory.numLaunchpegs()
-    const launchpegAddress = await factory.allLaunchpegs(launchpegNumber - 1)
+    const launchpegNumber = await factory.numLaunchpegs(0)
+    const launchpegAddress = await factory.allLaunchpegs(0, launchpegNumber - 1)
 
     console.log(`-- Contract deployed at ${launchpegAddress} --`)
 
