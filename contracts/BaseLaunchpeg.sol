@@ -370,7 +370,11 @@ abstract contract BaseLaunchpeg is
         override(ERC721AUpgradeable, ERC2981Upgradeable, IERC165Upgradeable)
         returns (bool)
     {
-        return super.supportsInterface(_interfaceId);
+        return
+            ERC721AUpgradeable.supportsInterface(_interfaceId) ||
+            ERC2981Upgradeable.supportsInterface(_interfaceId) ||
+            ERC165Upgradeable.supportsInterface(_interfaceId) ||
+            super.supportsInterface(_interfaceId);
     }
 
     /// @dev Verifies that enough AVAX has been sent by the sender and refunds the extra tokens if any
