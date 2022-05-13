@@ -467,6 +467,17 @@ describe('Launchpeg', () => {
       )
     })
 
+    it('initializeJoeFee() should be callable only once', async () => {
+      let feePercent = 200
+      let feeCollector = bob
+
+      await launchpeg.initializeJoeFee(feePercent, feeCollector.address)
+
+      await expect(launchpeg.initializeJoeFee(feePercent, feeCollector.address)).to.be.revertedWith(
+        'Launchpeg__JoeFeeAlreadyInitialized()'
+      )
+    })
+
     it('Fee correctly sent to collector address', async () => {
       const feePercent = 200
       const feeCollector = bob

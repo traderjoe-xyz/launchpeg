@@ -162,6 +162,9 @@ abstract contract BaseLaunchpeg is
         override
         onlyOwner
     {
+        if (joeFeeCollector != address(0)) {
+            revert Launchpeg__JoeFeeAlreadyInitialized();
+        }
         if (_joeFeePercent > BASIS_POINT_PRECISION) {
             revert Launchpeg__InvalidPercent();
         }
