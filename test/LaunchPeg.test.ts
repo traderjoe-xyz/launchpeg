@@ -424,8 +424,21 @@ describe('Launchpeg', () => {
         'Launchpeg__CanOnlyMintMultipleOfMaxBatchSize()'
       )
       await launchpeg.connect(projectOwner).devMint(config.amountForDevs)
-      await expect(launchpeg.connect(projectOwner).devMint(1)).to.be.revertedWith('Launchpeg__MaxSupplyReached()')
+      await expect(launchpeg.connect(projectOwner).devMint(1)).to.be.revertedWith('Launchpeg__MaxSupplyForDevReached()')
       expect(await launchpeg.balanceOf(projectOwner.address)).to.eq(config.amountForDevs)
+    })
+
+    it('Devs cannot mint more than maxSupply', async () => {
+      config.collectionSize = 50
+      config.amountForDevs = 50
+      config.amountForAuction = 0
+      config.amountForMintlist = 0
+      config.batchRevealSize = 10
+      await deployLaunchpeg()
+      await initializePhases(launchpeg, config, Phase.DutchAuction)
+
+      await launchpeg.connect(projectOwner).devMint(config.amountForDevs)
+      await expect(launchpeg.connect(projectOwner).devMint(1)).to.be.revertedWith('Launchpeg__MaxSupplyReached()')
     })
 
     it('Only dev can mint', async () => {
