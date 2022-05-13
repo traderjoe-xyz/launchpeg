@@ -60,8 +60,8 @@ abstract contract BaseLaunchpeg is
     /// @notice The amount of NFTs each allowed address can mint during the allowList mint
     mapping(address => uint256) public override allowList;
 
-    /// @dev Tracks the amount of NFTs minted by `projectOwner`
-    uint256 internal _amountMintedByDevs;
+    /// @notice Tracks the amount of NFTs minted by `projectOwner`
+    uint256 public override amountMintedByDevs;
 
     /// @dev Emitted on initializeJoeFee()
     /// @param feePercent The fees collected by Joepegs on the sale benefits
@@ -244,13 +244,13 @@ abstract contract BaseLaunchpeg is
     /// @dev Can only mint up to `amountForDevs`
     /// @param _quantity Quantity of NFTs to mint
     function devMint(uint256 _quantity) external override onlyProjectOwner {
-        if (_amountMintedByDevs + _quantity > amountForDevs) {
+        if (amountMintedByDevs + _quantity > amountForDevs) {
             revert Launchpeg__MaxSupplyReached();
         }
         if (_quantity % maxBatchSize != 0) {
             revert Launchpeg__CanOnlyMintMultipleOfMaxBatchSize();
         }
-        _amountMintedByDevs = _amountMintedByDevs + _quantity;
+        amountMintedByDevs = amountMintedByDevs + _quantity;
         uint256 numChunks = _quantity / maxBatchSize;
         for (uint256 i = 0; i < numChunks; i++) {
             _mint(msg.sender, maxBatchSize, "", false);

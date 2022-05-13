@@ -284,7 +284,7 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
         override
         atPhase(Phase.DutchAuction)
     {
-        uint256 remainingSupply = (amountForAuction + _amountMintedByDevs) -
+        uint256 remainingSupply = (amountForAuction + amountMintedByDevs) -
             totalSupply();
         if (remainingSupply == 0) {
             revert Launchpeg__MaxSupplyReached();
@@ -324,7 +324,7 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
             amountMintedDuringAuction;
         if (
             totalSupply() + remainingAuctionSupply + _quantity >
-            amountForAuction + amountForMintlist + _amountMintedByDevs
+            amountForAuction + amountForMintlist + amountMintedByDevs
         ) {
             revert Launchpeg__MaxSupplyReached();
         }
@@ -352,7 +352,7 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
     {
         if (
             totalSupply() + _quantity >
-            collectionSize - (amountForDevs - _amountMintedByDevs)
+            collectionSize - (amountForDevs - amountMintedByDevs)
         ) {
             revert Launchpeg__MaxSupplyReached();
         }

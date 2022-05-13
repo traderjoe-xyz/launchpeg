@@ -26,6 +26,8 @@ interface IBaseLaunchpeg is IERC721Upgradeable, IERC721MetadataUpgradeable {
 
     function allowList(address) external view returns (uint256);
 
+    function amountMintedByDevs() external view returns (uint256);
+
     function initializeJoeFee(uint256 _joeFeePercent, address _joeFeeCollector)
         external;
 
