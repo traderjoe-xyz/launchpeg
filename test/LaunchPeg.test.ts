@@ -112,7 +112,7 @@ describe('Launchpeg', () => {
     it('Phases can be initialized only once', async () => {
       config.auctionStartTime = (await latest()).add(duration.minutes(5))
       await deployLaunchpeg()
-      await initializePhases(launchpeg, config, Phase.DutchAuction)
+      await initializePhases(launchpeg, config, Phase.NotStarted)
       await expect(initializePhases(launchpeg, config, Phase.DutchAuction)).to.be.revertedWith(
         'Launchpeg__AuctionAlreadyInitialized()'
       )
@@ -193,8 +193,7 @@ describe('Launchpeg', () => {
     })
 
     it('Mint reverts when sale has not started yet', async () => {
-      config.auctionStartTime = (await latest()).add(duration.minutes(5))
-      await initializePhases(launchpeg, config, Phase.DutchAuction)
+      await initializePhases(launchpeg, config, Phase.NotStarted)
 
       await expect(launchpeg.auctionMint(1)).to.be.revertedWith('Launchpeg__WrongPhase()')
     })

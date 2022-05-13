@@ -25,13 +25,14 @@ export interface LaunchpegConfig {
   flatMintListSalePrice: BigNumber
 }
 
+const AUCTION_START_OFFSET = 10
 const MINTLIST_START_OFFSET = 100
 const PUBLIC_SALE_START_OFFSET = 200
 const REVEAL_START_OFFSET = 400
 const REVEAL_INTERVAL = 50
 
 export const getDefaultLaunchpegConfig = async (): Promise<LaunchpegConfig> => {
-  const auctionStartTime = await latest()
+  const auctionStartTime = (await latest()).add(duration.minutes(AUCTION_START_OFFSET))
   return {
     auctionStartTime,
     mintlistStartTime: auctionStartTime.add(duration.minutes(MINTLIST_START_OFFSET)),
@@ -57,6 +58,7 @@ export const getDefaultLaunchpegConfig = async (): Promise<LaunchpegConfig> => {
 }
 
 export enum Phase {
+  NotStarted,
   DutchAuction,
   Mintlist,
   PublicSale,
@@ -83,16 +85,19 @@ export const initializePhases = async (launchpeg: Contract, config: LaunchpegCon
 
 const advanceTimeAndBlockToPhase = async (phase: Phase) => {
   switch (phase) {
+    case Phase.NotStarted:
+      break
     case Phase.DutchAuction:
+      await advanceTimeAndBlock(duration.minutes(AUCTION_START_OFFSET))
       break
     case Phase.Mintlist:
-      await advanceTimeAndBlock(duration.minutes(MINTLIST_START_OFFSET))
+      await advanceTimeAndBlock(duration.minutes(MINTLIST_START_OFFSET + AUCTION_START_OFFSET))
       break
     case Phase.PublicSale:
-      await advanceTimeAndBlock(duration.minutes(PUBLIC_SALE_START_OFFSET))
+      await advanceTimeAndBlock(duration.minutes(PUBLIC_SALE_START_OFFSET + AUCTION_START_OFFSET))
       break
     case Phase.Reveal:
-      await advanceTimeAndBlock(duration.minutes(REVEAL_START_OFFSET))
+      await advanceTimeAndBlock(duration.minutes(REVEAL_START_OFFSET + AUCTION_START_OFFSET))
       break
   }
 }

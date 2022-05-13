@@ -208,7 +208,7 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
         if (auctionSaleStartTime != 0) {
             revert Launchpeg__AuctionAlreadyInitialized();
         }
-        if (_auctionSaleStartTime == 0) {
+        if (_auctionSaleStartTime < block.timestamp) {
             revert Launchpeg__InvalidAuctionStartTime();
         }
         if (_auctionStartPrice <= _auctionEndPrice) {
