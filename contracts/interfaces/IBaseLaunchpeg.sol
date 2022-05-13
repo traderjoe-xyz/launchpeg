@@ -46,7 +46,7 @@ interface IBaseLaunchpeg is IERC721Upgradeable, IERC721MetadataUpgradeable {
 
     function devMint(uint256 quantity) external;
 
-    function withdrawAVAX() external;
+    function withdrawAVAX(address to) external;
 
     function revealNextBatch() external;
 

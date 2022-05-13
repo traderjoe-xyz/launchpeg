@@ -196,7 +196,7 @@ describe('FlatLaunchpeg', () => {
       await flatLaunchpeg.connect(bob).publicSaleMint(4, { value: config.flatPublicSalePrice.mul(4) })
 
       const initialDevBalance = await dev.getBalance()
-      await flatLaunchpeg.connect(dev).withdrawAVAX()
+      await flatLaunchpeg.connect(dev).withdrawAVAX(dev.address)
       expect(await dev.getBalance()).to.be.closeTo(
         initialDevBalance.add(config.flatPublicSalePrice.mul(9)),
         ethers.utils.parseEther('0.01')
@@ -215,7 +215,7 @@ describe('FlatLaunchpeg', () => {
       const fee = total.mul(feePercent).div(10000)
       const initialDevBalance = await dev.getBalance()
       const initialFeeCollectorBalance = await feeCollector.getBalance()
-      await flatLaunchpeg.connect(dev).withdrawAVAX()
+      await flatLaunchpeg.connect(dev).withdrawAVAX(dev.address)
 
       expect(await dev.getBalance()).to.be.closeTo(
         initialDevBalance.add(total.sub(fee)),

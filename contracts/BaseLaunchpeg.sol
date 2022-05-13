@@ -262,7 +262,13 @@ abstract contract BaseLaunchpeg is
     }
 
     /// @notice Withdraw AVAX to the contract owner
-    function withdrawAVAX() external override onlyOwner nonReentrant {
+    /// @param _to Recipient of the earned AVAX
+    function withdrawAVAX(address _to)
+        external
+        override
+        onlyOwner
+        nonReentrant
+    {
         uint256 amount = address(this).balance;
         uint256 fee;
         bool sent;
@@ -277,12 +283,12 @@ abstract contract BaseLaunchpeg is
             }
         }
 
-        (sent, ) = msg.sender.call{value: amount}("");
+        (sent, ) = _to.call{value: amount}("");
         if (!sent) {
             revert Launchpeg__TransferFailed();
         }
 
-        emit AvaxWithdraw(msg.sender, amount, fee);
+        emit AvaxWithdraw(_to, amount, fee);
     }
 
     /// @notice Reveals the next batch if the reveal conditions are met
