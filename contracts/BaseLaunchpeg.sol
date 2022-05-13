@@ -123,8 +123,8 @@ abstract contract BaseLaunchpeg is
     /// @param _amountForDevs Amount of NFTs reserved for `projectOwner` (e.g 200)
     /// @param _batchRevealSize Size of the batch reveal
     function initializeBaseLaunchpeg(
-        string memory _name,
-        string memory _symbol,
+        string calldata _name,
+        string calldata _symbol,
         address _projectOwner,
         address _royaltyReceiver,
         uint256 _maxBatchSize,
@@ -189,14 +189,14 @@ abstract contract BaseLaunchpeg is
     /// @param _addresses List of addresses allowed to mint during the allowList phase
     /// @param _numNfts List of NFT quantities mintable per address
     function seedAllowlist(
-        address[] memory _addresses,
-        uint256[] memory _numNfts
+        address[] calldata _addresses,
+        uint256[] calldata _numNfts
     ) external override onlyOwner {
         uint256 addressesLength = _addresses.length;
         if (addressesLength != _numNfts.length) {
             revert Launchpeg__WrongAddressesAndNumSlotsLength();
         }
-        for (uint256 i = 0; i < addressesLength; i++) {
+        for (uint256 i; i < addressesLength; i++) {
             allowList[_addresses[i]] = _numNfts[i];
         }
 
@@ -252,7 +252,7 @@ abstract contract BaseLaunchpeg is
         }
         amountMintedByDevs = amountMintedByDevs + _quantity;
         uint256 numChunks = _quantity / maxBatchSize;
-        for (uint256 i = 0; i < numChunks; i++) {
+        for (uint256 i; i < numChunks; i++) {
             _mint(msg.sender, maxBatchSize, "", false);
         }
         emit DevMint(msg.sender, _quantity);
@@ -261,8 +261,8 @@ abstract contract BaseLaunchpeg is
     /// @notice Withdraw AVAX to the contract owner
     function withdrawAVAX() external override onlyOwner nonReentrant {
         uint256 amount = address(this).balance;
-        uint256 fee = 0;
-        bool sent = false;
+        uint256 fee;
+        bool sent;
 
         if (joeFeePercent > 0) {
             fee = (amount * joeFeePercent) / BASIS_POINT_PRECISION;

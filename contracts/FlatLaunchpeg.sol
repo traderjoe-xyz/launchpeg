@@ -49,8 +49,8 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
     /// @param _salePrice Price of the public sale in Avax
     /// @param _mintlistPrice Price of the whitelist sale in Avax
     function initialize(
-        string memory _name,
-        string memory _symbol,
+        string calldata _name,
+        string calldata _symbol,
         address _projectOwner,
         address _royaltyReceiver,
         uint256 _maxBatchSize,

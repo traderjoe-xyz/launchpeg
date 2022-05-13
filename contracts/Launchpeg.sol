@@ -149,8 +149,8 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
     /// @param _amountForDevs Amount of NFTs reserved for `projectOwner` (e.g 200)
     /// @param _batchRevealSize Size of the batch reveal
     function initialize(
-        string memory _name,
-        string memory _symbol,
+        string calldata _name,
+        string calldata _symbol,
         address _projectOwner,
         address _royaltyReceiver,
         uint256 _maxBatchSize,
