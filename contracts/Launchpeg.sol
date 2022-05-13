@@ -1,15 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/StringsUpgradeable.sol";
-
-import "erc721a-upgradeable/contracts/ERC721AUpgradeable.sol";
-import "./BatchReveal.sol";
 
 import "./BaseLaunchpeg.sol";
 import "./interfaces/ILaunchpeg.sol";
-import "./LaunchpegErrors.sol";
 
 /// @title Launchpeg
 /// @author Trader Joe
