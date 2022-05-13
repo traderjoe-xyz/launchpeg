@@ -294,7 +294,6 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
         uint256 totalCost = lastAuctionPrice * _quantity;
         amountMintedDuringAuction = amountMintedDuringAuction + _quantity;
         _mint(msg.sender, _quantity, "", false);
-        _refundIfOver(totalCost);
         emit Mint(
             msg.sender,
             _quantity,
@@ -302,6 +301,7 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
             _totalMinted() - _quantity,
             Phase.DutchAuction
         );
+        _refundIfOver(totalCost);
     }
 
     /// @notice Mint NFTs during the allowList mint
@@ -327,7 +327,6 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
         uint256 price = getMintlistPrice();
         uint256 totalCost = price * _quantity;
         _mint(msg.sender, _quantity, "", false);
-        _refundIfOver(totalCost);
         emit Mint(
             msg.sender,
             _quantity,
@@ -335,6 +334,7 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
             _totalMinted() - _quantity,
             Phase.Mintlist
         );
+        _refundIfOver(totalCost);
     }
 
     /// @notice Mint NFTs during the public sale
@@ -356,7 +356,6 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
         }
         uint256 price = getPublicSalePrice();
         _mint(msg.sender, _quantity, "", false);
-        _refundIfOver(price * _quantity);
         emit Mint(
             msg.sender,
             _quantity,
@@ -364,6 +363,7 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
             _totalMinted() - _quantity,
             Phase.PublicSale
         );
+        _refundIfOver(price * _quantity);
     }
 
     /// @notice Returns the current price of the dutch auction
