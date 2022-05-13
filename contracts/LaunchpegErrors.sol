@@ -13,6 +13,7 @@ error Launchpeg__InvalidBatchRevealSize();
 error Launchpeg__InvalidJoeFeeCollector();
 error Launchpeg__InvalidProjectOwner();
 error Launchpeg__InvalidPercent();
+error Launchpeg__InvalidRoyaltyInfo();
 error Launchpeg__LargerCollectionSizeNeeded();
 error Launchpeg__MaxSupplyReached();
 error Launchpeg__MintlistBeforeAuction();
