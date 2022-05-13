@@ -133,6 +133,9 @@ abstract contract BaseLaunchpeg is
         uint256 _batchRevealSize
     ) internal onlyInitializing {
         __Ownable_init();
+        __ReentrancyGuard_init();
+        __ERC2981_init();
+
         __ERC721A_init(_name, _symbol);
         initializeBatchReveal(_batchRevealSize, _collectionSize);
 
