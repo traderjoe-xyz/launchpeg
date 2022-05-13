@@ -221,8 +221,8 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
             revert Launchpeg__PublicSaleBeforeMintlist();
         }
         if (
-            _mintlistDiscountPercent > 10000 ||
-            _publicSaleDiscountPercent > 10000
+            _mintlistDiscountPercent > BASIS_POINT_PRECISION ||
+            _publicSaleDiscountPercent > BASIS_POINT_PRECISION
         ) {
             revert Launchpeg__InvalidPercent();
         }
