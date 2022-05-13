@@ -54,7 +54,11 @@ abstract contract BatchReveal is IBatchReveal, Initializable {
         uint256 _revealBatchSize,
         uint256 _collectionSize
     ) internal onlyInitializing {
-        if (_collectionSize % _revealBatchSize != 0 || _revealBatchSize == 0) {
+        if (
+            _collectionSize % _revealBatchSize != 0 ||
+            _revealBatchSize == 0 ||
+            _revealBatchSize > _collectionSize
+        ) {
             revert Launchpeg__InvalidBatchRevealSize();
         }
         revealBatchSize = _revealBatchSize;
