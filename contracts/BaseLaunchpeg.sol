@@ -247,8 +247,11 @@ abstract contract BaseLaunchpeg is
     /// @dev Can only mint up to `amountForDevs`
     /// @param _quantity Quantity of NFTs to mint
     function devMint(uint256 _quantity) external override onlyProjectOwner {
-        if (_amountMintedByDevs + _quantity > amountForDevs) {
+        if (totalSupply() + _quantity > collectionSize) {
             revert Launchpeg__MaxSupplyReached();
+        }
+        if (_amountMintedByDevs + _quantity > amountForDevs) {
+            revert Launchpeg__MaxSupplyForDevReached();
         }
         if (_quantity % maxBatchSize != 0) {
             revert Launchpeg__CanOnlyMintMultipleOfMaxBatchSize();

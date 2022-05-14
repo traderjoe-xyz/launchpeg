@@ -15,6 +15,7 @@ error Launchpeg__InvalidJoeFeeCollector();
 error Launchpeg__InvalidProjectOwner();
 error Launchpeg__InvalidPercent();
 error Launchpeg__LargerCollectionSizeNeeded();
+error Launchpeg__MaxSupplyForDevReached();
 error Launchpeg__MaxSupplyReached();
 error Launchpeg__MintlistBeforeAuction();
 error Launchpeg__NotEligibleForAllowlistMint();
