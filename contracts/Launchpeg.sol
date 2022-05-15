@@ -221,7 +221,12 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
         ) {
             revert Launchpeg__InvalidPercent();
         }
-        if (_auctionDropInterval == 0) {
+
+        auctionSaleDuration = _mintlistStartTime - _auctionSaleStartTime;
+        if (
+            _auctionDropInterval == 0 ||
+            _auctionDropInterval > auctionSaleDuration / 4
+        ) {
             revert Launchpeg__InvalidAuctionDropInterval();
         }
 
@@ -229,7 +234,6 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
         auctionStartPrice = _auctionStartPrice;
         lastAuctionPrice = _auctionStartPrice;
         auctionEndPrice = _auctionEndPrice;
-        auctionSaleDuration = _mintlistStartTime - _auctionSaleStartTime;
         auctionDropInterval = _auctionDropInterval;
         auctionDropPerStep =
             (_auctionStartPrice - _auctionEndPrice) /
