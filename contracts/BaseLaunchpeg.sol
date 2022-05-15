@@ -147,6 +147,10 @@ abstract contract BaseLaunchpeg is
             revert Launchpeg__LargerCollectionSizeNeeded();
         }
 
+        if (_maxBatchSize > _collectionSize) {
+            revert Launchpeg__InvalidMaxBatchSize();
+        }
+
         projectOwner = _projectOwner;
         // Default royalty is 5%
         _setDefaultRoyalty(_royaltyReceiver, 500);
