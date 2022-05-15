@@ -495,7 +495,7 @@ describe('Launchpeg', () => {
       let price = ethers.utils.parseEther('1')
       expect((await launchpeg.royaltyInfo(1, price))[1]).to.eq(price.mul(royaltyPercent).div(10_000))
 
-      await expect(launchpeg.setRoyaltyInfo(royaltyCollector.address, 2_500)).to.be.revertedWith(
+      await expect(launchpeg.setRoyaltyInfo(royaltyCollector.address, 3_000)).to.be.revertedWith(
         'Launchpeg__InvalidRoyaltyInfo()'
       )
     })
