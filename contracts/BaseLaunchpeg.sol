@@ -181,7 +181,7 @@ abstract contract BaseLaunchpeg is
         override
         onlyOwner
     {
-        if (_feePercent > BASIS_POINT_PRECISION / 5) {
+        if (_feePercent > BASIS_POINT_PRECISION / 4) {
             revert Launchpeg__InvalidRoyaltyInfo();
         }
         _setDefaultRoyalty(_receiver, _feePercent);
