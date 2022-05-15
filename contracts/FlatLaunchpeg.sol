@@ -69,6 +69,11 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
             _amountForDevs,
             _batchRevealSize
         );
+
+        if (_mintlistPrice > _salePrice) {
+            revert Launchpeg__InvalidMintlistPrice();
+        }
+
         salePrice = _salePrice;
         mintlistPrice = _mintlistPrice;
     }

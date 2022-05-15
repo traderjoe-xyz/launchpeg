@@ -11,6 +11,7 @@ error Launchpeg__InvalidAuctionStartTime();
 error Launchpeg__InvalidBatchRevealSize();
 error Launchpeg__InvalidJoeFeeCollector();
 error Launchpeg__InvalidMaxBatchSize();
+error Launchpeg__InvalidMintlistPrice();
 error Launchpeg__InvalidProjectOwner();
 error Launchpeg__InvalidPercent();
 error Launchpeg__LargerCollectionSizeNeeded();
