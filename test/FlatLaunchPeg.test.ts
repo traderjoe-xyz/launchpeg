@@ -157,6 +157,17 @@ describe('FlatLaunchpeg', () => {
         'Launchpeg__MaxSupplyReached()'
       )
     })
+
+    it('Mint reverts when address minted maxBatchSize', async () => {
+      let quantity = config.maxBatchSize
+      const price = config.flatPublicSalePrice
+      await flatLaunchpeg.connect(bob).publicSaleMint(quantity, { value: price.mul(quantity) })
+
+      quantity = 1
+      await expect(
+        flatLaunchpeg.connect(bob).publicSaleMint(quantity, { value: price.mul(quantity) })
+      ).to.be.revertedWith('Launchpeg__CanNotMintThisMany()')
+    })
   })
 
   describe('Transfers', () => {
