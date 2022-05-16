@@ -181,7 +181,8 @@ abstract contract BaseLaunchpeg is
         override
         onlyOwner
     {
-        if (_feePercent > BASIS_POINT_PRECISION / 4) {
+        // Royalty fees are limited to 25%
+        if (_feePercent > 2_500) {
             revert Launchpeg__InvalidRoyaltyInfo();
         }
         _setDefaultRoyalty(_receiver, _feePercent);
