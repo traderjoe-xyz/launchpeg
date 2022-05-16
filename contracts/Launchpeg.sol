@@ -105,16 +105,6 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
         uint256 publicSaleDiscountPercent
     );
 
-    /// @dev Emitted on initializePhases()
-    /// @param revealStartTime Start of the token URIs reveal in seconds
-    /// @param revealInterval Interval between two batch reveals in seconds
-    /// @param revealBatchSize Amount of NFTs revealed in a single batch
-    event RevealInitialized(
-        uint256 revealStartTime,
-        uint256 revealInterval,
-        uint256 revealBatchSize
-    );
-
     /// @dev Emitted on auctionMint(), allowListMint(), publicSaleMint()
     /// @param sender The address that minted
     /// @param quantity Amount of NFTs minted
@@ -265,12 +255,6 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
             mintlistDiscountPercent,
             publicSaleStartTime,
             publicSaleDiscountPercent
-        );
-
-        emit RevealInitialized(
-            revealStartTime,
-            revealInterval,
-            revealBatchSize
         );
     }
 
