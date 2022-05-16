@@ -148,6 +148,8 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
     /// @param _amountForMintlist Amount of NFTs available for the allowList mint (e.g 1000)
     /// @param _amountForDevs Amount of NFTs reserved for `projectOwner` (e.g 200)
     /// @param _batchRevealSize Size of the batch reveal
+    /// @param _revealStartTime Start of the token URIs reveal in seconds
+    /// @param _revealInterval Interval between two batch reveals in seconds
     function initialize(
         string memory _name,
         string memory _symbol,
@@ -158,7 +160,9 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
         uint256 _amountForAuction,
         uint256 _amountForMintlist,
         uint256 _amountForDevs,
-        uint256 _batchRevealSize
+        uint256 _batchRevealSize,
+        uint256 _revealStartTime,
+        uint256 _revealInterval
     ) external override initializer {
         initializeBaseLaunchpeg(
             _name,
@@ -168,7 +172,9 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
             _maxBatchSize,
             _collectionSize,
             _amountForDevs,
-            _batchRevealSize
+            _batchRevealSize,
+            _revealStartTime,
+            _revealInterval
         );
         if (
             _amountForAuction + _amountForMintlist + _amountForDevs >
@@ -191,8 +197,6 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
     /// @param _mintlistDiscountPercent Discount applied to the last auction price during the allowList mint
     /// @param _publicSaleStartTime Public sale start time in seconds
     /// @param _publicSaleDiscountPercent Discount applied to the last auction price during the public sale
-    /// @param _revealStartTime Start of the token URIs reveal in seconds
-    /// @param _revealInterval Interval between two batch reveals in seconds
     function initializePhases(
         uint256 _auctionSaleStartTime,
         uint256 _auctionStartPrice,
@@ -201,9 +205,7 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
         uint256 _mintlistStartTime,
         uint256 _mintlistDiscountPercent,
         uint256 _publicSaleStartTime,
-        uint256 _publicSaleDiscountPercent,
-        uint256 _revealStartTime,
-        uint256 _revealInterval
+        uint256 _publicSaleDiscountPercent
     ) external override atPhase(Phase.NotStarted) {
         if (auctionSaleStartTime != 0) {
             revert Launchpeg__AuctionAlreadyInitialized();
@@ -245,9 +247,6 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
 
         publicSaleStartTime = _publicSaleStartTime;
         publicSaleDiscountPercent = _publicSaleDiscountPercent;
-
-        revealStartTime = _revealStartTime;
-        revealInterval = _revealInterval;
 
         emit Initialized(
             name(),

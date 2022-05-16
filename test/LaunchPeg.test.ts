@@ -56,7 +56,9 @@ describe('Launchpeg', () => {
       config.amountForAuction,
       config.amountForMintlist,
       config.amountForDevs,
-      config.batchRevealSize
+      config.batchRevealSize,
+      config.batchRevealStart,
+      config.batchRevealInterval
     )
   }
 
@@ -87,7 +89,9 @@ describe('Launchpeg', () => {
           config.amountForAuction,
           config.amountForMintlist,
           config.amountForDevs,
-          config.batchRevealSize
+          config.batchRevealSize,
+          config.batchRevealStart,
+          config.batchRevealInterval
         )
       ).to.be.revertedWith('Launchpeg__InvalidProjectOwner()')
 
@@ -101,7 +105,9 @@ describe('Launchpeg', () => {
         config.amountForAuction,
         config.amountForMintlist,
         config.amountForDevs,
-        config.batchRevealSize
+        config.batchRevealSize,
+        config.batchRevealStart,
+        config.batchRevealInterval
       )
 
       await expect(launchpeg.connect(dev).setProjectOwner(ethers.constants.AddressZero)).to.be.revertedWith(
@@ -159,6 +165,44 @@ describe('Launchpeg', () => {
       await expect(initializePhases(launchpeg, config, Phase.DutchAuction)).to.be.revertedWith(
         'Launchpeg__InvalidPercent()'
       )
+    })
+
+    it('Batch reveal dates must be coherent', async () => {
+      launchpeg = await launchpegCF.deploy()
+
+      await expect(
+        launchpeg.initialize(
+          'JoePEG',
+          'JOEPEG',
+          projectOwner.address,
+          royaltyReceiver.address,
+          config.maxBatchSize,
+          config.collectionSize,
+          config.amountForAuction,
+          config.amountForMintlist,
+          config.amountForDevs,
+          config.batchRevealSize,
+          config.batchRevealStart.add(8_640_000),
+          config.batchRevealInterval
+        )
+      ).to.be.revertedWith('Launchpeg__InvalidRevealDates()')
+
+      await expect(
+        launchpeg.initialize(
+          'JoePEG',
+          'JOEPEG',
+          projectOwner.address,
+          royaltyReceiver.address,
+          config.maxBatchSize,
+          config.collectionSize,
+          config.amountForAuction,
+          config.amountForMintlist,
+          config.amountForDevs,
+          config.batchRevealSize,
+          config.batchRevealStart,
+          config.batchRevealInterval.add(864_000)
+        )
+      ).to.be.revertedWith('Launchpeg__InvalidRevealDates()')
     })
   })
 

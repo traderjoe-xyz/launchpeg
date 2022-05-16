@@ -89,7 +89,9 @@ contract LaunchpegFactory is
     /// @param _amountForAuction Amount of NFTs available for the auction (e.g 8000)
     /// @param _amountForMintlist Amount of NFTs available for the allowList mint (e.g 1000)
     /// @param _amountForDevs Amount of NFTs reserved for `projectOwner` (e.g 200)
-    /// @param _batchRevealSize Size of the batch reveal
+    /// @param _batchRevealData Contains batch reveal informations :
+    ///  Size of the batch reveal, start of the token URIs reveal in seconds
+    /// and interval between two batch reveals in seconds
     /// @return launchpeg New Launchpeg address
     function createLaunchpeg(
         string memory _name,
@@ -101,7 +103,7 @@ contract LaunchpegFactory is
         uint256 _amountForAuction,
         uint256 _amountForMintlist,
         uint256 _amountForDevs,
-        uint256 _batchRevealSize
+        BatchReveal calldata _batchRevealData
     ) external override onlyOwner returns (address) {
         address launchpeg = Clones.clone(launchpegImplementation);
 
@@ -118,7 +120,9 @@ contract LaunchpegFactory is
             _amountForAuction,
             _amountForMintlist,
             _amountForDevs,
-            _batchRevealSize
+            _batchRevealData.batchRevealSize,
+            _batchRevealData.revealStartTime,
+            _batchRevealData.revealInterval
         );
 
         IBaseLaunchpeg(launchpeg).initializeJoeFee(
@@ -139,7 +143,9 @@ contract LaunchpegFactory is
             _amountForAuction,
             _amountForMintlist,
             _amountForDevs,
-            _batchRevealSize
+            _batchRevealData.batchRevealSize,
+            _batchRevealData.revealStartTime,
+            _batchRevealData.revealInterval
         );
 
         return launchpeg;
@@ -153,9 +159,11 @@ contract LaunchpegFactory is
     /// @param _maxBatchSize Max amount of NFTs that can be minted at once
     /// @param _collectionSize The collection size (e.g 10000)
     /// @param _amountForDevs Amount of NFTs reserved for `projectOwner` (e.g 200)
-    /// @param _batchRevealSize Size of the batch reveal
     /// @param _salePrice Price of the public sale in Avax
     /// @param _mintlistPrice Price of the whitelist sale in Avax
+    /// @param _batchRevealData Contains batch reveal informations :
+    ///  Size of the batch reveal, start of the token URIs reveal in seconds
+    /// and interval between two batch reveals in seconds
     /// @return flatLaunchpeg New FlatLaunchpeg address
     function createFlatLaunchpeg(
         string memory _name,
@@ -165,9 +173,9 @@ contract LaunchpegFactory is
         uint256 _maxBatchSize,
         uint256 _collectionSize,
         uint256 _amountForDevs,
-        uint256 _batchRevealSize,
         uint256 _salePrice,
-        uint256 _mintlistPrice
+        uint256 _mintlistPrice,
+        BatchReveal calldata _batchRevealData
     ) external override onlyOwner returns (address) {
         address flatLaunchpeg = Clones.clone(flatLaunchpegImplementation);
 
@@ -182,9 +190,11 @@ contract LaunchpegFactory is
             _maxBatchSize,
             _collectionSize,
             _amountForDevs,
-            _batchRevealSize,
             _salePrice,
-            _mintlistPrice
+            _mintlistPrice,
+            _batchRevealData.batchRevealSize,
+            _batchRevealData.revealStartTime,
+            _batchRevealData.revealInterval
         );
 
         IBaseLaunchpeg(flatLaunchpeg).initializeJoeFee(
@@ -203,9 +213,11 @@ contract LaunchpegFactory is
             _maxBatchSize,
             _collectionSize,
             _amountForDevs,
-            _batchRevealSize,
             _salePrice,
-            _mintlistPrice
+            _mintlistPrice,
+            _batchRevealData.batchRevealSize,
+            _batchRevealData.revealStartTime,
+            _batchRevealData.revealInterval
         );
 
         return flatLaunchpeg;

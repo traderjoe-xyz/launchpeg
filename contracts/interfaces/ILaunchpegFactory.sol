@@ -5,6 +5,12 @@ pragma solidity ^0.8.4;
 /// @author Trader Joe
 /// @notice Defines the basic interface of LaunchpegFactory
 interface ILaunchpegFactory {
+    struct BatchReveal {
+        uint256 batchRevealSize;
+        uint256 revealStartTime;
+        uint256 revealInterval;
+    }
+
     event LaunchpegCreated(
         address indexed launchpeg,
         string name,
@@ -16,7 +22,9 @@ interface ILaunchpegFactory {
         uint256 amountForAuction,
         uint256 amountForMintlist,
         uint256 amountForDevs,
-        uint256 batchRevealSize
+        uint256 batchRevealSize,
+        uint256 revealStartTime,
+        uint256 revealInterval
     );
 
     event FlatLaunchpegCreated(
@@ -28,9 +36,11 @@ interface ILaunchpegFactory {
         uint256 maxBatchSize,
         uint256 collectionSize,
         uint256 amountForDevs,
-        uint256 batchRevealSize,
         uint256 salePrice,
-        uint256 mintlistPrice
+        uint256 mintlistPrice,
+        uint256 batchRevealSize,
+        uint256 revealStartTime,
+        uint256 revealInterval
     );
 
     event SetLaunchpegImplementation(address indexed launchpegImplementation);
@@ -73,7 +83,7 @@ interface ILaunchpegFactory {
         uint256 _amountForAuction,
         uint256 _amountForMintlist,
         uint256 _amountForDevs,
-        uint256 _batchRevealSize
+        BatchReveal calldata _batchRevealData
     ) external returns (address);
 
     function createFlatLaunchpeg(
@@ -84,9 +94,9 @@ interface ILaunchpegFactory {
         uint256 _maxBatchSize,
         uint256 _collectionSize,
         uint256 _amountForDevs,
-        uint256 _batchRevealSize,
         uint256 _salePrice,
-        uint256 _mintlistPrice
+        uint256 _mintlistPrice,
+        BatchReveal calldata _batchRevealData
     ) external returns (address);
 
     function setLaunchpegImplementation(address _launchpegImplementation)

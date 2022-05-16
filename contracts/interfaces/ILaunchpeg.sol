@@ -52,7 +52,9 @@ interface ILaunchpeg is IBaseLaunchpeg {
         uint256 _amountForAuction,
         uint256 _amountForMintlist,
         uint256 _amountForDevs,
-        uint256 _batchRevealSize
+        uint256 _batchRevealSize,
+        uint256 _revealStartTime,
+        uint256 _revealInterval
     ) external;
 
     function initializePhases(
@@ -63,9 +65,7 @@ interface ILaunchpeg is IBaseLaunchpeg {
         uint256 _mintlistStartTime,
         uint256 _mintlistDiscountPercent,
         uint256 _publicSaleStartTime,
-        uint256 _publicSaleDiscountPercent,
-        uint256 _revealStartTime,
-        uint256 _revealInterval
+        uint256 _publicSaleDiscountPercent
     ) external;
 
     function auctionMint(uint256 _quantity) external payable;
