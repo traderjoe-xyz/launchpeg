@@ -15,6 +15,7 @@ error Launchpeg__InvalidMaxBatchSize();
 error Launchpeg__InvalidMintlistPrice();
 error Launchpeg__InvalidProjectOwner();
 error Launchpeg__InvalidPercent();
+error Launchpeg__InvalidRevealDates();
 error Launchpeg__InvalidRoyaltyInfo();
 error Launchpeg__LargerCollectionSizeNeeded();
 error Launchpeg__MaxSupplyForDevReached();

@@ -52,9 +52,11 @@ describe('FlatLaunchpeg', () => {
       config.maxBatchSize,
       config.collectionSize,
       config.amountForDevs,
-      config.batchRevealSize,
       config.flatPublicSalePrice,
-      config.flatMintListSalePrice
+      config.flatMintListSalePrice,
+      config.batchRevealSize,
+      config.batchRevealStart,
+      config.batchRevealInterval
     )
   }
 

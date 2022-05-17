@@ -5,40 +5,11 @@ pragma solidity ^0.8.4;
 /// @author Trader Joe
 /// @notice Defines the basic interface of LaunchpegFactory
 interface ILaunchpegFactory {
-    event LaunchpegCreated(
-        address indexed launchpeg,
-        string name,
-        string symbol,
-        address indexed projectOwner,
-        address indexed royaltyReceiver,
-        uint256 maxBatchSize,
-        uint256 collectionSize,
-        uint256 amountForAuction,
-        uint256 amountForMintlist,
-        uint256 amountForDevs,
-        uint256 batchRevealSize
-    );
-
-    event FlatLaunchpegCreated(
-        address indexed flatLaunchpeg,
-        string name,
-        string symbol,
-        address indexed projectOwner,
-        address indexed royaltyReceiver,
-        uint256 maxBatchSize,
-        uint256 collectionSize,
-        uint256 amountForDevs,
-        uint256 batchRevealSize,
-        uint256 salePrice,
-        uint256 mintlistPrice
-    );
-
-    event SetLaunchpegImplementation(address indexed launchpegImplementation);
-    event SetFlatLaunchpegImplementation(
-        address indexed flatLaunchpegImplementation
-    );
-    event SetDefaultJoeFeePercent(uint256 joeFeePercent);
-    event SetDefaultJoeFeeCollector(address indexed joeFeeCollector);
+    struct BatchReveal {
+        uint256 batchRevealSize;
+        uint256 revealStartTime;
+        uint256 revealInterval;
+    }
 
     function launchpegImplementation() external view returns (address);
 
@@ -73,7 +44,7 @@ interface ILaunchpegFactory {
         uint256 _amountForAuction,
         uint256 _amountForMintlist,
         uint256 _amountForDevs,
-        uint256 _batchRevealSize
+        BatchReveal calldata _batchRevealData
     ) external returns (address);
 
     function createFlatLaunchpeg(
@@ -84,9 +55,9 @@ interface ILaunchpegFactory {
         uint256 _maxBatchSize,
         uint256 _collectionSize,
         uint256 _amountForDevs,
-        uint256 _batchRevealSize,
         uint256 _salePrice,
-        uint256 _mintlistPrice
+        uint256 _mintlistPrice,
+        BatchReveal calldata _batchRevealData
     ) external returns (address);
 
     function setLaunchpegImplementation(address _launchpegImplementation)

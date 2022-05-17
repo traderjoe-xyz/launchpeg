@@ -74,9 +74,7 @@ export const initializePhases = async (launchpeg: Contract, config: LaunchpegCon
     config.mintlistStartTime,
     config.mintlistDiscount,
     config.publicSaleStartTime,
-    config.publicSaleDiscount,
-    config.batchRevealStart,
-    config.batchRevealInterval
+    config.publicSaleDiscount
   )
   await launchpeg.setUnrevealedURI(config.unrevealedTokenURI)
   await launchpeg.setBaseURI(config.baseTokenURI)

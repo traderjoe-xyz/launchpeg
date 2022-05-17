@@ -130,7 +130,9 @@ abstract contract BaseLaunchpeg is
         uint256 _maxBatchSize,
         uint256 _collectionSize,
         uint256 _amountForDevs,
-        uint256 _batchRevealSize
+        uint256 _batchRevealSize,
+        uint256 _revealStartTime,
+        uint256 _revealInterval
     ) internal onlyInitializing {
         __Ownable_init();
         __ReentrancyGuard_init();
@@ -150,6 +152,14 @@ abstract contract BaseLaunchpeg is
         if (_maxBatchSize > _collectionSize) {
             revert Launchpeg__InvalidMaxBatchSize();
         }
+        // We assume that if the reveal is more than 100 days in the future, that's a mistake
+        // Same if the reveal interval is longer than 10 days
+        if (
+            _revealStartTime > block.timestamp + 8_640_000 ||
+            _revealInterval > 864_000
+        ) {
+            revert Launchpeg__InvalidRevealDates();
+        }
 
         projectOwner = _projectOwner;
         // Default royalty is 5%
@@ -159,6 +169,9 @@ abstract contract BaseLaunchpeg is
         collectionSize = _collectionSize;
         maxPerAddressDuringMint = _maxBatchSize;
         amountForDevs = _amountForDevs;
+
+        revealStartTime = _revealStartTime;
+        revealInterval = _revealInterval;
     }
 
     /// @notice Initialize the sales fee percent taken by Joepegs and address that collects the fees

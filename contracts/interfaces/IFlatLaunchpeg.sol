@@ -22,6 +22,8 @@ interface IFlatLaunchpeg is IBaseLaunchpeg {
         uint256 _collectionSize,
         uint256 _amountForDevs,
         uint256 _batchRevealSize,
+        uint256 _revealStartTime,
+        uint256 _revealInterval,
         uint256 _salePrice,
         uint256 _mintlistPrice
     ) external;
