@@ -592,6 +592,21 @@ describe('Launchpeg', () => {
         'Launchpeg__RevealNextBatchNotAvailable'
       )
     })
+
+    it('URIs freeze correctly', async () => {
+      await launchpeg.connect(dev).setBaseURI('New base URI')
+      await launchpeg.connect(dev).setUnrevealedURI('New unrevealed URI')
+
+      expect(await launchpeg.baseURI()).to.eq('New base URI')
+      expect(await launchpeg.unrevealedURI()).to.eq('New unrevealed URI')
+
+      await launchpeg.connect(dev).freezeURIs()
+
+      await expect(launchpeg.connect(dev).setBaseURI('New base URI 2')).to.be.revertedWith('Launchpeg__FrozenURIs()')
+      await expect(launchpeg.connect(dev).setUnrevealedURI('New unrevealed URI 2')).to.be.revertedWith(
+        'Launchpeg__FrozenURIs()'
+      )
+    })
   })
 
   describe('Batch reveal event after sale', () => {

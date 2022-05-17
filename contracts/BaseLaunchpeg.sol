@@ -57,6 +57,9 @@ abstract contract BaseLaunchpeg is
     /// @notice Token URI before the collection reveal
     string public unrevealedURI;
 
+    /// @notice Boolean that blocks any changes of URI if set to true
+    bool public override uriFrozen;
+
     /// @notice The amount of NFTs each allowed address can mint during the allowList mint
     mapping(address => uint256) public override allowList;
 
@@ -98,6 +101,9 @@ abstract contract BaseLaunchpeg is
     /// @param receiver Royalty fee collector
     /// @param feePercent Royalty fee percent in basis point
     event DefaultRoyaltySet(address indexed receiver, uint256 feePercent);
+
+    /// @dev Emitted on freezeURIs()
+    event URIsFrozen();
 
     modifier isEOA() {
         if (tx.origin != msg.sender) {
@@ -215,6 +221,10 @@ abstract contract BaseLaunchpeg is
     /// Only callable by project owner
     /// @param _baseURI Base URI to be set
     function setBaseURI(string calldata _baseURI) external override onlyOwner {
+        if (uriFrozen) {
+            revert Launchpeg__FrozenURIs();
+        }
+
         baseURI = _baseURI;
         emit BaseURISet(baseURI);
     }
@@ -227,8 +237,23 @@ abstract contract BaseLaunchpeg is
         override
         onlyOwner
     {
+        if (uriFrozen) {
+            revert Launchpeg__FrozenURIs();
+        }
+
         unrevealedURI = _unrevealedURI;
         emit UnrevealedURISet(unrevealedURI);
+    }
+
+    /// @notice Freezes baseURI and unrevealedURI forever
+    /// @dev Only callable by project owner
+    function freezeURIs() external override onlyOwner {
+        if (uriFrozen) {
+            revert Launchpeg__FrozenURIs();
+        }
+
+        uriFrozen = true;
+        emit URIsFrozen();
     }
 
     /// @notice Set the project owner
