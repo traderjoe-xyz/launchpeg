@@ -223,6 +223,9 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
         }
 
         auctionSaleDuration = _mintlistStartTime - _auctionSaleStartTime;
+        /// Ensure auction drop interval is not too high by enforcing it
+        /// is at most 1/4 of the auction sale duration.
+        /// There will be at least 3 price drops.
         if (
             _auctionDropInterval == 0 ||
             _auctionDropInterval > auctionSaleDuration / 4
