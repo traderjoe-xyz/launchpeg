@@ -124,6 +124,11 @@ describe('Launchpeg', () => {
       )
     })
 
+    it('MaxBatchSize must be smaller than collection', async () => {
+      config.maxBatchSize = config.collectionSize * 2
+      await expect(deployLaunchpeg()).to.be.revertedWith('Launchpeg__InvalidMaxBatchSize()')
+    })
+
     it('Auction dates should be correct', async () => {
       config.auctionDropInterval = BigNumber.from(0)
       await expect(initializePhases(launchpeg, config, Phase.DutchAuction)).to.be.revertedWith(
