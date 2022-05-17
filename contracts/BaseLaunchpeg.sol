@@ -60,8 +60,8 @@ abstract contract BaseLaunchpeg is
     /// @notice The amount of NFTs each allowed address can mint during the allowList mint
     mapping(address => uint256) public override allowList;
 
-    /// @dev Tracks the amount of NFTs minted by `projectOwner`
-    uint256 internal _amountMintedByDevs;
+    /// @notice Tracks the amount of NFTs minted by `projectOwner`
+    uint256 public override amountMintedByDevs;
 
     /// @dev Emitted on initializeJoeFee()
     /// @param feePercent The fees collected by Joepegs on the sale benefits
@@ -135,6 +135,9 @@ abstract contract BaseLaunchpeg is
         uint256 _revealInterval
     ) internal onlyInitializing {
         __Ownable_init();
+        __ReentrancyGuard_init();
+        __ERC2981_init();
+
         __ERC721A_init(_name, _symbol);
         initializeBatchReveal(_batchRevealSize, _collectionSize);
 
@@ -146,6 +149,9 @@ abstract contract BaseLaunchpeg is
             revert Launchpeg__LargerCollectionSizeNeeded();
         }
 
+        if (_maxBatchSize > _collectionSize) {
+            revert Launchpeg__InvalidMaxBatchSize();
+        }
         // We assume that if the reveal is more than 100 days in the future, that's a mistake
         // Same if the reveal interval is longer than 10 days
         if (
@@ -210,14 +216,14 @@ abstract contract BaseLaunchpeg is
     /// @param _addresses List of addresses allowed to mint during the allowList phase
     /// @param _numNfts List of NFT quantities mintable per address
     function seedAllowlist(
-        address[] memory _addresses,
-        uint256[] memory _numNfts
+        address[] calldata _addresses,
+        uint256[] calldata _numNfts
     ) external override onlyOwner {
         uint256 addressesLength = _addresses.length;
         if (addressesLength != _numNfts.length) {
             revert Launchpeg__WrongAddressesAndNumSlotsLength();
         }
-        for (uint256 i = 0; i < addressesLength; i++) {
+        for (uint256 i; i < addressesLength; i++) {
             allowList[_addresses[i]] = _numNfts[i];
         }
 
@@ -268,25 +274,31 @@ abstract contract BaseLaunchpeg is
         if (totalSupply() + _quantity > collectionSize) {
             revert Launchpeg__MaxSupplyReached();
         }
-        if (_amountMintedByDevs + _quantity > amountForDevs) {
+        if (amountMintedByDevs + _quantity > amountForDevs) {
             revert Launchpeg__MaxSupplyForDevReached();
         }
         if (_quantity % maxBatchSize != 0) {
             revert Launchpeg__CanOnlyMintMultipleOfMaxBatchSize();
         }
-        _amountMintedByDevs = _amountMintedByDevs + _quantity;
+        amountMintedByDevs = amountMintedByDevs + _quantity;
         uint256 numChunks = _quantity / maxBatchSize;
-        for (uint256 i = 0; i < numChunks; i++) {
+        for (uint256 i; i < numChunks; i++) {
             _mint(msg.sender, maxBatchSize, "", false);
         }
         emit DevMint(msg.sender, _quantity);
     }
 
     /// @notice Withdraw AVAX to the contract owner
-    function withdrawAVAX() external override onlyOwner nonReentrant {
+    /// @param _to Recipient of the earned AVAX
+    function withdrawAVAX(address _to)
+        external
+        override
+        onlyOwner
+        nonReentrant
+    {
         uint256 amount = address(this).balance;
-        uint256 fee = 0;
-        bool sent = false;
+        uint256 fee;
+        bool sent;
 
         if (joeFeePercent > 0) {
             fee = (amount * joeFeePercent) / BASIS_POINT_PRECISION;
@@ -298,12 +310,12 @@ abstract contract BaseLaunchpeg is
             }
         }
 
-        (sent, ) = msg.sender.call{value: amount}("");
+        (sent, ) = _to.call{value: amount}("");
         if (!sent) {
             revert Launchpeg__TransferFailed();
         }
 
-        emit AvaxWithdraw(msg.sender, amount, fee);
+        emit AvaxWithdraw(_to, amount, fee);
     }
 
     /// @notice Reveals the next batch if the reveal conditions are met
@@ -385,7 +397,11 @@ abstract contract BaseLaunchpeg is
         override(ERC721AUpgradeable, ERC2981Upgradeable, IERC165Upgradeable)
         returns (bool)
     {
-        return super.supportsInterface(_interfaceId);
+        return
+            ERC721AUpgradeable.supportsInterface(_interfaceId) ||
+            ERC2981Upgradeable.supportsInterface(_interfaceId) ||
+            ERC165Upgradeable.supportsInterface(_interfaceId) ||
+            super.supportsInterface(_interfaceId);
     }
 
     /// @dev Verifies that enough AVAX has been sent by the sender and refunds the extra tokens if any

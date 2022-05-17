@@ -107,15 +107,15 @@ contract LaunchpegFactory is
     }
 
     /// @notice Returns the number of Launchpegs
-    /// @param _launchegType Type of Launchpeg to consider
+    /// @param _launchpegType Type of Launchpeg to consider
     /// @return LaunchpegNumber The number of Launchpegs ever created
-    function numLaunchpegs(uint256 _launchegType)
+    function numLaunchpegs(uint256 _launchpegType)
         external
         view
         override
         returns (uint256)
     {
-        return allLaunchpegs[_launchegType].length;
+        return allLaunchpegs[_launchpegType].length;
     }
 
     /// @notice Launchpeg creation

@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import "./LaunchpegErrors.sol";
 import "./interfaces/IFlatLaunchpeg.sol";
 import "./BaseLaunchpeg.sol";
 
@@ -76,6 +75,11 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
             _revealStartTime,
             _revealInterval
         );
+
+        if (_mintlistPrice > _salePrice) {
+            revert Launchpeg__InvalidMintlistPrice();
+        }
+
         salePrice = _salePrice;
         mintlistPrice = _mintlistPrice;
     }
@@ -104,13 +108,13 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
         allowList[msg.sender] -= _quantity;
         uint256 totalCost = mintlistPrice * _quantity;
         _mint(msg.sender, _quantity, "", false);
-        _refundIfOver(totalCost);
         emit Mint(
             msg.sender,
             _quantity,
             mintlistPrice,
             _totalMinted() - _quantity
         );
+        _refundIfOver(totalCost);
     }
 
     /// @notice Mint NFTs during the public sale
@@ -127,8 +131,8 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
         }
         uint256 total = salePrice * _quantity;
         _mint(msg.sender, _quantity, "", false);
+        emit Mint(msg.sender, _quantity, salePrice, _totalMinted() - _quantity);
         _refundIfOver(total);
-        emit Mint(msg.sender, _quantity, total, _totalMinted() - _quantity);
     }
 
     /// @dev Returns true if this contract implements the interface defined by

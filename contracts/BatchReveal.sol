@@ -54,7 +54,11 @@ abstract contract BatchReveal is IBatchReveal, Initializable {
         uint256 _revealBatchSize,
         uint256 _collectionSize
     ) internal onlyInitializing {
-        if (_collectionSize % _revealBatchSize != 0 || _revealBatchSize == 0) {
+        if (
+            _collectionSize % _revealBatchSize != 0 ||
+            _revealBatchSize == 0 ||
+            _revealBatchSize > _collectionSize
+        ) {
             revert Launchpeg__InvalidBatchRevealSize();
         }
         revealBatchSize = _revealBatchSize;
@@ -86,7 +90,7 @@ abstract contract BatchReveal is IBatchReveal, Initializable {
         uint256 _lastIndex
     ) private view returns (uint256) {
         uint256 positionToAssume = _lastIndex;
-        for (uint256 j = 0; j < _lastIndex; j++) {
+        for (uint256 j; j < _lastIndex; j++) {
             int128 rangeStart = _ranges[j].start;
             int128 rangeEnd = _ranges[j].end;
             if (_start < rangeStart && positionToAssume == _lastIndex) {
@@ -127,8 +131,8 @@ abstract contract BatchReveal is IBatchReveal, Initializable {
         returns (Range[] memory)
     {
         Range[] memory ranges = new Range[](_rangeLength);
-        uint256 lastIndex = 0;
-        for (uint256 i = 0; i < _lastBatch; i++) {
+        uint256 lastIndex;
+        for (uint256 i; i < _lastBatch; i++) {
             int128 start = int128(
                 int256(_getFreeTokenId(batchToSeed[i], ranges))
             );
@@ -166,10 +170,10 @@ abstract contract BatchReveal is IBatchReveal, Initializable {
         Range[] memory _ranges
     ) private view returns (uint256) {
         int128 positionsToMove = int128(int256(_positionsToMoveStart));
-        int128 id = 0;
+        int128 id;
 
         for (uint256 round = 0; round < 2; round++) {
-            for (uint256 i = 0; i < _rangeLength; i++) {
+            for (uint256 i; i < _rangeLength; i++) {
                 int128 start = _ranges[i].start;
                 int128 end = _ranges[i].end;
                 if (id < start) {

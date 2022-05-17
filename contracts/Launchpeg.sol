@@ -1,15 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/StringsUpgradeable.sol";
-
-import "erc721a-upgradeable/contracts/ERC721AUpgradeable.sol";
-import "./BatchReveal.sol";
 
 import "./BaseLaunchpeg.sol";
 import "./interfaces/ILaunchpeg.sol";
-import "./LaunchpegErrors.sol";
 
 /// @title Launchpeg
 /// @author Trader Joe
@@ -200,7 +195,7 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
         if (auctionSaleStartTime != 0) {
             revert Launchpeg__AuctionAlreadyInitialized();
         }
-        if (_auctionSaleStartTime == 0) {
+        if (_auctionSaleStartTime < block.timestamp) {
             revert Launchpeg__InvalidAuctionStartTime();
         }
         if (_auctionStartPrice <= _auctionEndPrice) {
@@ -213,12 +208,20 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
             revert Launchpeg__PublicSaleBeforeMintlist();
         }
         if (
-            _mintlistDiscountPercent > 10000 ||
-            _publicSaleDiscountPercent > 10000
+            _mintlistDiscountPercent > BASIS_POINT_PRECISION ||
+            _publicSaleDiscountPercent > BASIS_POINT_PRECISION
         ) {
             revert Launchpeg__InvalidPercent();
         }
-        if (_auctionDropInterval == 0) {
+
+        auctionSaleDuration = _mintlistStartTime - _auctionSaleStartTime;
+        /// Ensure auction drop interval is not too high by enforcing it
+        /// is at most 1/4 of the auction sale duration.
+        /// There will be at least 3 price drops.
+        if (
+            _auctionDropInterval == 0 ||
+            _auctionDropInterval > auctionSaleDuration / 4
+        ) {
             revert Launchpeg__InvalidAuctionDropInterval();
         }
 
@@ -226,7 +229,6 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
         auctionStartPrice = _auctionStartPrice;
         lastAuctionPrice = _auctionStartPrice;
         auctionEndPrice = _auctionEndPrice;
-        auctionSaleDuration = _mintlistStartTime - _auctionSaleStartTime;
         auctionDropInterval = _auctionDropInterval;
         auctionDropPerStep =
             (_auctionStartPrice - _auctionEndPrice) /
@@ -267,7 +269,7 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
         override
         atPhase(Phase.DutchAuction)
     {
-        uint256 remainingSupply = (amountForAuction + _amountMintedByDevs) -
+        uint256 remainingSupply = (amountForAuction + amountMintedByDevs) -
             totalSupply();
         if (remainingSupply == 0) {
             revert Launchpeg__MaxSupplyReached();
@@ -282,7 +284,6 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
         uint256 totalCost = lastAuctionPrice * _quantity;
         amountMintedDuringAuction = amountMintedDuringAuction + _quantity;
         _mint(msg.sender, _quantity, "", false);
-        _refundIfOver(totalCost);
         emit Mint(
             msg.sender,
             _quantity,
@@ -290,6 +291,7 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
             _totalMinted() - _quantity,
             Phase.DutchAuction
         );
+        _refundIfOver(totalCost);
     }
 
     /// @notice Mint NFTs during the allowList mint
@@ -307,7 +309,7 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
             amountMintedDuringAuction;
         if (
             totalSupply() + remainingAuctionSupply + _quantity >
-            amountForAuction + amountForMintlist + _amountMintedByDevs
+            amountForAuction + amountForMintlist + amountMintedByDevs
         ) {
             revert Launchpeg__MaxSupplyReached();
         }
@@ -315,7 +317,6 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
         uint256 price = getMintlistPrice();
         uint256 totalCost = price * _quantity;
         _mint(msg.sender, _quantity, "", false);
-        _refundIfOver(totalCost);
         emit Mint(
             msg.sender,
             _quantity,
@@ -323,6 +324,7 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
             _totalMinted() - _quantity,
             Phase.Mintlist
         );
+        _refundIfOver(totalCost);
     }
 
     /// @notice Mint NFTs during the public sale
@@ -335,7 +337,7 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
     {
         if (
             totalSupply() + _quantity >
-            collectionSize - (amountForDevs - _amountMintedByDevs)
+            collectionSize - (amountForDevs - amountMintedByDevs)
         ) {
             revert Launchpeg__MaxSupplyReached();
         }
@@ -344,7 +346,6 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
         }
         uint256 price = getPublicSalePrice();
         _mint(msg.sender, _quantity, "", false);
-        _refundIfOver(price * _quantity);
         emit Mint(
             msg.sender,
             _quantity,
@@ -352,6 +353,7 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
             _totalMinted() - _quantity,
             Phase.PublicSale
         );
+        _refundIfOver(price * _quantity);
     }
 
     /// @notice Returns the current price of the dutch auction
