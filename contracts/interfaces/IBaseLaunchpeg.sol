@@ -24,8 +24,6 @@ interface IBaseLaunchpeg is IERC721Upgradeable, IERC721MetadataUpgradeable {
 
     function projectOwner() external view returns (address);
 
-    function uriFrozen() external view returns (bool);
-
     function allowList(address) external view returns (uint256);
 
     function initializeJoeFee(uint256 _joeFeePercent, address _joeFeeCollector)
@@ -41,8 +39,6 @@ interface IBaseLaunchpeg is IERC721Upgradeable, IERC721MetadataUpgradeable {
     function setBaseURI(string calldata baseURI) external;
 
     function setUnrevealedURI(string calldata baseURI) external;
-
-    function freezeURIs() external;
 
     function setProjectOwner(address _projectOwner) external;
 
