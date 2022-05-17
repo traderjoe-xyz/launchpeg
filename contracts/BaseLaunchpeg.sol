@@ -261,7 +261,7 @@ abstract contract BaseLaunchpeg is
         if (totalSupply() + _quantity > collectionSize) {
             revert Launchpeg__MaxSupplyReached();
         }
-        if (_amountMintedByDevs + _quantity > amountForDevs) {
+        if (amountMintedByDevs + _quantity > amountForDevs) {
             revert Launchpeg__MaxSupplyForDevReached();
         }
         if (_quantity % maxBatchSize != 0) {
