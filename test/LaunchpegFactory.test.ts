@@ -104,6 +104,50 @@ describe('LaunchpegFactory', () => {
     await deployLaunchpegFactory()
   })
 
+  describe('Initialisation', () => {
+    it('Should block zero address implementation', async () => {
+      await expect(
+        upgrades.deployProxy(launchpegFactoryCF, [
+          ethers.constants.AddressZero,
+          flatLaunchpeg.address,
+          200,
+          royaltyReceiver.address,
+        ])
+      ).to.be.revertedWith('LaunchpegFactory__InvalidImplementation()')
+
+      await expect(
+        upgrades.deployProxy(launchpegFactoryCF, [
+          launchpeg.address,
+          ethers.constants.AddressZero,
+          200,
+          royaltyReceiver.address,
+        ])
+      ).to.be.revertedWith('LaunchpegFactory__InvalidImplementation()')
+    })
+
+    it('Invalid default fees should be blocked', async () => {
+      await expect(
+        upgrades.deployProxy(launchpegFactoryCF, [
+          launchpeg.address,
+          flatLaunchpeg.address,
+          10_001,
+          royaltyReceiver.address,
+        ])
+      ).to.be.revertedWith('Launchpeg__InvalidPercent()')
+    })
+
+    it('Invalid fee collector should be blocked', async () => {
+      await expect(
+        upgrades.deployProxy(launchpegFactoryCF, [
+          launchpeg.address,
+          flatLaunchpeg.address,
+          200,
+          ethers.constants.AddressZero,
+        ])
+      ).to.be.revertedWith('Launchpeg__InvalidJoeFeeCollector()')
+    })
+  })
+
   describe('Launchpeg creation', () => {
     it('Should increment the number of Launchpegs', async () => {
       expect(await launchpegFactory.numLaunchpegs(0)).to.equal(0)

@@ -66,6 +66,28 @@ describe('FlatLaunchpeg', () => {
     await flatLaunchpeg.setPublicSaleActive(true)
   })
 
+  describe('Initialization', () => {
+    it('Mintlist price should be lower than Public sale', async () => {
+      flatLaunchpeg = await flatLaunchpegCF.deploy()
+      await expect(
+        flatLaunchpeg.initialize(
+          'JoePEG',
+          'JOEPEG',
+          projectOwner.address,
+          royaltyReceiver.address,
+          config.maxBatchSize,
+          config.collectionSize,
+          config.amountForDevs,
+          config.flatPublicSalePrice,
+          config.flatMintListSalePrice.mul(100),
+          config.batchRevealSize,
+          config.batchRevealStart,
+          config.batchRevealInterval
+        )
+      ).to.be.revertedWith('Launchpeg__InvalidMintlistPrice()')
+    })
+  })
+
   describe('Project owner mint', () => {
     it('Mint', async () => {
       await flatLaunchpeg.connect(projectOwner).devMint(config.amountForDevs)
@@ -205,24 +227,27 @@ describe('FlatLaunchpeg', () => {
 
   describe('Funds flow', () => {
     it('Owner can withdraw money', async () => {
+      // For some reason the contract has some balance initially, for this particular test only
+      const initialContractBalance = await ethers.provider.getBalance(flatLaunchpeg.address)
+
       await flatLaunchpeg.connect(alice).publicSaleMint(5, { value: config.flatPublicSalePrice.mul(5) })
       await flatLaunchpeg.connect(bob).publicSaleMint(4, { value: config.flatPublicSalePrice.mul(4) })
 
       const initialDevBalance = await dev.getBalance()
+
       await flatLaunchpeg.connect(dev).withdrawAVAX(dev.address)
       expect(await dev.getBalance()).to.be.closeTo(
-        initialDevBalance.add(config.flatPublicSalePrice.mul(9)),
+        initialDevBalance.add(config.flatPublicSalePrice.mul(9).add(initialContractBalance)),
         ethers.utils.parseEther('0.01')
       )
     })
 
     it('Fee correctly sent to collector address', async () => {
-      const initialContractBalance = await ethers.provider.getBalance(flatLaunchpeg.address)
       const feePercent = 200
       const feeCollector = bob
       await flatLaunchpeg.initializeJoeFee(feePercent, feeCollector.address)
 
-      const total = config.flatPublicSalePrice.mul(5).add(initialContractBalance)
+      const total = config.flatPublicSalePrice.mul(5)
       await flatLaunchpeg.connect(alice).publicSaleMint(5, { value: config.flatPublicSalePrice.mul(5) })
 
       const fee = total.mul(feePercent).div(10000)
