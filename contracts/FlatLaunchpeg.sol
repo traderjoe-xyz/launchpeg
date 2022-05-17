@@ -119,7 +119,7 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
         if (!isPublicSaleActive) {
             revert Launchpeg__PublicSaleClosed();
         }
-        if (_quantity > maxPerAddressDuringMint) {
+        if (numberMinted(msg.sender) + _quantity > maxPerAddressDuringMint) {
             revert Launchpeg__CanNotMintThisMany();
         }
         if (totalSupply() + _quantity > collectionSize) {
