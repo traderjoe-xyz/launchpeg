@@ -18,6 +18,45 @@ contract LaunchpegFactory is
     Initializable,
     OwnableUpgradeable
 {
+    event LaunchpegCreated(
+        address indexed launchpeg,
+        string name,
+        string symbol,
+        address indexed projectOwner,
+        address indexed royaltyReceiver,
+        uint256 maxBatchSize,
+        uint256 collectionSize,
+        uint256 amountForAuction,
+        uint256 amountForMintlist,
+        uint256 amountForDevs,
+        uint256 batchRevealSize,
+        uint256 revealStartTime,
+        uint256 revealInterval
+    );
+
+    event FlatLaunchpegCreated(
+        address indexed flatLaunchpeg,
+        string name,
+        string symbol,
+        address indexed projectOwner,
+        address indexed royaltyReceiver,
+        uint256 maxBatchSize,
+        uint256 collectionSize,
+        uint256 amountForDevs,
+        uint256 salePrice,
+        uint256 mintlistPrice,
+        uint256 batchRevealSize,
+        uint256 revealStartTime,
+        uint256 revealInterval
+    );
+
+    event SetLaunchpegImplementation(address indexed launchpegImplementation);
+    event SetFlatLaunchpegImplementation(
+        address indexed flatLaunchpegImplementation
+    );
+    event SetDefaultJoeFeePercent(uint256 joeFeePercent);
+    event SetDefaultJoeFeeCollector(address indexed joeFeeCollector);
+
     /// @notice Launchpeg contract to be cloned
     address public override launchpegImplementation;
     /// @notice FlatLaunchpeg contract to be cloned
