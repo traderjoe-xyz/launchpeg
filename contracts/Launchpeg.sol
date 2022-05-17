@@ -136,8 +136,8 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
     /// @param _revealStartTime Start of the token URIs reveal in seconds
     /// @param _revealInterval Interval between two batch reveals in seconds
     function initialize(
-        string calldata _name,
-        string calldata _symbol,
+        string memory _name,
+        string memory _symbol,
         address _projectOwner,
         address _royaltyReceiver,
         uint256 _maxBatchSize,

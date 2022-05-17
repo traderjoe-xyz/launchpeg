@@ -123,8 +123,8 @@ abstract contract BaseLaunchpeg is
     /// @param _amountForDevs Amount of NFTs reserved for `projectOwner` (e.g 200)
     /// @param _batchRevealSize Size of the batch reveal
     function initializeBaseLaunchpeg(
-        string calldata _name,
-        string calldata _symbol,
+        string memory _name,
+        string memory _symbol,
         address _projectOwner,
         address _royaltyReceiver,
         uint256 _maxBatchSize,
