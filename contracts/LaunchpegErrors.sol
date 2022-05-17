@@ -6,7 +6,6 @@ error Launchpeg__AuctionAlreadyInitialized();
 error Launchpeg__CanNotMintThisMany();
 error Launchpeg__CanOnlyMintMultipleOfMaxBatchSize();
 error Launchpeg__EndPriceGreaterThanStartPrice();
-error Launchpeg__FrozenURIs();
 error Launchpeg__JoeFeeAlreadyInitialized();
 error Launchpeg__InvalidAuctionDropInterval();
 error Launchpeg__InvalidAuctionSaleDuration();
