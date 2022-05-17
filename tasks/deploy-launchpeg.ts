@@ -27,7 +27,7 @@ task('deploy-launchpeg', 'Deploy Launchpeg contract')
       launchConfig.amountForAuction,
       launchConfig.amountForMintlist,
       launchConfig.amountForDevs,
-      launchConfig.batchRevealSize
+      [launchConfig.batchRevealSize, launchConfig.batchRevealStart, launchConfig.batchRevealInterval]
     )
 
     await creationTx.wait()
@@ -49,9 +49,7 @@ task('deploy-launchpeg', 'Deploy Launchpeg contract')
       launchConfig.mintlistStartTime,
       launchConfig.mintlistDiscountPercent,
       launchConfig.publicSaleStartTime,
-      launchConfig.publicSaleDiscountPercent,
-      launchConfig.revealStartTime,
-      launchConfig.revealInterval
+      launchConfig.publicSaleDiscountPercent
     )
 
     await initTx.wait()

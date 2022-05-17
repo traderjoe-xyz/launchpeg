@@ -45,9 +45,11 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
     /// @param _maxBatchSize Max amount of NFTs that can be minted at once
     /// @param _collectionSize The collection size (e.g 10000)
     /// @param _amountForDevs Amount of NFTs reserved for `projectOwner` (e.g 200)
-    /// @param _batchRevealSize Size of the batch reveal
     /// @param _salePrice Price of the public sale in Avax
     /// @param _mintlistPrice Price of the whitelist sale in Avax
+    /// @param _batchRevealSize Size of the batch reveal
+    /// @param _revealStartTime Start of the token URIs reveal in seconds
+    /// @param _revealInterval Interval between two batch reveals in seconds
     function initialize(
         string memory _name,
         string memory _symbol,
@@ -56,9 +58,11 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
         uint256 _maxBatchSize,
         uint256 _collectionSize,
         uint256 _amountForDevs,
-        uint256 _batchRevealSize,
         uint256 _salePrice,
-        uint256 _mintlistPrice
+        uint256 _mintlistPrice,
+        uint256 _batchRevealSize,
+        uint256 _revealStartTime,
+        uint256 _revealInterval
     ) external override initializer {
         initializeBaseLaunchpeg(
             _name,
@@ -68,7 +72,9 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
             _maxBatchSize,
             _collectionSize,
             _amountForDevs,
-            _batchRevealSize
+            _batchRevealSize,
+            _revealStartTime,
+            _revealInterval
         );
         salePrice = _salePrice;
         mintlistPrice = _mintlistPrice;

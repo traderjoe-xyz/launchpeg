@@ -65,7 +65,9 @@ describe('LaunchpegFactory', () => {
       config.amountForAuction,
       config.amountForMintlist,
       config.amountForDevs,
-      config.batchRevealSize
+      config.batchRevealSize,
+      config.batchRevealStart,
+      config.batchRevealInterval
     )
   }
 
@@ -80,9 +82,11 @@ describe('LaunchpegFactory', () => {
       config.maxBatchSize,
       config.collectionSize,
       config.amountForDevs,
-      config.batchRevealSize,
       config.flatPublicSalePrice,
-      config.flatMintListSalePrice
+      config.flatMintListSalePrice,
+      config.batchRevealSize,
+      config.batchRevealStart,
+      config.batchRevealInterval
     )
   }
 
@@ -114,7 +118,7 @@ describe('LaunchpegFactory', () => {
         config.amountForAuction,
         config.amountForMintlist,
         config.amountForDevs,
-        config.batchRevealSize
+        [config.batchRevealSize, config.batchRevealStart, config.batchRevealInterval]
       )
 
       expect(await launchpegFactory.numLaunchpegs(0)).to.equal(1)
@@ -131,9 +135,9 @@ describe('LaunchpegFactory', () => {
         config.maxBatchSize,
         config.collectionSize,
         config.amountForDevs,
-        config.batchRevealSize,
         config.flatPublicSalePrice,
-        config.flatMintListSalePrice
+        config.flatMintListSalePrice,
+        [config.batchRevealSize, config.batchRevealStart, config.batchRevealInterval]
       )
 
       expect(await launchpegFactory.numLaunchpegs(1)).to.equal(1)
@@ -174,7 +178,7 @@ describe('LaunchpegFactory', () => {
         config.amountForAuction,
         config.amountForMintlist,
         config.amountForDevs,
-        config.batchRevealSize
+        [config.batchRevealSize, config.batchRevealStart, config.batchRevealInterval]
       )
       const launchpeg0Address = await launchpegFactory.allLaunchpegs(0, 0)
       const launchpeg0 = await ethers.getContractAt('Launchpeg', launchpeg0Address)
