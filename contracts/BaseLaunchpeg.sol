@@ -169,6 +169,9 @@ abstract contract BaseLaunchpeg is
         override
         onlyOwner
     {
+        if (joeFeeCollector != address(0)) {
+            revert Launchpeg__JoeFeeAlreadyInitialized();
+        }
         if (_joeFeePercent > BASIS_POINT_PRECISION) {
             revert Launchpeg__InvalidPercent();
         }
@@ -188,6 +191,10 @@ abstract contract BaseLaunchpeg is
         override
         onlyOwner
     {
+        // Royalty fees are limited to 25%
+        if (_feePercent > 2_500) {
+            revert Launchpeg__InvalidRoyaltyInfo();
+        }
         _setDefaultRoyalty(_receiver, _feePercent);
         emit DefaultRoyaltySet(_receiver, _feePercent);
     }
@@ -251,8 +258,11 @@ abstract contract BaseLaunchpeg is
     /// @dev Can only mint up to `amountForDevs`
     /// @param _quantity Quantity of NFTs to mint
     function devMint(uint256 _quantity) external override onlyProjectOwner {
-        if (amountMintedByDevs + _quantity > amountForDevs) {
+        if (totalSupply() + _quantity > collectionSize) {
             revert Launchpeg__MaxSupplyReached();
+        }
+        if (_amountMintedByDevs + _quantity > amountForDevs) {
+            revert Launchpeg__MaxSupplyForDevReached();
         }
         if (_quantity % maxBatchSize != 0) {
             revert Launchpeg__CanOnlyMintMultipleOfMaxBatchSize();

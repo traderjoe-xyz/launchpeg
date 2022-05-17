@@ -423,8 +423,21 @@ describe('Launchpeg', () => {
         'Launchpeg__CanOnlyMintMultipleOfMaxBatchSize()'
       )
       await launchpeg.connect(projectOwner).devMint(config.amountForDevs)
-      await expect(launchpeg.connect(projectOwner).devMint(1)).to.be.revertedWith('Launchpeg__MaxSupplyReached()')
+      await expect(launchpeg.connect(projectOwner).devMint(1)).to.be.revertedWith('Launchpeg__MaxSupplyForDevReached()')
       expect(await launchpeg.balanceOf(projectOwner.address)).to.eq(config.amountForDevs)
+    })
+
+    it('Devs cannot mint more than maxSupply', async () => {
+      config.collectionSize = 50
+      config.amountForDevs = 50
+      config.amountForAuction = 0
+      config.amountForMintlist = 0
+      config.batchRevealSize = 10
+      await deployLaunchpeg()
+      await initializePhases(launchpeg, config, Phase.DutchAuction)
+
+      await launchpeg.connect(projectOwner).devMint(config.amountForDevs)
+      await expect(launchpeg.connect(projectOwner).devMint(1)).to.be.revertedWith('Launchpeg__MaxSupplyReached()')
     })
 
     it('Only dev can mint', async () => {
@@ -466,6 +479,17 @@ describe('Launchpeg', () => {
       )
     })
 
+    it('initializeJoeFee() should be callable only once', async () => {
+      let feePercent = 200
+      let feeCollector = bob
+
+      await launchpeg.initializeJoeFee(feePercent, feeCollector.address)
+
+      await expect(launchpeg.initializeJoeFee(feePercent, feeCollector.address)).to.be.revertedWith(
+        'Launchpeg__JoeFeeAlreadyInitialized()'
+      )
+    })
+
     it('Fee correctly sent to collector address', async () => {
       const feePercent = 200
       const feeCollector = bob
@@ -493,6 +517,10 @@ describe('Launchpeg', () => {
 
       let price = ethers.utils.parseEther('1')
       expect((await launchpeg.royaltyInfo(1, price))[1]).to.eq(price.mul(royaltyPercent).div(10_000))
+
+      await expect(launchpeg.setRoyaltyInfo(royaltyCollector.address, 3_000)).to.be.revertedWith(
+        'Launchpeg__InvalidRoyaltyInfo()'
+      )
     })
   })
 
