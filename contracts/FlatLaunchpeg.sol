@@ -104,7 +104,10 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
         if (_quantity > allowList[msg.sender]) {
             revert Launchpeg__NotEligibleForAllowlistMint();
         }
-        if (totalSupply() + _quantity > collectionSize) {
+        if (
+            totalSupply() + _quantity > collectionSize ||
+            amountMintedDuringMintlist + _quantity > amountForMintlist
+        ) {
             revert Launchpeg__MaxSupplyReached();
         }
         allowList[msg.sender] -= _quantity;

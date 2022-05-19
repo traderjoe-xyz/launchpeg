@@ -156,11 +156,7 @@ abstract contract BaseLaunchpeg is
             revert Launchpeg__InvalidProjectOwner();
         }
 
-        if (_amountForDevs > _collectionSize) {
-            revert Launchpeg__LargerCollectionSizeNeeded();
-        }
-
-        if (_amountForMintlist > _collectionSize) {
+        if (_amountForDevs + _amountForMintlist > _collectionSize) {
             revert Launchpeg__LargerCollectionSizeNeeded();
         }
 

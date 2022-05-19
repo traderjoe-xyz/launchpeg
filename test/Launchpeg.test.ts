@@ -72,11 +72,8 @@ describe('Launchpeg', () => {
       config.collectionSize = config.collectionSize - 1000
       await expect(deployLaunchpeg()).to.be.revertedWith('Launchpeg__LargerCollectionSizeNeeded()')
 
-      config.amountForMintlist = config.collectionSize + 1
-      await expect(deployLaunchpeg()).to.be.revertedWith('Launchpeg__LargerCollectionSizeNeeded()')
-
-      config.amountForMintlist = 200
-      config.amountForDevs = config.collectionSize + 1
+      config.amountForMintlist = config.collectionSize
+      config.amountForDevs = config.collectionSize
       await expect(deployLaunchpeg()).to.be.revertedWith('Launchpeg__LargerCollectionSizeNeeded()')
     })
 
