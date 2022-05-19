@@ -63,6 +63,12 @@ abstract contract BaseLaunchpeg is
     /// @notice Tracks the amount of NFTs minted by `projectOwner`
     uint256 public override amountMintedByDevs;
 
+    /// @notice Tracks the amount of NFTs minted on Mintlist phase
+    uint256 public override amountMintedDuringMintlist;
+
+    /// @notice Tracks the amount of NFTs minted on Public Sale phase
+    uint256 public override amountMintedDuringPublicSale;
+
     /// @dev Emitted on initializeJoeFee()
     /// @param feePercent The fees collected by Joepegs on the sale benefits
     /// @param feeCollector The address to which the fees on the sale will be sent

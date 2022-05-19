@@ -316,7 +316,9 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
         allowList[msg.sender] -= _quantity;
         uint256 price = getMintlistPrice();
         uint256 totalCost = price * _quantity;
+
         _mint(msg.sender, _quantity, "", false);
+        amountMintedDuringMintlist += _quantity;
         emit Mint(
             msg.sender,
             _quantity,
@@ -345,7 +347,9 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
             revert Launchpeg__CanNotMintThisMany();
         }
         uint256 price = getPublicSalePrice();
+
         _mint(msg.sender, _quantity, "", false);
+        amountMintedDuringPublicSale += _quantity;
         emit Mint(
             msg.sender,
             _quantity,

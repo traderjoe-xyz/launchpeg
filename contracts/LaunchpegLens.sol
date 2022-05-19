@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.4;
 
-import "./BaseLaunchpeg.sol";
+import "./interfaces/IBaseLaunchpeg.sol";
 import "./interfaces/IFlatLaunchpeg.sol";
 import "./interfaces/ILaunchpeg.sol";
 import "./interfaces/IBatchReveal.sol";
@@ -42,12 +42,16 @@ contract LaunchpegLens {
         uint256 publicSalePrice;
         uint256 amountMintedDuringAuction;
         uint256 lastAuctionPrice;
+        uint256 amountMintedDuringMintlist;
+        uint256 amountMintedDuringPublicSale;
     }
 
     struct FlatLaunchpegData {
         uint256 mintlistPrice;
         uint256 salePrice;
         bool isPublicSaleActive;
+        uint256 amountMintedDuringMintlist;
+        uint256 amountMintedDuringPublicSale;
     }
 
     struct RevealData {
@@ -105,10 +109,10 @@ contract LaunchpegLens {
         view
         returns (LaunchpegType)
     {
-        if (BaseLaunchpeg(_contract).supportsInterface(launchpegInterface)) {
+        if (IBaseLaunchpeg(_contract).supportsInterface(launchpegInterface)) {
             return LaunchpegType.Launchpeg;
         } else if (
-            BaseLaunchpeg(_contract).supportsInterface(flatLaunchpegInterface)
+            IBaseLaunchpeg(_contract).supportsInterface(flatLaunchpegInterface)
         ) {
             return LaunchpegType.FlatLaunchpeg;
         } else {
@@ -171,9 +175,9 @@ contract LaunchpegLens {
 
         data.collectionData.name = ERC721AUpgradeable(_launchpeg).name();
         data.collectionData.symbol = ERC721AUpgradeable(_launchpeg).symbol();
-        data.collectionData.collectionSize = BaseLaunchpeg(_launchpeg)
+        data.collectionData.collectionSize = IBaseLaunchpeg(_launchpeg)
             .collectionSize();
-        data.collectionData.maxBatchSize = BaseLaunchpeg(_launchpeg)
+        data.collectionData.maxBatchSize = IBaseLaunchpeg(_launchpeg)
             .maxBatchSize();
         data.collectionData.totalSupply = ERC721AUpgradeable(_launchpeg)
             .totalSupply();
@@ -226,6 +230,12 @@ contract LaunchpegLens {
             ).amountMintedDuringAuction();
             data.launchpegData.lastAuctionPrice = ILaunchpeg(_launchpeg)
                 .lastAuctionPrice();
+            data.launchpegData.amountMintedDuringMintlist = IBaseLaunchpeg(
+                _launchpeg
+            ).amountMintedDuringMintlist();
+            data.launchpegData.amountMintedDuringPublicSale = IBaseLaunchpeg(
+                _launchpeg
+            ).amountMintedDuringPublicSale();
         }
 
         if (data.launchType == LaunchpegType.FlatLaunchpeg) {
@@ -236,6 +246,13 @@ contract LaunchpegLens {
             data.flatLaunchpegData.isPublicSaleActive = IFlatLaunchpeg(
                 _launchpeg
             ).isPublicSaleActive();
+            data.flatLaunchpegData.amountMintedDuringMintlist = IBaseLaunchpeg(
+                _launchpeg
+            ).amountMintedDuringMintlist();
+            data
+                .flatLaunchpegData
+                .amountMintedDuringPublicSale = IBaseLaunchpeg(_launchpeg)
+                .amountMintedDuringPublicSale();
         }
 
         if (_user != address(0)) {

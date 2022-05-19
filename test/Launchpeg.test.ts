@@ -325,6 +325,7 @@ describe('Launchpeg', () => {
       const discount = config.startPrice.mul(config.mintlistDiscount).div(10000)
       await launchpeg.connect(bob).allowListMint(5, { value: config.startPrice.sub(discount).mul(5) })
       expect(await launchpeg.balanceOf(bob.address)).to.eq(5)
+      expect(await launchpeg.amountMintedDuringMintlist()).to.eq(5)
     })
 
     it('Mint reverts when user tries to mint more NFTs than allowed', async () => {
@@ -392,6 +393,7 @@ describe('Launchpeg', () => {
       const price = config.startPrice.sub(discount)
       await launchpeg.connect(bob).publicSaleMint(quantity, { value: price.mul(quantity) })
       expect(await launchpeg.balanceOf(bob.address)).to.eq(2)
+      expect(await launchpeg.amountMintedDuringPublicSale()).to.eq(2)
     })
 
     it('Mint reverts during dutch auction', async () => {

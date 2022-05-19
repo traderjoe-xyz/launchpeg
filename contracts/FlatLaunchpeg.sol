@@ -107,7 +107,9 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
         }
         allowList[msg.sender] -= _quantity;
         uint256 totalCost = mintlistPrice * _quantity;
+
         _mint(msg.sender, _quantity, "", false);
+        amountMintedDuringMintlist += _quantity;
         emit Mint(
             msg.sender,
             _quantity,
@@ -130,7 +132,9 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
             revert Launchpeg__MaxSupplyReached();
         }
         uint256 total = salePrice * _quantity;
+
         _mint(msg.sender, _quantity, "", false);
+        amountMintedDuringPublicSale += _quantity;
         emit Mint(msg.sender, _quantity, salePrice, _totalMinted() - _quantity);
         _refundIfOver(total);
     }
