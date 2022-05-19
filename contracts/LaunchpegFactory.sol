@@ -198,8 +198,9 @@ contract LaunchpegFactory is
     /// @param _maxBatchSize Max amount of NFTs that can be minted at once
     /// @param _collectionSize The collection size (e.g 10000)
     /// @param _amountForDevs Amount of NFTs reserved for `projectOwner` (e.g 200)
-    /// @param _salePrice Price of the public sale in Avax
-    /// @param _mintlistPrice Price of the whitelist sale in Avax
+    /// @param _amountForMintlist Amount of NFTs available for the allowList mint (e.g 1000)
+    /// @param _prices Structure containing the price of the public sale in Avax
+    /// and price of the whitelist sale in Avax
     /// @param _batchRevealData Contains batch reveal informations :
     ///  Size of the batch reveal, start of the token URIs reveal in seconds
     /// and interval between two batch reveals in seconds
@@ -212,8 +213,8 @@ contract LaunchpegFactory is
         uint256 _maxBatchSize,
         uint256 _collectionSize,
         uint256 _amountForDevs,
-        uint256 _salePrice,
-        uint256 _mintlistPrice,
+        uint256 _amountForMintlist,
+        IFlatLaunchpeg.FlatLaunchpegPrices calldata _prices,
         BatchReveal calldata _batchRevealData
     ) external override onlyOwner returns (address) {
         address flatLaunchpeg = Clones.clone(flatLaunchpegImplementation);
@@ -229,8 +230,8 @@ contract LaunchpegFactory is
             _maxBatchSize,
             _collectionSize,
             _amountForDevs,
-            _salePrice,
-            _mintlistPrice,
+            _amountForMintlist,
+            _prices,
             _batchRevealData.batchRevealSize,
             _batchRevealData.revealStartTime,
             _batchRevealData.revealInterval
@@ -252,8 +253,8 @@ contract LaunchpegFactory is
             _maxBatchSize,
             _collectionSize,
             _amountForDevs,
-            _salePrice,
-            _mintlistPrice,
+            _prices.salePrice,
+            _prices.mintlistPrice,
             _batchRevealData.batchRevealSize,
             _batchRevealData.revealStartTime,
             _batchRevealData.revealInterval

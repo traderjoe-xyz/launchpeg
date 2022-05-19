@@ -52,8 +52,8 @@ describe('FlatLaunchpeg', () => {
       config.maxBatchSize,
       config.collectionSize,
       config.amountForDevs,
-      config.flatPublicSalePrice,
-      config.flatMintListSalePrice,
+      config.amountForMintlist,
+      [config.flatPublicSalePrice, config.flatMintListSalePrice],
       config.batchRevealSize,
       config.batchRevealStart,
       config.batchRevealInterval
@@ -78,8 +78,8 @@ describe('FlatLaunchpeg', () => {
           config.maxBatchSize,
           config.collectionSize,
           config.amountForDevs,
-          config.flatPublicSalePrice,
-          config.flatMintListSalePrice.mul(100),
+          config.amountForMintlist,
+          [config.flatPublicSalePrice, config.flatMintListSalePrice.mul(100)],
           config.batchRevealSize,
           config.batchRevealStart,
           config.batchRevealInterval
@@ -167,6 +167,7 @@ describe('FlatLaunchpeg', () => {
     it('Mint reverts when maxSupply is reached', async () => {
       config.collectionSize = 10
       config.amountForDevs = 0
+      config.amountForMintlist = 0
       config.maxBatchSize = 10
       config.batchRevealSize = 10
       await deployFlatLaunchpeg()

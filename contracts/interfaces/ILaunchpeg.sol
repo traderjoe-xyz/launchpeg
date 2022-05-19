@@ -16,8 +16,6 @@ interface ILaunchpeg is IBaseLaunchpeg {
 
     function amountForAuction() external view returns (uint256);
 
-    function amountForMintlist() external view returns (uint256);
-
     function auctionSaleStartTime() external view returns (uint256);
 
     function mintlistStartTime() external view returns (uint256);

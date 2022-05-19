@@ -31,6 +31,9 @@ abstract contract BaseLaunchpeg is
     /// @dev It can be minted any time via `devMint`
     uint256 public override amountForDevs;
 
+    /// @notice Amount of NFTs available for the allowList mint (e.g 1000)
+    uint256 public override amountForMintlist;
+
     /// @notice Max amount of NFTs that can be minted at once
     uint256 public override maxBatchSize;
 
@@ -127,6 +130,7 @@ abstract contract BaseLaunchpeg is
     /// @param _maxBatchSize Max amount of NFTs that can be minted at once
     /// @param _collectionSize The collection size (e.g 10000)
     /// @param _amountForDevs Amount of NFTs reserved for `projectOwner` (e.g 200)
+    /// @param _amountForMintlist Amount of NFTs available for the allowList mint (e.g 1000)
     /// @param _batchRevealSize Size of the batch reveal
     function initializeBaseLaunchpeg(
         string memory _name,
@@ -136,6 +140,7 @@ abstract contract BaseLaunchpeg is
         uint256 _maxBatchSize,
         uint256 _collectionSize,
         uint256 _amountForDevs,
+        uint256 _amountForMintlist,
         uint256 _batchRevealSize,
         uint256 _revealStartTime,
         uint256 _revealInterval
@@ -152,6 +157,10 @@ abstract contract BaseLaunchpeg is
         }
 
         if (_amountForDevs > _collectionSize) {
+            revert Launchpeg__LargerCollectionSizeNeeded();
+        }
+
+        if (_amountForMintlist > _collectionSize) {
             revert Launchpeg__LargerCollectionSizeNeeded();
         }
 
@@ -175,6 +184,7 @@ abstract contract BaseLaunchpeg is
         collectionSize = _collectionSize;
         maxPerAddressDuringMint = _maxBatchSize;
         amountForDevs = _amountForDevs;
+        amountForMintlist = _amountForMintlist;
 
         revealStartTime = _revealStartTime;
         revealInterval = _revealInterval;

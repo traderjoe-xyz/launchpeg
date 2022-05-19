@@ -52,6 +52,7 @@ contract LaunchpegLens {
         bool isPublicSaleActive;
         uint256 amountMintedDuringMintlist;
         uint256 amountMintedDuringPublicSale;
+        uint256 amountForMintlist;
     }
 
     struct RevealData {
@@ -253,6 +254,9 @@ contract LaunchpegLens {
                 .flatLaunchpegData
                 .amountMintedDuringPublicSale = IBaseLaunchpeg(_launchpeg)
                 .amountMintedDuringPublicSale();
+            data.flatLaunchpegData.amountForMintlist = IBaseLaunchpeg(
+                _launchpeg
+            ).amountForMintlist();
         }
 
         if (_user != address(0)) {

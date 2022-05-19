@@ -7,6 +7,11 @@ import "./IBaseLaunchpeg.sol";
 /// @author Trader Joe
 /// @notice Defines the basic interface of FlatLaunchpeg
 interface IFlatLaunchpeg is IBaseLaunchpeg {
+    struct FlatLaunchpegPrices {
+        uint256 salePrice;
+        uint256 mintlistPrice;
+    }
+
     function mintlistPrice() external view returns (uint256);
 
     function salePrice() external view returns (uint256);
@@ -21,11 +26,11 @@ interface IFlatLaunchpeg is IBaseLaunchpeg {
         uint256 _maxBatchSize,
         uint256 _collectionSize,
         uint256 _amountForDevs,
+        uint256 _amountForMintlist,
+        FlatLaunchpegPrices calldata _prices,
         uint256 _batchRevealSize,
         uint256 _revealStartTime,
-        uint256 _revealInterval,
-        uint256 _salePrice,
-        uint256 _mintlistPrice
+        uint256 _revealInterval
     ) external;
 
     function allowListMint(uint256 _quantity) external payable;

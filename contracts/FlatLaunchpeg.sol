@@ -44,8 +44,9 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
     /// @param _maxBatchSize Max amount of NFTs that can be minted at once
     /// @param _collectionSize The collection size (e.g 10000)
     /// @param _amountForDevs Amount of NFTs reserved for `projectOwner` (e.g 200)
-    /// @param _salePrice Price of the public sale in Avax
-    /// @param _mintlistPrice Price of the whitelist sale in Avax
+    /// @param _amountForMintlist Amount of NFTs available for the allowList mint (e.g 1000)
+    /// @param _prices Structure containing the price of the public sale in Avax
+    /// and price of the whitelist sale in Avax
     /// @param _batchRevealSize Size of the batch reveal
     /// @param _revealStartTime Start of the token URIs reveal in seconds
     /// @param _revealInterval Interval between two batch reveals in seconds
@@ -57,8 +58,8 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
         uint256 _maxBatchSize,
         uint256 _collectionSize,
         uint256 _amountForDevs,
-        uint256 _salePrice,
-        uint256 _mintlistPrice,
+        uint256 _amountForMintlist,
+        FlatLaunchpegPrices calldata _prices,
         uint256 _batchRevealSize,
         uint256 _revealStartTime,
         uint256 _revealInterval
@@ -71,17 +72,18 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
             _maxBatchSize,
             _collectionSize,
             _amountForDevs,
+            _amountForMintlist,
             _batchRevealSize,
             _revealStartTime,
             _revealInterval
         );
 
-        if (_mintlistPrice > _salePrice) {
+        if (_prices.mintlistPrice > _prices.salePrice) {
             revert Launchpeg__InvalidMintlistPrice();
         }
 
-        salePrice = _salePrice;
-        mintlistPrice = _mintlistPrice;
+        salePrice = _prices.salePrice;
+        mintlistPrice = _prices.mintlistPrice;
     }
 
     /// @notice Switch the sale on and off

@@ -14,10 +14,6 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
     /// Unsold items are put up for sale during the public sale.
     uint256 public override amountForAuction;
 
-    /// @notice Amount of NFTs available for the allowList mint (e.g 1000)
-    /// Unsold items are put up for sale during the public sale.
-    uint256 public override amountForMintlist;
-
     /// @notice Start time of the dutch auction in seconds
     /// @dev Timestamp
     uint256 public override auctionSaleStartTime;
@@ -157,6 +153,7 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
             _maxBatchSize,
             _collectionSize,
             _amountForDevs,
+            _amountForMintlist,
             _batchRevealSize,
             _revealStartTime,
             _revealInterval
@@ -169,7 +166,6 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
         }
 
         amountForAuction = _amountForAuction;
-        amountForMintlist = _amountForMintlist;
     }
 
     /// @notice Initialize the three phases of the sale
