@@ -18,14 +18,6 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
     /// @dev Timestamp
     uint256 public override auctionSaleStartTime;
 
-    /// @notice Start time of the allowlist mint in seconds
-    /// @dev A timestamp greater than the dutch auction start
-    uint256 public override allowlistStartTime;
-
-    /// @notice Start time of the public sale in seconds
-    /// @dev A timestamp greater than the allowlist mint start
-    uint256 public override publicSaleStartTime;
-
     /// @notice Auction start price in AVAX
     /// @dev auctionStartPrice is scaled to 1e18
     uint256 public override auctionStartPrice;
@@ -61,14 +53,6 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
     uint256 public override lastAuctionPrice;
 
     /// @dev Emitted on initializePhases()
-    /// @param name Contract name
-    /// @param symbol Token symbol
-    /// @param projectOwner Owner of the project
-    /// @param maxBatchSize Max amount of NFTs that can be minted at once
-    /// @param collectionSize The collection size (e.g 10000)
-    /// @param amountForAuction Amount of NFTs available for the auction (e.g 8000)
-    /// @param amountForAllowlist Amount of NFTs available for the allowlist mint (e.g 1000)
-    /// @param amountForDevs Amount of NFTs reserved for `projectOwner` (e.g 200)
     /// @param auctionSaleStartTime Auction start time in seconds
     /// @param auctionStartPrice Auction start price in AVAX
     /// @param auctionEndPrice Auction floor price in AVAX
@@ -78,14 +62,6 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
     /// @param publicSaleStartTime Public sale start time in seconds
     /// @param publicSaleDiscountPercent Discount applied to the last auction price during the public sale
     event Initialized(
-        string indexed name,
-        string indexed symbol,
-        address indexed projectOwner,
-        uint256 maxBatchSize,
-        uint256 collectionSize,
-        uint256 amountForAuction,
-        uint256 amountForAllowlist,
-        uint256 amountForDevs,
         uint256 auctionSaleStartTime,
         uint256 auctionStartPrice,
         uint256 auctionEndPrice,
@@ -189,10 +165,10 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
         uint256 _publicSaleDiscountPercent
     ) external override atPhase(Phase.NotStarted) {
         if (auctionSaleStartTime != 0) {
-            revert Launchpeg__AuctionAlreadyInitialized();
+            revert Launchpeg__PhasesAlreadyInitialized();
         }
         if (_auctionSaleStartTime < block.timestamp) {
-            revert Launchpeg__InvalidAuctionStartTime();
+            revert Launchpeg__InvalidStartTime();
         }
         if (_auctionStartPrice <= _auctionEndPrice) {
             revert Launchpeg__EndPriceGreaterThanStartPrice();
@@ -237,14 +213,6 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
         publicSaleDiscountPercent = _publicSaleDiscountPercent;
 
         emit Initialized(
-            name(),
-            symbol(),
-            projectOwner,
-            maxBatchSize,
-            collectionSize,
-            amountForAuction,
-            amountForAllowlist,
-            amountForDevs,
             auctionSaleStartTime,
             auctionStartPrice,
             auctionEndPrice,

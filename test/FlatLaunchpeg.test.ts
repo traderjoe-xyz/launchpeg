@@ -1,8 +1,9 @@
 import { config as hardhatConfig, ethers, network } from 'hardhat'
 import { expect } from 'chai'
-import { getDefaultLaunchpegConfig, Phase, LaunchpegConfig } from './utils/helpers'
-import { ContractFactory, Contract } from 'ethers'
+import { getDefaultLaunchpegConfig, Phase, LaunchpegConfig, initializePhasesFlatLaunchpeg } from './utils/helpers'
+import { ContractFactory, Contract, BigNumber } from 'ethers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
+import { duration } from './utils/time'
 
 describe('FlatLaunchpeg', () => {
   let flatLaunchpegCF: ContractFactory
@@ -53,7 +54,6 @@ describe('FlatLaunchpeg', () => {
       config.collectionSize,
       config.amountForDevs,
       config.amountForAllowlist,
-      [config.flatPublicSalePrice, config.flatAllowlistSalePrice],
       config.batchRevealSize,
       config.batchRevealStart,
       config.batchRevealInterval
@@ -63,28 +63,36 @@ describe('FlatLaunchpeg', () => {
   beforeEach(async () => {
     config = { ...(await getDefaultLaunchpegConfig()) }
     await deployFlatLaunchpeg()
-    await flatLaunchpeg.setPublicSaleActive(true)
   })
 
   describe('Initialization', () => {
+    it('Phases can be initialized only once', async () => {
+      await initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.NotStarted)
+      await expect(initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.Allowlist)).to.be.revertedWith(
+        'Launchpeg__PhasesAlreadyInitialized()'
+      )
+    })
+
+    it('Sale dates should be correct', async () => {
+      config.allowlistStartTime = BigNumber.from(0)
+      await expect(initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.Allowlist)).to.be.revertedWith(
+        'Launchpeg__InvalidStartTime()'
+      )
+    })
+
+    it('Public sale must happen after allowlist', async () => {
+      config.publicSaleStartTime = config.allowlistStartTime.sub(duration.minutes(20))
+
+      await expect(initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.Allowlist)).to.be.revertedWith(
+        'Launchpeg__PublicSaleBeforeAllowlist()'
+      )
+    })
+
     it('Allowlist price should be lower than Public sale', async () => {
-      flatLaunchpeg = await flatLaunchpegCF.deploy()
-      await expect(
-        flatLaunchpeg.initialize(
-          'JoePEG',
-          'JOEPEG',
-          projectOwner.address,
-          royaltyReceiver.address,
-          config.maxBatchSize,
-          config.collectionSize,
-          config.amountForDevs,
-          config.amountForAllowlist,
-          [config.flatPublicSalePrice, config.flatAllowlistSalePrice.mul(100)],
-          config.batchRevealSize,
-          config.batchRevealStart,
-          config.batchRevealInterval
-        )
-      ).to.be.revertedWith('Launchpeg__InvalidAllowlistPrice()')
+      config.flatAllowlistSalePrice = config.flatAllowlistSalePrice.mul(10)
+      await expect(initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.NotStarted)).to.be.revertedWith(
+        'Launchpeg__InvalidAllowlistPrice()'
+      )
     })
   })
 
@@ -107,12 +115,27 @@ describe('FlatLaunchpeg', () => {
 
   describe('Allowlist phase', () => {
     it('One NFT is transfered when user is on allowlist', async () => {
+      await initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.Allowlist)
+
       await flatLaunchpeg.connect(dev).seedAllowlist([bob.address], [1])
       await flatLaunchpeg.connect(bob).allowlistMint(1, { value: config.flatAllowlistSalePrice })
       expect(await flatLaunchpeg.balanceOf(bob.address)).to.eq(1)
     })
 
+    it('Mint reverts when not started yet', async () => {
+      await initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.NotStarted)
+
+      await expect(flatLaunchpeg.connect(bob).allowlistMint(1)).to.be.revertedWith('Launchpeg__WrongPhase()')
+    })
+
+    it('Mint reverts when the allowlist sale is over', async () => {
+      await initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.PublicSale)
+
+      await expect(flatLaunchpeg.connect(bob).allowlistMint(1)).to.be.revertedWith('Launchpeg__WrongPhase()')
+    })
+
     it('Mint reverts when user tries to mint more NFTs than allowed', async () => {
+      await initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.Allowlist)
       const price = config.flatAllowlistSalePrice
 
       await flatLaunchpeg.connect(dev).seedAllowlist([bob.address], [2])
@@ -126,12 +149,14 @@ describe('FlatLaunchpeg', () => {
     })
 
     it('Mint reverts when the caller is not on allowlist during mint phase', async () => {
+      await initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.Allowlist)
       await expect(flatLaunchpeg.connect(bob).allowlistMint(1)).to.be.revertedWith(
         'Launchpeg__NotEligibleForAllowlistMint()'
       )
     })
 
     it("Mint reverts when the caller didn't send enough AVAX", async () => {
+      await initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.Allowlist)
       await flatLaunchpeg.connect(dev).seedAllowlist([alice.address], [1])
       await expect(flatLaunchpeg.connect(alice).allowlistMint(1)).to.be.revertedWith('Launchpeg__NotEnoughAVAX(0)')
     })
@@ -145,23 +170,34 @@ describe('FlatLaunchpeg', () => {
 
   describe('Public sale phase', () => {
     it('The correct amount of NFTs is transfered when the user mints', async () => {
+      await initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.PublicSale)
+
       const quantity = 2
       const price = config.flatPublicSalePrice
       await flatLaunchpeg.connect(bob).publicSaleMint(quantity, { value: price.mul(quantity) })
       expect(await flatLaunchpeg.balanceOf(bob.address)).to.eq(2)
     })
 
+    it('Mint reverts if sale not started', async () => {
+      await initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.NotStarted)
+
+      await expect(flatLaunchpeg.connect(alice).publicSaleMint(1)).to.be.revertedWith('Launchpeg__WrongPhase()')
+    })
+
+    it('Mint reverts during allowlist phase', async () => {
+      await initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.Allowlist)
+
+      await expect(flatLaunchpeg.connect(alice).publicSaleMint(1)).to.be.revertedWith('Launchpeg__WrongPhase()')
+    })
+
     it('Mint reverts when buy size > max allowed', async () => {
+      await initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.PublicSale)
       await expect(flatLaunchpeg.connect(alice).publicSaleMint(6)).to.be.revertedWith('Launchpeg__CanNotMintThisMany()')
     })
 
     it('Mint reverts when not enough AVAX sent', async () => {
+      await initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.PublicSale)
       await expect(flatLaunchpeg.connect(alice).publicSaleMint(2)).to.be.revertedWith('Launchpeg__NotEnoughAVAX(0)')
-    })
-
-    it('Mint reverts when sale is off', async () => {
-      await flatLaunchpeg.connect(dev).setPublicSaleActive(false)
-      await expect(flatLaunchpeg.connect(alice).publicSaleMint(6)).to.be.revertedWith('Launchpeg__PublicSaleClosed()')
     })
 
     it('Mint reverts when maxSupply is reached', async () => {
@@ -171,7 +207,7 @@ describe('FlatLaunchpeg', () => {
       config.maxBatchSize = 10
       config.batchRevealSize = 10
       await deployFlatLaunchpeg()
-      await flatLaunchpeg.setPublicSaleActive(true)
+      await initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.PublicSale)
 
       let quantity = 10
       const price = config.flatPublicSalePrice
@@ -184,6 +220,8 @@ describe('FlatLaunchpeg', () => {
     })
 
     it('Mint reverts when address minted maxBatchSize', async () => {
+      await initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.PublicSale)
+
       let quantity = config.maxBatchSize
       const price = config.flatPublicSalePrice
       await flatLaunchpeg.connect(bob).publicSaleMint(quantity, { value: price.mul(quantity) })
@@ -197,6 +235,8 @@ describe('FlatLaunchpeg', () => {
 
   describe('Transfers', () => {
     it('Owner of an NFT should be able to transfer it', async () => {
+      await initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.PublicSale)
+
       const quantity = 2
       const price = config.flatPublicSalePrice
       await flatLaunchpeg.connect(bob).publicSaleMint(quantity, { value: price.mul(quantity) })
@@ -206,6 +246,8 @@ describe('FlatLaunchpeg', () => {
     })
 
     it('Owner of an NFT should be able to give allowance', async () => {
+      await initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.PublicSale)
+
       const quantity = 2
       const price = config.flatPublicSalePrice
       await flatLaunchpeg.connect(bob).publicSaleMint(quantity, { value: price.mul(quantity) })
@@ -216,6 +258,8 @@ describe('FlatLaunchpeg', () => {
     })
 
     it('TransferFrom with no allowance should fail', async () => {
+      await initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.PublicSale)
+
       const quantity = 2
       const price = config.flatPublicSalePrice
       await flatLaunchpeg.connect(bob).publicSaleMint(quantity, { value: price.mul(quantity) })
@@ -228,6 +272,7 @@ describe('FlatLaunchpeg', () => {
 
   describe('Funds flow', () => {
     it('Owner can withdraw money', async () => {
+      await initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.PublicSale)
       // For some reason the contract has some balance initially, for this particular test only
       const initialContractBalance = await ethers.provider.getBalance(flatLaunchpeg.address)
 
@@ -244,6 +289,8 @@ describe('FlatLaunchpeg', () => {
     })
 
     it('Fee correctly sent to collector address', async () => {
+      await initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.PublicSale)
+
       const feePercent = 200
       const feeCollector = bob
       await flatLaunchpeg.initializeJoeFee(feePercent, feeCollector.address)

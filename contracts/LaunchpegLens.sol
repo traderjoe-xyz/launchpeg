@@ -47,12 +47,13 @@ contract LaunchpegLens {
     }
 
     struct FlatLaunchpegData {
+        uint256 amountForAllowlist;
+        uint256 allowlistStartTime;
+        uint256 publicSaleStartTime;
         uint256 allowlistPrice;
         uint256 salePrice;
-        bool isPublicSaleActive;
         uint256 amountMintedDuringAllowlist;
         uint256 amountMintedDuringPublicSale;
-        uint256 amountForAllowlist;
     }
 
     struct RevealData {
@@ -244,19 +245,22 @@ contract LaunchpegLens {
                 .allowlistPrice();
             data.flatLaunchpegData.salePrice = IFlatLaunchpeg(_launchpeg)
                 .salePrice();
-            data.flatLaunchpegData.isPublicSaleActive = IFlatLaunchpeg(
-                _launchpeg
-            ).isPublicSaleActive();
-            data.flatLaunchpegData.amountMintedDuringAllowlist = IBaseLaunchpeg(
+            data.flatLaunchpegData.amountMintedDuringAllowlist = IFlatLaunchpeg(
                 _launchpeg
             ).amountMintedDuringAllowlist();
             data
                 .flatLaunchpegData
-                .amountMintedDuringPublicSale = IBaseLaunchpeg(_launchpeg)
+                .amountMintedDuringPublicSale = IFlatLaunchpeg(_launchpeg)
                 .amountMintedDuringPublicSale();
-            data.flatLaunchpegData.amountForAllowlist = IBaseLaunchpeg(
+            data.flatLaunchpegData.amountForAllowlist = IFlatLaunchpeg(
                 _launchpeg
             ).amountForAllowlist();
+            data.flatLaunchpegData.allowlistStartTime = IFlatLaunchpeg(
+                _launchpeg
+            ).allowlistStartTime();
+            data.flatLaunchpegData.publicSaleStartTime = IFlatLaunchpeg(
+                _launchpeg
+            ).publicSaleStartTime();
         }
 
         if (_user != address(0)) {

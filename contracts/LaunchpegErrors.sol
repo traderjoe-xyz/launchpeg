@@ -2,13 +2,13 @@
 pragma solidity ^0.8.4;
 
 error LaunchpegFactory__InvalidImplementation();
-error Launchpeg__AuctionAlreadyInitialized();
+error Launchpeg__PhasesAlreadyInitialized();
 error Launchpeg__CanNotMintThisMany();
 error Launchpeg__CanOnlyMintMultipleOfMaxBatchSize();
 error Launchpeg__EndPriceGreaterThanStartPrice();
 error Launchpeg__JoeFeeAlreadyInitialized();
 error Launchpeg__InvalidAuctionDropInterval();
-error Launchpeg__InvalidAuctionStartTime();
+error Launchpeg__InvalidStartTime();
 error Launchpeg__InvalidBatchRevealSize();
 error Launchpeg__InvalidJoeFeeCollector();
 error Launchpeg__InvalidMaxBatchSize();
@@ -24,7 +24,6 @@ error Launchpeg__AllowlistBeforeAuction();
 error Launchpeg__NotEligibleForAllowlistMint();
 error Launchpeg__NotEnoughAVAX(uint256 avaxSent);
 error Launchpeg__PublicSaleBeforeAllowlist();
-error Launchpeg__PublicSaleClosed();
 error Launchpeg__RevealNextBatchNotAvailable();
 error Launchpeg__TransferFailed();
 error Launchpeg__Unauthorized();

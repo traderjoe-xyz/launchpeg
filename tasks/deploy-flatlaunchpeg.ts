@@ -25,7 +25,6 @@ task('deploy-flatlaunchpeg', 'Deploy FlatLaunchpeg contract')
       launchConfig.collectionSize,
       launchConfig.amountForDevs,
       launchConfig.amountForAllowlist,
-      [launchConfig.salePrice, launchConfig.allowlistPrice],
       [launchConfig.batchRevealSize, launchConfig.batchRevealStart, launchConfig.batchRevealInterval]
     )
 
@@ -35,4 +34,17 @@ task('deploy-flatlaunchpeg', 'Deploy FlatLaunchpeg contract')
     const launchpegAddress = await factory.allLaunchpegs(1, launchpegNumber - 1)
 
     console.log(`-- Contract deployed at ${launchpegAddress} --`)
+
+    console.log('-- Initializating phases --')
+
+    const launchpeg = await ethers.getContractAt('FlatLaunchpeg', launchpegAddress)
+
+    const initTx = await launchpeg.initializePhases(
+      launchConfig.allowlistPrice,
+      launchConfig.salePrice,
+      launchConfig.allowlistStartTime,
+      launchConfig.publicSaleStartTime
+    )
+
+    await initTx.wait()
   })

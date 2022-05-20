@@ -8,8 +8,12 @@
   "amountForDevs": "200",
   "amountForAllowlist": "1000",
   "batchRevealSize": "1000",
+  "batchRevealStart": "0",
+  "batchRevealInterval": "0",
   "joeFeePercent": "100",
   "joeFeeCollector": "0x0000000000000000000000000000000000000000",
   "allowlistPrice": "5000000000000000000",
-  "salePrice": "10000000000000000000"
+  "salePrice": "10000000000000000000",
+  "allowlistStartTime": "1660737600",
+  "publicSaleStartTime": "1660737900"
 }

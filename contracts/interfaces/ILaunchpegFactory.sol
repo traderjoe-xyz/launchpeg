@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import "./IFlatLaunchpeg.sol";
-
 /// @title ILaunchpegFactory
 /// @author Trader Joe
 /// @notice Defines the basic interface of LaunchpegFactory
@@ -58,7 +56,6 @@ interface ILaunchpegFactory {
         uint256 _collectionSize,
         uint256 _amountForDevs,
         uint256 _amountForAllowlist,
-        IFlatLaunchpeg.FlatLaunchpegPrices calldata prices,
         BatchReveal calldata _batchRevealData
     ) external returns (address);
 

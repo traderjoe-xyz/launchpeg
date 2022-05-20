@@ -72,6 +72,13 @@ abstract contract BaseLaunchpeg is
     /// @notice Tracks the amount of NFTs minted on Public Sale phase
     uint256 public override amountMintedDuringPublicSale;
 
+    /// @notice Start time of the allowlist mint in seconds
+    uint256 public override allowlistStartTime;
+
+    /// @notice Start time of the public sale in seconds
+    /// @dev A timestamp greater than the allowlist mint start
+    uint256 public override publicSaleStartTime;
+
     /// @dev Emitted on initializeJoeFee()
     /// @param feePercent The fees collected by Joepegs on the sale benefits
     /// @param feeCollector The address to which the fees on the sale will be sent
