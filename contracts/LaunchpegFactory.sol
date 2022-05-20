@@ -44,7 +44,7 @@ contract LaunchpegFactory is
         uint256 collectionSize,
         uint256 amountForDevs,
         uint256 salePrice,
-        uint256 mintlistPrice,
+        uint256 allowlistPrice,
         uint256 batchRevealSize,
         uint256 revealStartTime,
         uint256 revealInterval
@@ -254,7 +254,7 @@ contract LaunchpegFactory is
             _collectionSize,
             _amountForDevs,
             _prices.salePrice,
-            _prices.mintlistPrice,
+            _prices.allowlistPrice,
             _batchRevealData.batchRevealSize,
             _batchRevealData.revealStartTime,
             _batchRevealData.revealInterval

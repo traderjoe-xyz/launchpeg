@@ -27,18 +27,18 @@ contract LaunchpegLens {
         uint256 amountForAuction;
         uint256 amountForAllowlist;
         uint256 auctionSaleStartTime;
-        uint256 mintlistStartTime;
+        uint256 allowlistStartTime;
         uint256 publicSaleStartTime;
         uint256 auctionStartPrice;
         uint256 auctionEndPrice;
         uint256 auctionSaleDuration;
         uint256 auctionDropInterval;
         uint256 auctionDropPerStep;
-        uint256 mintlistDiscountPercent;
+        uint256 allowlistDiscountPercent;
         uint256 publicSaleDiscountPercent;
         ILaunchpeg.Phase currentPhase;
         uint256 auctionPrice;
-        uint256 mintlistPrice;
+        uint256 allowlistPrice;
         uint256 publicSalePrice;
         uint256 amountMintedDuringAuction;
         uint256 lastAuctionPrice;
@@ -47,7 +47,7 @@ contract LaunchpegLens {
     }
 
     struct FlatLaunchpegData {
-        uint256 mintlistPrice;
+        uint256 allowlistPrice;
         uint256 salePrice;
         bool isPublicSaleActive;
         uint256 amountMintedDuringAllowlist;
@@ -125,7 +125,7 @@ contract LaunchpegLens {
     /// @param _type Type of Launchpeg to consider
     /// @param _offset Index to start at when looking up Launchpegs
     /// @param _limit Maximum number of Launchpegs datas to return
-    /// @param _user Address to consider for NFT balances and mintlist allocations
+    /// @param _user Address to consider for NFT balances and allowlist allocations
     /// @return LensDataList List of contracts datas
     function getAllLaunchpegsFromType(
         uint8 _type,
@@ -159,7 +159,7 @@ contract LaunchpegLens {
 
     /// @notice Fetch Launchpeg data from the provided address
     /// @param _launchpeg Contract address to consider
-    /// @param _user Address to consider for NFT balances and mintlist allocations
+    /// @param _user Address to consider for NFT balances and allowlist allocations
     /// @return LensData Contract data
     function getLaunchpegData(address _launchpeg, address _user)
         public
@@ -199,8 +199,8 @@ contract LaunchpegLens {
                 .amountForAllowlist();
             data.launchpegData.auctionSaleStartTime = ILaunchpeg(_launchpeg)
                 .auctionSaleStartTime();
-            data.launchpegData.mintlistStartTime = ILaunchpeg(_launchpeg)
-                .mintlistStartTime();
+            data.launchpegData.allowlistStartTime = ILaunchpeg(_launchpeg)
+                .allowlistStartTime();
             data.launchpegData.publicSaleStartTime = ILaunchpeg(_launchpeg)
                 .publicSaleStartTime();
             data.launchpegData.auctionStartPrice = ILaunchpeg(_launchpeg)
@@ -213,8 +213,8 @@ contract LaunchpegLens {
                 .auctionDropInterval();
             data.launchpegData.auctionDropPerStep = ILaunchpeg(_launchpeg)
                 .auctionDropPerStep();
-            data.launchpegData.mintlistDiscountPercent = ILaunchpeg(_launchpeg)
-                .mintlistDiscountPercent();
+            data.launchpegData.allowlistDiscountPercent = ILaunchpeg(_launchpeg)
+                .allowlistDiscountPercent();
             data.launchpegData.publicSaleDiscountPercent = ILaunchpeg(
                 _launchpeg
             ).publicSaleDiscountPercent();
@@ -222,7 +222,7 @@ contract LaunchpegLens {
                 .currentPhase();
             data.launchpegData.auctionPrice = ILaunchpeg(_launchpeg)
                 .getAuctionPrice(data.launchpegData.auctionSaleStartTime);
-            data.launchpegData.mintlistPrice = ILaunchpeg(_launchpeg)
+            data.launchpegData.allowlistPrice = ILaunchpeg(_launchpeg)
                 .getAllowlistPrice();
             data.launchpegData.publicSalePrice = ILaunchpeg(_launchpeg)
                 .getPublicSalePrice();
@@ -240,8 +240,8 @@ contract LaunchpegLens {
         }
 
         if (data.launchType == LaunchpegType.FlatLaunchpeg) {
-            data.flatLaunchpegData.mintlistPrice = IFlatLaunchpeg(_launchpeg)
-                .mintlistPrice();
+            data.flatLaunchpegData.allowlistPrice = IFlatLaunchpeg(_launchpeg)
+                .allowlistPrice();
             data.flatLaunchpegData.salePrice = IFlatLaunchpeg(_launchpeg)
                 .salePrice();
             data.flatLaunchpegData.isPublicSaleActive = IFlatLaunchpeg(

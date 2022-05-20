@@ -9,8 +9,8 @@ import "./BaseLaunchpeg.sol";
 /// @notice Implements a simple minting NFT contract with an allowlist and public sale phase.
 contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
     /// @notice Price of one NFT for people on the mint list
-    /// @dev mintlistPrice is scaled to 1e18
-    uint256 public override mintlistPrice;
+    /// @dev allowlistPrice is scaled to 1e18
+    uint256 public override allowlistPrice;
 
     /// @notice Price of one NFT during the public sale
     /// @dev salePrice is scaled to 1e18
@@ -78,12 +78,12 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
             _revealInterval
         );
 
-        if (_prices.mintlistPrice > _prices.salePrice) {
+        if (_prices.allowlistPrice > _prices.salePrice) {
             revert Launchpeg__InvalidAllowlistPrice();
         }
 
         salePrice = _prices.salePrice;
-        mintlistPrice = _prices.mintlistPrice;
+        allowlistPrice = _prices.allowlistPrice;
     }
 
     /// @notice Switch the sale on and off
@@ -111,14 +111,14 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
             revert Launchpeg__MaxSupplyReached();
         }
         allowlist[msg.sender] -= _quantity;
-        uint256 totalCost = mintlistPrice * _quantity;
+        uint256 totalCost = allowlistPrice * _quantity;
 
         _mint(msg.sender, _quantity, "", false);
         amountMintedDuringAllowlist += _quantity;
         emit Mint(
             msg.sender,
             _quantity,
-            mintlistPrice,
+            allowlistPrice,
             _totalMinted() - _quantity
         );
         _refundIfOver(totalCost);

@@ -68,7 +68,7 @@ describe('Launchpeg', () => {
   })
 
   describe('Initialization', () => {
-    it('Amount reserved for devs, auction, mintlist but be lower than collection size', async () => {
+    it('Amount reserved for devs, auction, allowlist but be lower than collection size', async () => {
       config.collectionSize = config.collectionSize - 1000
       await expect(deployLaunchpeg()).to.be.revertedWith('Launchpeg__LargerCollectionSizeNeeded()')
 
@@ -151,13 +151,13 @@ describe('Launchpeg', () => {
     })
 
     it('Allowlist must happen after auction', async () => {
-      config.mintlistStartTime = config.auctionStartTime.sub(duration.minutes(10))
+      config.allowlistStartTime = config.auctionStartTime.sub(duration.minutes(10))
       await expect(initializePhases(launchpeg, config, Phase.DutchAuction)).to.be.revertedWith(
         'Launchpeg__AllowlistBeforeAuction()'
       )
     })
 
-    it('Public sale must happen after mintlist', async () => {
+    it('Public sale must happen after allowlist', async () => {
       config.publicSaleStartTime = config.auctionStartTime.sub(duration.minutes(20))
 
       await expect(initializePhases(launchpeg, config, Phase.DutchAuction)).to.be.revertedWith(
@@ -165,8 +165,8 @@ describe('Launchpeg', () => {
       )
     })
 
-    it('Public sale and mintlist discount must be < 100%', async () => {
-      config.mintlistDiscount = 10_001
+    it('Public sale and allowlist discount must be < 100%', async () => {
+      config.allowlistDiscount = 10_001
 
       await expect(initializePhases(launchpeg, config, Phase.DutchAuction)).to.be.revertedWith(
         'Launchpeg__InvalidPercent()'
@@ -323,7 +323,7 @@ describe('Launchpeg', () => {
       await initializePhases(launchpeg, config, Phase.Allowlist)
 
       await launchpeg.seedAllowlist([bob.address], [5])
-      const discount = config.startPrice.mul(config.mintlistDiscount).div(10000)
+      const discount = config.startPrice.mul(config.allowlistDiscount).div(10000)
       await launchpeg.connect(bob).allowlistMint(5, { value: config.startPrice.sub(discount).mul(5) })
       expect(await launchpeg.balanceOf(bob.address)).to.eq(5)
       expect(await launchpeg.amountMintedDuringAllowlist()).to.eq(5)
@@ -332,7 +332,7 @@ describe('Launchpeg', () => {
     it('Mint reverts when user tries to mint more NFTs than allowed', async () => {
       await initializePhases(launchpeg, config, Phase.Allowlist)
 
-      const discount = config.startPrice.mul(config.mintlistDiscount).div(10000)
+      const discount = config.startPrice.mul(config.allowlistDiscount).div(10000)
       const price = config.startPrice.sub(discount)
 
       await launchpeg.seedAllowlist([bob.address], [4])
@@ -403,7 +403,7 @@ describe('Launchpeg', () => {
       await expect(launchpeg.connect(alice).publicSaleMint(1)).to.be.revertedWith('Launchpeg__WrongPhase()')
     })
 
-    it('Mint reverts during mintlist phase', async () => {
+    it('Mint reverts during allowlist phase', async () => {
       await initializePhases(launchpeg, config, Phase.Allowlist)
 
       await expect(launchpeg.connect(alice).publicSaleMint(1)).to.be.revertedWith('Launchpeg__WrongPhase()')

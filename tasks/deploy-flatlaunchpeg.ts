@@ -25,7 +25,7 @@ task('deploy-flatlaunchpeg', 'Deploy FlatLaunchpeg contract')
       launchConfig.collectionSize,
       launchConfig.amountForDevs,
       launchConfig.amountForAllowlist,
-      [launchConfig.salePrice, launchConfig.mintlistPrice],
+      [launchConfig.salePrice, launchConfig.allowlistPrice],
       [launchConfig.batchRevealSize, launchConfig.batchRevealStart, launchConfig.batchRevealInterval]
     )
 

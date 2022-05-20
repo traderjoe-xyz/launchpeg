@@ -9,10 +9,10 @@ import "./IBaseLaunchpeg.sol";
 interface IFlatLaunchpeg is IBaseLaunchpeg {
     struct FlatLaunchpegPrices {
         uint256 salePrice;
-        uint256 mintlistPrice;
+        uint256 allowlistPrice;
     }
 
-    function mintlistPrice() external view returns (uint256);
+    function allowlistPrice() external view returns (uint256);
 
     function salePrice() external view returns (uint256);
 

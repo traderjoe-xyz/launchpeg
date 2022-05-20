@@ -20,7 +20,7 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
 
     /// @notice Start time of the allowlist mint in seconds
     /// @dev A timestamp greater than the dutch auction start
-    uint256 public override mintlistStartTime;
+    uint256 public override allowlistStartTime;
 
     /// @notice Start time of the public sale in seconds
     /// @dev A timestamp greater than the allowlist mint start
@@ -35,7 +35,7 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
     uint256 public override auctionEndPrice;
 
     /// @notice Duration of the auction in seconds
-    /// @dev mintlistStartTime - auctionSaleStartTime
+    /// @dev allowlistStartTime - auctionSaleStartTime
     uint256 public override auctionSaleDuration;
 
     /// @notice Time elapsed between each drop in price
@@ -47,7 +47,7 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
 
     /// @notice The discount applied to the last auction price during the allowlist mint
     /// @dev In basis points e.g 500 for 5%
-    uint256 public override mintlistDiscountPercent;
+    uint256 public override allowlistDiscountPercent;
 
     /// @notice The discount applied to the last auction price during the public sale
     /// @dev In basis points e.g 2500 for 25%
@@ -73,8 +73,8 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
     /// @param auctionStartPrice Auction start price in AVAX
     /// @param auctionEndPrice Auction floor price in AVAX
     /// @param auctionDropInterval Time elapsed between each drop in price in seconds
-    /// @param mintlistStartTime allowlist mint start time in seconds
-    /// @param mintlistDiscountPercent Discount applied to the last auction price during the allowlist mint
+    /// @param allowlistStartTime allowlist mint start time in seconds
+    /// @param allowlistDiscountPercent Discount applied to the last auction price during the allowlist mint
     /// @param publicSaleStartTime Public sale start time in seconds
     /// @param publicSaleDiscountPercent Discount applied to the last auction price during the public sale
     event Initialized(
@@ -90,8 +90,8 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
         uint256 auctionStartPrice,
         uint256 auctionEndPrice,
         uint256 auctionDropInterval,
-        uint256 mintlistStartTime,
-        uint256 mintlistDiscountPercent,
+        uint256 allowlistStartTime,
+        uint256 allowlistDiscountPercent,
         uint256 publicSaleStartTime,
         uint256 publicSaleDiscountPercent
     );
@@ -174,8 +174,8 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
     /// @param _auctionStartPrice Auction start price in AVAX
     /// @param _auctionEndPrice Auction floor price in AVAX
     /// @param _auctionDropInterval Time elapsed between each drop in price in seconds
-    /// @param _mintlistStartTime allowlist mint start time in seconds
-    /// @param _mintlistDiscountPercent Discount applied to the last auction price during the allowlist mint
+    /// @param _allowlistStartTime allowlist mint start time in seconds
+    /// @param _allowlistDiscountPercent Discount applied to the last auction price during the allowlist mint
     /// @param _publicSaleStartTime Public sale start time in seconds
     /// @param _publicSaleDiscountPercent Discount applied to the last auction price during the public sale
     function initializePhases(
@@ -183,8 +183,8 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
         uint256 _auctionStartPrice,
         uint256 _auctionEndPrice,
         uint256 _auctionDropInterval,
-        uint256 _mintlistStartTime,
-        uint256 _mintlistDiscountPercent,
+        uint256 _allowlistStartTime,
+        uint256 _allowlistDiscountPercent,
         uint256 _publicSaleStartTime,
         uint256 _publicSaleDiscountPercent
     ) external override atPhase(Phase.NotStarted) {
@@ -197,20 +197,20 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
         if (_auctionStartPrice <= _auctionEndPrice) {
             revert Launchpeg__EndPriceGreaterThanStartPrice();
         }
-        if (_mintlistStartTime <= _auctionSaleStartTime) {
+        if (_allowlistStartTime <= _auctionSaleStartTime) {
             revert Launchpeg__AllowlistBeforeAuction();
         }
-        if (_publicSaleStartTime <= _mintlistStartTime) {
+        if (_publicSaleStartTime <= _allowlistStartTime) {
             revert Launchpeg__PublicSaleBeforeAllowlist();
         }
         if (
-            _mintlistDiscountPercent > BASIS_POINT_PRECISION ||
+            _allowlistDiscountPercent > BASIS_POINT_PRECISION ||
             _publicSaleDiscountPercent > BASIS_POINT_PRECISION
         ) {
             revert Launchpeg__InvalidPercent();
         }
 
-        auctionSaleDuration = _mintlistStartTime - _auctionSaleStartTime;
+        auctionSaleDuration = _allowlistStartTime - _auctionSaleStartTime;
         /// Ensure auction drop interval is not too high by enforcing it
         /// is at most 1/4 of the auction sale duration.
         /// There will be at least 3 price drops.
@@ -230,8 +230,8 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
             (_auctionStartPrice - _auctionEndPrice) /
             (auctionSaleDuration / _auctionDropInterval);
 
-        mintlistStartTime = _mintlistStartTime;
-        mintlistDiscountPercent = _mintlistDiscountPercent;
+        allowlistStartTime = _allowlistStartTime;
+        allowlistDiscountPercent = _allowlistDiscountPercent;
 
         publicSaleStartTime = _publicSaleStartTime;
         publicSaleDiscountPercent = _publicSaleDiscountPercent;
@@ -249,8 +249,8 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
             auctionStartPrice,
             auctionEndPrice,
             auctionDropInterval,
-            mintlistStartTime,
-            mintlistDiscountPercent,
+            allowlistStartTime,
+            allowlistDiscountPercent,
             publicSaleStartTime,
             publicSaleDiscountPercent
         );
@@ -382,7 +382,7 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
     function getAllowlistPrice() public view override returns (uint256) {
         return
             lastAuctionPrice -
-            (lastAuctionPrice * mintlistDiscountPercent) /
+            (lastAuctionPrice * allowlistDiscountPercent) /
             10000;
     }
 
@@ -400,18 +400,18 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
     function currentPhase() public view override returns (Phase) {
         if (
             auctionSaleStartTime == 0 ||
-            mintlistStartTime == 0 ||
+            allowlistStartTime == 0 ||
             publicSaleStartTime == 0 ||
             block.timestamp < auctionSaleStartTime
         ) {
             return Phase.NotStarted;
         } else if (
             block.timestamp >= auctionSaleStartTime &&
-            block.timestamp < mintlistStartTime
+            block.timestamp < allowlistStartTime
         ) {
             return Phase.DutchAuction;
         } else if (
-            block.timestamp >= mintlistStartTime &&
+            block.timestamp >= allowlistStartTime &&
             block.timestamp < publicSaleStartTime
         ) {
             return Phase.Allowlist;

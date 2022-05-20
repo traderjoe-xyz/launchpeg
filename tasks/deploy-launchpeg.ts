@@ -46,8 +46,8 @@ task('deploy-launchpeg', 'Deploy Launchpeg contract')
       launchConfig.auctionStartPrice,
       launchConfig.auctionEndPrice,
       launchConfig.auctionDropInterval,
-      launchConfig.mintlistStartTime,
-      launchConfig.mintlistDiscountPercent,
+      launchConfig.allowlistStartTime,
+      launchConfig.allowlistDiscountPercent,
       launchConfig.publicSaleStartTime,
       launchConfig.publicSaleDiscountPercent
     )

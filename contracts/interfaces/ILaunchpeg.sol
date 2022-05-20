@@ -18,7 +18,7 @@ interface ILaunchpeg is IBaseLaunchpeg {
 
     function auctionSaleStartTime() external view returns (uint256);
 
-    function mintlistStartTime() external view returns (uint256);
+    function allowlistStartTime() external view returns (uint256);
 
     function publicSaleStartTime() external view returns (uint256);
 
@@ -32,7 +32,7 @@ interface ILaunchpeg is IBaseLaunchpeg {
 
     function auctionDropPerStep() external view returns (uint256);
 
-    function mintlistDiscountPercent() external view returns (uint256);
+    function allowlistDiscountPercent() external view returns (uint256);
 
     function publicSaleDiscountPercent() external view returns (uint256);
 
@@ -60,8 +60,8 @@ interface ILaunchpeg is IBaseLaunchpeg {
         uint256 _auctionStartPrice,
         uint256 _auctionEndPrice,
         uint256 _auctionDropInterval,
-        uint256 _mintlistStartTime,
-        uint256 _mintlistDiscountPercent,
+        uint256 _allowlistStartTime,
+        uint256 _allowlistDiscountPercent,
         uint256 _publicSaleStartTime,
         uint256 _publicSaleDiscountPercent
     ) external;
