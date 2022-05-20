@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.4;
 
-import "./BaseLaunchpeg.sol";
+import "./interfaces/IBaseLaunchpeg.sol";
 import "./interfaces/IFlatLaunchpeg.sol";
 import "./interfaces/ILaunchpeg.sol";
 import "./interfaces/IBatchReveal.sol";
@@ -25,29 +25,34 @@ contract LaunchpegLens {
 
     struct LaunchpegData {
         uint256 amountForAuction;
-        uint256 amountForMintlist;
+        uint256 amountForAllowlist;
         uint256 auctionSaleStartTime;
-        uint256 mintlistStartTime;
+        uint256 allowlistStartTime;
         uint256 publicSaleStartTime;
         uint256 auctionStartPrice;
         uint256 auctionEndPrice;
         uint256 auctionSaleDuration;
         uint256 auctionDropInterval;
         uint256 auctionDropPerStep;
-        uint256 mintlistDiscountPercent;
+        uint256 allowlistDiscountPercent;
         uint256 publicSaleDiscountPercent;
         ILaunchpeg.Phase currentPhase;
         uint256 auctionPrice;
-        uint256 mintlistPrice;
+        uint256 allowlistPrice;
         uint256 publicSalePrice;
         uint256 amountMintedDuringAuction;
         uint256 lastAuctionPrice;
+        uint256 amountMintedDuringAllowlist;
+        uint256 amountMintedDuringPublicSale;
     }
 
     struct FlatLaunchpegData {
-        uint256 mintlistPrice;
+        uint256 allowlistPrice;
         uint256 salePrice;
         bool isPublicSaleActive;
+        uint256 amountMintedDuringAllowlist;
+        uint256 amountMintedDuringPublicSale;
+        uint256 amountForAllowlist;
     }
 
     struct RevealData {
@@ -105,10 +110,10 @@ contract LaunchpegLens {
         view
         returns (LaunchpegType)
     {
-        if (BaseLaunchpeg(_contract).supportsInterface(launchpegInterface)) {
+        if (IBaseLaunchpeg(_contract).supportsInterface(launchpegInterface)) {
             return LaunchpegType.Launchpeg;
         } else if (
-            BaseLaunchpeg(_contract).supportsInterface(flatLaunchpegInterface)
+            IBaseLaunchpeg(_contract).supportsInterface(flatLaunchpegInterface)
         ) {
             return LaunchpegType.FlatLaunchpeg;
         } else {
@@ -120,7 +125,7 @@ contract LaunchpegLens {
     /// @param _type Type of Launchpeg to consider
     /// @param _offset Index to start at when looking up Launchpegs
     /// @param _limit Maximum number of Launchpegs datas to return
-    /// @param _user Address to consider for NFT balances and mintlist allocations
+    /// @param _user Address to consider for NFT balances and allowlist allocations
     /// @return LensDataList List of contracts datas
     function getAllLaunchpegsFromType(
         uint8 _type,
@@ -154,7 +159,7 @@ contract LaunchpegLens {
 
     /// @notice Fetch Launchpeg data from the provided address
     /// @param _launchpeg Contract address to consider
-    /// @param _user Address to consider for NFT balances and mintlist allocations
+    /// @param _user Address to consider for NFT balances and allowlist allocations
     /// @return LensData Contract data
     function getLaunchpegData(address _launchpeg, address _user)
         public
@@ -171,9 +176,9 @@ contract LaunchpegLens {
 
         data.collectionData.name = ERC721AUpgradeable(_launchpeg).name();
         data.collectionData.symbol = ERC721AUpgradeable(_launchpeg).symbol();
-        data.collectionData.collectionSize = BaseLaunchpeg(_launchpeg)
+        data.collectionData.collectionSize = IBaseLaunchpeg(_launchpeg)
             .collectionSize();
-        data.collectionData.maxBatchSize = BaseLaunchpeg(_launchpeg)
+        data.collectionData.maxBatchSize = IBaseLaunchpeg(_launchpeg)
             .maxBatchSize();
         data.collectionData.totalSupply = ERC721AUpgradeable(_launchpeg)
             .totalSupply();
@@ -190,12 +195,12 @@ contract LaunchpegLens {
         if (data.launchType == LaunchpegType.Launchpeg) {
             data.launchpegData.amountForAuction = ILaunchpeg(_launchpeg)
                 .amountForAuction();
-            data.launchpegData.amountForMintlist = ILaunchpeg(_launchpeg)
-                .amountForMintlist();
+            data.launchpegData.amountForAllowlist = ILaunchpeg(_launchpeg)
+                .amountForAllowlist();
             data.launchpegData.auctionSaleStartTime = ILaunchpeg(_launchpeg)
                 .auctionSaleStartTime();
-            data.launchpegData.mintlistStartTime = ILaunchpeg(_launchpeg)
-                .mintlistStartTime();
+            data.launchpegData.allowlistStartTime = ILaunchpeg(_launchpeg)
+                .allowlistStartTime();
             data.launchpegData.publicSaleStartTime = ILaunchpeg(_launchpeg)
                 .publicSaleStartTime();
             data.launchpegData.auctionStartPrice = ILaunchpeg(_launchpeg)
@@ -208,8 +213,8 @@ contract LaunchpegLens {
                 .auctionDropInterval();
             data.launchpegData.auctionDropPerStep = ILaunchpeg(_launchpeg)
                 .auctionDropPerStep();
-            data.launchpegData.mintlistDiscountPercent = ILaunchpeg(_launchpeg)
-                .mintlistDiscountPercent();
+            data.launchpegData.allowlistDiscountPercent = ILaunchpeg(_launchpeg)
+                .allowlistDiscountPercent();
             data.launchpegData.publicSaleDiscountPercent = ILaunchpeg(
                 _launchpeg
             ).publicSaleDiscountPercent();
@@ -217,8 +222,8 @@ contract LaunchpegLens {
                 .currentPhase();
             data.launchpegData.auctionPrice = ILaunchpeg(_launchpeg)
                 .getAuctionPrice(data.launchpegData.auctionSaleStartTime);
-            data.launchpegData.mintlistPrice = ILaunchpeg(_launchpeg)
-                .getMintlistPrice();
+            data.launchpegData.allowlistPrice = ILaunchpeg(_launchpeg)
+                .getAllowlistPrice();
             data.launchpegData.publicSalePrice = ILaunchpeg(_launchpeg)
                 .getPublicSalePrice();
             data.launchpegData.amountMintedDuringAuction = ILaunchpeg(
@@ -226,16 +231,32 @@ contract LaunchpegLens {
             ).amountMintedDuringAuction();
             data.launchpegData.lastAuctionPrice = ILaunchpeg(_launchpeg)
                 .lastAuctionPrice();
+            data.launchpegData.amountMintedDuringAllowlist = IBaseLaunchpeg(
+                _launchpeg
+            ).amountMintedDuringAllowlist();
+            data.launchpegData.amountMintedDuringPublicSale = IBaseLaunchpeg(
+                _launchpeg
+            ).amountMintedDuringPublicSale();
         }
 
         if (data.launchType == LaunchpegType.FlatLaunchpeg) {
-            data.flatLaunchpegData.mintlistPrice = IFlatLaunchpeg(_launchpeg)
-                .mintlistPrice();
+            data.flatLaunchpegData.allowlistPrice = IFlatLaunchpeg(_launchpeg)
+                .allowlistPrice();
             data.flatLaunchpegData.salePrice = IFlatLaunchpeg(_launchpeg)
                 .salePrice();
             data.flatLaunchpegData.isPublicSaleActive = IFlatLaunchpeg(
                 _launchpeg
             ).isPublicSaleActive();
+            data.flatLaunchpegData.amountMintedDuringAllowlist = IBaseLaunchpeg(
+                _launchpeg
+            ).amountMintedDuringAllowlist();
+            data
+                .flatLaunchpegData
+                .amountMintedDuringPublicSale = IBaseLaunchpeg(_launchpeg)
+                .amountMintedDuringPublicSale();
+            data.flatLaunchpegData.amountForAllowlist = IBaseLaunchpeg(
+                _launchpeg
+            ).amountForAllowlist();
         }
 
         if (_user != address(0)) {
@@ -245,7 +266,7 @@ contract LaunchpegLens {
             data.userData.numberMinted = IBaseLaunchpeg(_launchpeg)
                 .numberMinted(_user);
             data.userData.allowanceForAllowlistMint = IBaseLaunchpeg(_launchpeg)
-                .allowList(_user);
+                .allowlist(_user);
         }
 
         return data;

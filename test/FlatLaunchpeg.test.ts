@@ -52,8 +52,8 @@ describe('FlatLaunchpeg', () => {
       config.maxBatchSize,
       config.collectionSize,
       config.amountForDevs,
-      config.flatPublicSalePrice,
-      config.flatMintListSalePrice,
+      config.amountForAllowlist,
+      [config.flatPublicSalePrice, config.flatAllowlistSalePrice],
       config.batchRevealSize,
       config.batchRevealStart,
       config.batchRevealInterval
@@ -67,7 +67,7 @@ describe('FlatLaunchpeg', () => {
   })
 
   describe('Initialization', () => {
-    it('Mintlist price should be lower than Public sale', async () => {
+    it('Allowlist price should be lower than Public sale', async () => {
       flatLaunchpeg = await flatLaunchpegCF.deploy()
       await expect(
         flatLaunchpeg.initialize(
@@ -78,13 +78,13 @@ describe('FlatLaunchpeg', () => {
           config.maxBatchSize,
           config.collectionSize,
           config.amountForDevs,
-          config.flatPublicSalePrice,
-          config.flatMintListSalePrice.mul(100),
+          config.amountForAllowlist,
+          [config.flatPublicSalePrice, config.flatAllowlistSalePrice.mul(100)],
           config.batchRevealSize,
           config.batchRevealStart,
           config.batchRevealInterval
         )
-      ).to.be.revertedWith('Launchpeg__InvalidMintlistPrice()')
+      ).to.be.revertedWith('Launchpeg__InvalidAllowlistPrice()')
     })
   })
 
@@ -105,38 +105,38 @@ describe('FlatLaunchpeg', () => {
     })
   })
 
-  describe('Mintlist phase', () => {
-    it('One NFT is transfered when user is on allowList', async () => {
+  describe('Allowlist phase', () => {
+    it('One NFT is transfered when user is on allowlist', async () => {
       await flatLaunchpeg.connect(dev).seedAllowlist([bob.address], [1])
-      await flatLaunchpeg.connect(bob).allowListMint(1, { value: config.flatMintListSalePrice })
+      await flatLaunchpeg.connect(bob).allowlistMint(1, { value: config.flatAllowlistSalePrice })
       expect(await flatLaunchpeg.balanceOf(bob.address)).to.eq(1)
     })
 
     it('Mint reverts when user tries to mint more NFTs than allowed', async () => {
-      const price = config.flatMintListSalePrice
+      const price = config.flatAllowlistSalePrice
 
       await flatLaunchpeg.connect(dev).seedAllowlist([bob.address], [2])
-      await flatLaunchpeg.connect(bob).allowListMint(1, { value: price.mul(2) }) // intentionally sending more AVAX to test refund
-      await flatLaunchpeg.connect(bob).allowListMint(1, { value: price })
+      await flatLaunchpeg.connect(bob).allowlistMint(1, { value: price.mul(2) }) // intentionally sending more AVAX to test refund
+      await flatLaunchpeg.connect(bob).allowlistMint(1, { value: price })
 
-      await expect(flatLaunchpeg.connect(bob).allowListMint(1, { value: price })).to.be.revertedWith(
+      await expect(flatLaunchpeg.connect(bob).allowlistMint(1, { value: price })).to.be.revertedWith(
         'Launchpeg__NotEligibleForAllowlistMint()'
       )
       expect(await flatLaunchpeg.balanceOf(bob.address)).to.eq(2)
     })
 
-    it('Mint reverts when the caller is not on allowList during mint phase', async () => {
-      await expect(flatLaunchpeg.connect(bob).allowListMint(1)).to.be.revertedWith(
+    it('Mint reverts when the caller is not on allowlist during mint phase', async () => {
+      await expect(flatLaunchpeg.connect(bob).allowlistMint(1)).to.be.revertedWith(
         'Launchpeg__NotEligibleForAllowlistMint()'
       )
     })
 
     it("Mint reverts when the caller didn't send enough AVAX", async () => {
       await flatLaunchpeg.connect(dev).seedAllowlist([alice.address], [1])
-      await expect(flatLaunchpeg.connect(alice).allowListMint(1)).to.be.revertedWith('Launchpeg__NotEnoughAVAX(0)')
+      await expect(flatLaunchpeg.connect(alice).allowlistMint(1)).to.be.revertedWith('Launchpeg__NotEnoughAVAX(0)')
     })
 
-    it('Seed allowList reverts when addresses does not match numSlots length', async () => {
+    it('Seed allowlist reverts when addresses does not match numSlots length', async () => {
       await expect(flatLaunchpeg.connect(dev).seedAllowlist([alice.address, bob.address], [1])).to.be.revertedWith(
         'Launchpeg__WrongAddressesAndNumSlotsLength()'
       )
@@ -167,6 +167,7 @@ describe('FlatLaunchpeg', () => {
     it('Mint reverts when maxSupply is reached', async () => {
       config.collectionSize = 10
       config.amountForDevs = 0
+      config.amountForAllowlist = 0
       config.maxBatchSize = 10
       config.batchRevealSize = 10
       await deployFlatLaunchpeg()

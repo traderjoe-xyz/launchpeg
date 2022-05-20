@@ -25,7 +25,7 @@ task('deploy-launchpeg', 'Deploy Launchpeg contract')
       launchConfig.maxBatchSize,
       launchConfig.collectionSize,
       launchConfig.amountForAuction,
-      launchConfig.amountForMintlist,
+      launchConfig.amountForAllowlist,
       launchConfig.amountForDevs,
       [launchConfig.batchRevealSize, launchConfig.batchRevealStart, launchConfig.batchRevealInterval]
     )
@@ -46,8 +46,8 @@ task('deploy-launchpeg', 'Deploy Launchpeg contract')
       launchConfig.auctionStartPrice,
       launchConfig.auctionEndPrice,
       launchConfig.auctionDropInterval,
-      launchConfig.mintlistStartTime,
-      launchConfig.mintlistDiscountPercent,
+      launchConfig.allowlistStartTime,
+      launchConfig.allowlistDiscountPercent,
       launchConfig.publicSaleStartTime,
       launchConfig.publicSaleDiscountPercent
     )

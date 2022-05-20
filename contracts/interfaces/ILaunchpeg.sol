@@ -10,17 +10,15 @@ interface ILaunchpeg is IBaseLaunchpeg {
     enum Phase {
         NotStarted,
         DutchAuction,
-        Mintlist,
+        Allowlist,
         PublicSale
     }
 
     function amountForAuction() external view returns (uint256);
 
-    function amountForMintlist() external view returns (uint256);
-
     function auctionSaleStartTime() external view returns (uint256);
 
-    function mintlistStartTime() external view returns (uint256);
+    function allowlistStartTime() external view returns (uint256);
 
     function publicSaleStartTime() external view returns (uint256);
 
@@ -34,7 +32,7 @@ interface ILaunchpeg is IBaseLaunchpeg {
 
     function auctionDropPerStep() external view returns (uint256);
 
-    function mintlistDiscountPercent() external view returns (uint256);
+    function allowlistDiscountPercent() external view returns (uint256);
 
     function publicSaleDiscountPercent() external view returns (uint256);
 
@@ -50,7 +48,7 @@ interface ILaunchpeg is IBaseLaunchpeg {
         uint256 _maxBatchSize,
         uint256 _collectionSize,
         uint256 _amountForAuction,
-        uint256 _amountForMintlist,
+        uint256 _amountForAllowlist,
         uint256 _amountForDevs,
         uint256 _batchRevealSize,
         uint256 _revealStartTime,
@@ -62,15 +60,15 @@ interface ILaunchpeg is IBaseLaunchpeg {
         uint256 _auctionStartPrice,
         uint256 _auctionEndPrice,
         uint256 _auctionDropInterval,
-        uint256 _mintlistStartTime,
-        uint256 _mintlistDiscountPercent,
+        uint256 _allowlistStartTime,
+        uint256 _allowlistDiscountPercent,
         uint256 _publicSaleStartTime,
         uint256 _publicSaleDiscountPercent
     ) external;
 
     function auctionMint(uint256 _quantity) external payable;
 
-    function allowListMint(uint256 _quantity) external payable;
+    function allowlistMint(uint256 _quantity) external payable;
 
     function publicSaleMint(uint256 _quantity) external payable;
 
@@ -79,7 +77,7 @@ interface ILaunchpeg is IBaseLaunchpeg {
         view
         returns (uint256);
 
-    function getMintlistPrice() external view returns (uint256);
+    function getAllowlistPrice() external view returns (uint256);
 
     function getPublicSalePrice() external view returns (uint256);
 

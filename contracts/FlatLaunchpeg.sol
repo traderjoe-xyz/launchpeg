@@ -6,11 +6,11 @@ import "./BaseLaunchpeg.sol";
 
 /// @title FlatLaunchpeg
 /// @author Trader Joe
-/// @notice Implements a simple minting NFT contract with an allowList and public sale phase.
+/// @notice Implements a simple minting NFT contract with an allowlist and public sale phase.
 contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
     /// @notice Price of one NFT for people on the mint list
-    /// @dev mintlistPrice is scaled to 1e18
-    uint256 public override mintlistPrice;
+    /// @dev allowlistPrice is scaled to 1e18
+    uint256 public override allowlistPrice;
 
     /// @notice Price of one NFT during the public sale
     /// @dev salePrice is scaled to 1e18
@@ -19,7 +19,7 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
     /// @notice Determine wether or not users are allowed to buy from public sale
     bool public override isPublicSaleActive = false;
 
-    /// @dev Emitted on allowListMint(), publicSaleMint()
+    /// @dev Emitted on allowlistMint(), publicSaleMint()
     /// @param sender The address that minted
     /// @param quantity Amount of NFTs minted
     /// @param price Price in AVAX for the NFTs
@@ -44,8 +44,9 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
     /// @param _maxBatchSize Max amount of NFTs that can be minted at once
     /// @param _collectionSize The collection size (e.g 10000)
     /// @param _amountForDevs Amount of NFTs reserved for `projectOwner` (e.g 200)
-    /// @param _salePrice Price of the public sale in Avax
-    /// @param _mintlistPrice Price of the whitelist sale in Avax
+    /// @param _amountForAllowlist Amount of NFTs available for the allowlist mint (e.g 1000)
+    /// @param _prices Structure containing the price of the public sale in Avax
+    /// and price of the whitelist sale in Avax
     /// @param _batchRevealSize Size of the batch reveal
     /// @param _revealStartTime Start of the token URIs reveal in seconds
     /// @param _revealInterval Interval between two batch reveals in seconds
@@ -57,8 +58,8 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
         uint256 _maxBatchSize,
         uint256 _collectionSize,
         uint256 _amountForDevs,
-        uint256 _salePrice,
-        uint256 _mintlistPrice,
+        uint256 _amountForAllowlist,
+        FlatLaunchpegPrices calldata _prices,
         uint256 _batchRevealSize,
         uint256 _revealStartTime,
         uint256 _revealInterval
@@ -71,17 +72,18 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
             _maxBatchSize,
             _collectionSize,
             _amountForDevs,
+            _amountForAllowlist,
             _batchRevealSize,
             _revealStartTime,
             _revealInterval
         );
 
-        if (_mintlistPrice > _salePrice) {
-            revert Launchpeg__InvalidMintlistPrice();
+        if (_prices.allowlistPrice > _prices.salePrice) {
+            revert Launchpeg__InvalidAllowlistPrice();
         }
 
-        salePrice = _salePrice;
-        mintlistPrice = _mintlistPrice;
+        salePrice = _prices.salePrice;
+        allowlistPrice = _prices.allowlistPrice;
     }
 
     /// @notice Switch the sale on and off
@@ -96,22 +98,27 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
         emit PublicSaleStateChanged(_isPublicSaleActive);
     }
 
-    /// @notice Mint NFTs during the allowList mint
+    /// @notice Mint NFTs during the allowlist mint
     /// @param _quantity Quantity of NFTs to mint
-    function allowListMint(uint256 _quantity) external payable override {
-        if (_quantity > allowList[msg.sender]) {
+    function allowlistMint(uint256 _quantity) external payable override {
+        if (_quantity > allowlist[msg.sender]) {
             revert Launchpeg__NotEligibleForAllowlistMint();
         }
-        if (totalSupply() + _quantity > collectionSize) {
+        if (
+            totalSupply() + _quantity > collectionSize ||
+            amountMintedDuringAllowlist + _quantity > amountForAllowlist
+        ) {
             revert Launchpeg__MaxSupplyReached();
         }
-        allowList[msg.sender] -= _quantity;
-        uint256 totalCost = mintlistPrice * _quantity;
+        allowlist[msg.sender] -= _quantity;
+        uint256 totalCost = allowlistPrice * _quantity;
+
         _mint(msg.sender, _quantity, "", false);
+        amountMintedDuringAllowlist += _quantity;
         emit Mint(
             msg.sender,
             _quantity,
-            mintlistPrice,
+            allowlistPrice,
             _totalMinted() - _quantity
         );
         _refundIfOver(totalCost);
@@ -130,7 +137,9 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
             revert Launchpeg__MaxSupplyReached();
         }
         uint256 total = salePrice * _quantity;
+
         _mint(msg.sender, _quantity, "", false);
+        amountMintedDuringPublicSale += _quantity;
         emit Mint(msg.sender, _quantity, salePrice, _totalMinted() - _quantity);
         _refundIfOver(total);
     }
