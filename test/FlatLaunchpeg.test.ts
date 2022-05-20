@@ -68,22 +68,22 @@ describe('FlatLaunchpeg', () => {
   describe('Initialization', () => {
     it('Phases can be initialized only once', async () => {
       await initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.NotStarted)
-      await expect(initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.DutchAuction)).to.be.revertedWith(
-        'Launchpeg__AuctionAlreadyInitialized()'
+      await expect(initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.Allowlist)).to.be.revertedWith(
+        'Launchpeg__PhasesAlreadyInitialized()'
       )
     })
 
     it('Sale dates should be correct', async () => {
       config.allowlistStartTime = BigNumber.from(0)
-      await expect(initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.DutchAuction)).to.be.revertedWith(
+      await expect(initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.Allowlist)).to.be.revertedWith(
         'Launchpeg__InvalidStartTime()'
       )
     })
 
     it('Public sale must happen after allowlist', async () => {
-      config.publicSaleStartTime = config.auctionStartTime.sub(duration.minutes(20))
+      config.publicSaleStartTime = config.allowlistStartTime.sub(duration.minutes(20))
 
-      await expect(initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.DutchAuction)).to.be.revertedWith(
+      await expect(initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.Allowlist)).to.be.revertedWith(
         'Launchpeg__PublicSaleBeforeAllowlist()'
       )
     })
@@ -120,6 +120,12 @@ describe('FlatLaunchpeg', () => {
       await flatLaunchpeg.connect(dev).seedAllowlist([bob.address], [1])
       await flatLaunchpeg.connect(bob).allowlistMint(1, { value: config.flatAllowlistSalePrice })
       expect(await flatLaunchpeg.balanceOf(bob.address)).to.eq(1)
+    })
+
+    it('Mint reverts when not started yet', async () => {
+      await initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.NotStarted)
+
+      await expect(flatLaunchpeg.connect(bob).allowlistMint(1)).to.be.revertedWith('Launchpeg__WrongPhase()')
     })
 
     it('Mint reverts when user tries to mint more NFTs than allowed', async () => {

@@ -2,7 +2,7 @@
 pragma solidity ^0.8.4;
 
 error LaunchpegFactory__InvalidImplementation();
-error Launchpeg__AuctionAlreadyInitialized();
+error Launchpeg__PhasesAlreadyInitialized();
 error Launchpeg__CanNotMintThisMany();
 error Launchpeg__CanOnlyMintMultipleOfMaxBatchSize();
 error Launchpeg__EndPriceGreaterThanStartPrice();

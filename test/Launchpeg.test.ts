@@ -121,7 +121,7 @@ describe('Launchpeg', () => {
       await deployLaunchpeg()
       await initializePhasesLaunchpeg(launchpeg, config, Phase.NotStarted)
       await expect(initializePhasesLaunchpeg(launchpeg, config, Phase.DutchAuction)).to.be.revertedWith(
-        'Launchpeg__AuctionAlreadyInitialized()'
+        'Launchpeg__PhasesAlreadyInitialized()'
       )
     })
 

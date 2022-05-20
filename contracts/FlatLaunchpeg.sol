@@ -105,7 +105,7 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
         uint256 _salePrice
     ) external override atPhase(Phase.NotStarted) {
         if (allowlistStartTime != 0) {
-            revert Launchpeg__AuctionAlreadyInitialized();
+            revert Launchpeg__PhasesAlreadyInitialized();
         }
         if (_allowlistStartTime < block.timestamp) {
             revert Launchpeg__InvalidStartTime();
