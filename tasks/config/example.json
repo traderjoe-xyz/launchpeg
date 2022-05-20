@@ -9,6 +9,8 @@
   "amountForAllowlist": "2000",
   "amountForDevs": "200",
   "batchRevealSize": "1000",
+  "batchRevealStart": "0",
+  "batchRevealInterval": "0",
   "auctionSaleStartTime": "1650060142",
   "auctionStartPrice": "10000000000000000000",
   "auctionEndPrice": "5000000000000000000",

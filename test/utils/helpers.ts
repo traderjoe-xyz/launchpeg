@@ -65,7 +65,7 @@ export enum Phase {
   Reveal,
 }
 
-export const initializePhases = async (launchpeg: Contract, config: LaunchpegConfig, currentPhase: Phase) => {
+export const initializePhasesLaunchpeg = async (launchpeg: Contract, config: LaunchpegConfig, currentPhase: Phase) => {
   await launchpeg.initializePhases(
     config.auctionStartTime,
     config.startPrice,
@@ -78,6 +78,22 @@ export const initializePhases = async (launchpeg: Contract, config: LaunchpegCon
   )
   await launchpeg.setUnrevealedURI(config.unrevealedTokenURI)
   await launchpeg.setBaseURI(config.baseTokenURI)
+  await advanceTimeAndBlockToPhase(currentPhase)
+}
+
+export const initializePhasesFlatLaunchpeg = async (
+  flatLaunchpeg: Contract,
+  config: LaunchpegConfig,
+  currentPhase: Phase
+) => {
+  await flatLaunchpeg.initializePhases(
+    config.allowlistStartTime,
+    config.publicSaleStartTime,
+    config.flatAllowlistSalePrice,
+    config.flatPublicSalePrice
+  )
+  await flatLaunchpeg.setUnrevealedURI(config.unrevealedTokenURI)
+  await flatLaunchpeg.setBaseURI(config.baseTokenURI)
   await advanceTimeAndBlockToPhase(currentPhase)
 }
 

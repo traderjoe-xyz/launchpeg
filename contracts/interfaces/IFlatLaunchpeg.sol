@@ -16,8 +16,6 @@ interface IFlatLaunchpeg is IBaseLaunchpeg {
 
     function salePrice() external view returns (uint256);
 
-    function isPublicSaleActive() external view returns (bool);
-
     function initialize(
         string memory _name,
         string memory _symbol,
@@ -27,15 +25,19 @@ interface IFlatLaunchpeg is IBaseLaunchpeg {
         uint256 _collectionSize,
         uint256 _amountForDevs,
         uint256 _amountForAllowlist,
-        FlatLaunchpegPrices calldata _prices,
         uint256 _batchRevealSize,
         uint256 _revealStartTime,
         uint256 _revealInterval
     ) external;
 
+    function initializePhases(
+        uint256 _allowlistStartTime,
+        uint256 _publicSaleStartTime,
+        uint256 _allowlistPrice,
+        uint256 _salePrice
+    ) external;
+
     function allowlistMint(uint256 _quantity) external payable;
 
     function publicSaleMint(uint256 _quantity) external payable;
-
-    function setPublicSaleActive(bool _isPublicSaleActive) external;
 }

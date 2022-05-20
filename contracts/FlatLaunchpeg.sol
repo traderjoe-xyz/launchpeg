@@ -16,8 +16,17 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
     /// @dev salePrice is scaled to 1e18
     uint256 public override salePrice;
 
-    /// @notice Determine wether or not users are allowed to buy from public sale
-    bool public override isPublicSaleActive = false;
+    /// @dev Emitted on initializePhases()
+    /// @param allowlistStartTime Allowlist mint start time in seconds
+    /// @param publicSaleStartTime Public sale start time in seconds
+    /// @param allowlistPrice Price of the allowlist sale in Avax
+    /// @param salePrice Price of the public sale in Avax
+    event Initialized(
+        uint256 allowlistStartTime,
+        uint256 publicSaleStartTime,
+        uint256 allowlistPrice,
+        uint256 salePrice
+    );
 
     /// @dev Emitted on allowlistMint(), publicSaleMint()
     /// @param sender The address that minted
@@ -35,6 +44,13 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
     /// @param isActive True if the public sale is open, false otherwise
     event PublicSaleStateChanged(bool isActive);
 
+    modifier atPhase(Phase _phase) {
+        if (currentPhase() != _phase) {
+            revert Launchpeg__WrongPhase();
+        }
+        _;
+    }
+
     /// @notice FlatLaunchpeg initialization
     /// Can only be called once
     /// @param _name ERC721 name
@@ -45,8 +61,6 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
     /// @param _collectionSize The collection size (e.g 10000)
     /// @param _amountForDevs Amount of NFTs reserved for `projectOwner` (e.g 200)
     /// @param _amountForAllowlist Amount of NFTs available for the allowlist mint (e.g 1000)
-    /// @param _prices Structure containing the price of the public sale in Avax
-    /// and price of the whitelist sale in Avax
     /// @param _batchRevealSize Size of the batch reveal
     /// @param _revealStartTime Start of the token URIs reveal in seconds
     /// @param _revealInterval Interval between two batch reveals in seconds
@@ -59,7 +73,6 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
         uint256 _collectionSize,
         uint256 _amountForDevs,
         uint256 _amountForAllowlist,
-        FlatLaunchpegPrices calldata _prices,
         uint256 _batchRevealSize,
         uint256 _revealStartTime,
         uint256 _revealInterval
@@ -77,30 +90,55 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
             _revealStartTime,
             _revealInterval
         );
+    }
 
-        if (_prices.allowlistPrice > _prices.salePrice) {
+    /// @notice Initialize the two phases of the sale
+    /// @dev Can only be called once
+    /// @param _allowlistStartTime Allowlist mint start time in seconds
+    /// @param _publicSaleStartTime Public sale start time in seconds
+    /// @param _allowlistPrice Price of the allowlist sale in Avax
+    /// @param _salePrice Price of the public sale in Avax
+    function initializePhases(
+        uint256 _allowlistStartTime,
+        uint256 _publicSaleStartTime,
+        uint256 _allowlistPrice,
+        uint256 _salePrice
+    ) external override atPhase(Phase.NotStarted) {
+        if (allowlistStartTime != 0) {
+            revert Launchpeg__AuctionAlreadyInitialized();
+        }
+        if (_allowlistStartTime < block.timestamp) {
+            revert Launchpeg__InvalidStartTime();
+        }
+        if (_publicSaleStartTime <= _allowlistStartTime) {
+            revert Launchpeg__PublicSaleBeforeAllowlist();
+        }
+        if (_allowlistPrice > _salePrice) {
             revert Launchpeg__InvalidAllowlistPrice();
         }
 
-        salePrice = _prices.salePrice;
-        allowlistPrice = _prices.allowlistPrice;
-    }
+        salePrice = _salePrice;
+        allowlistPrice = _allowlistPrice;
 
-    /// @notice Switch the sale on and off
-    /// @dev Must be only owner
-    /// @param _isPublicSaleActive Whether or not the public sale is open
-    function setPublicSaleActive(bool _isPublicSaleActive)
-        external
-        override
-        onlyOwner
-    {
-        isPublicSaleActive = _isPublicSaleActive;
-        emit PublicSaleStateChanged(_isPublicSaleActive);
+        allowlistStartTime = _allowlistStartTime;
+        publicSaleStartTime = _publicSaleStartTime;
+
+        emit Initialized(
+            allowlistStartTime,
+            publicSaleStartTime,
+            allowlistPrice,
+            salePrice
+        );
     }
 
     /// @notice Mint NFTs during the allowlist mint
     /// @param _quantity Quantity of NFTs to mint
-    function allowlistMint(uint256 _quantity) external payable override {
+    function allowlistMint(uint256 _quantity)
+        external
+        payable
+        override
+        atPhase(Phase.Allowlist)
+    {
         if (_quantity > allowlist[msg.sender]) {
             revert Launchpeg__NotEligibleForAllowlistMint();
         }
@@ -126,10 +164,12 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
 
     /// @notice Mint NFTs during the public sale
     /// @param _quantity Quantity of NFTs to mint
-    function publicSaleMint(uint256 _quantity) external payable override {
-        if (!isPublicSaleActive) {
-            revert Launchpeg__PublicSaleClosed();
-        }
+    function publicSaleMint(uint256 _quantity)
+        external
+        payable
+        override
+        atPhase(Phase.PublicSale)
+    {
         if (numberMinted(msg.sender) + _quantity > maxPerAddressDuringMint) {
             revert Launchpeg__CanNotMintThisMany();
         }
@@ -142,6 +182,24 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
         amountMintedDuringPublicSale += _quantity;
         emit Mint(msg.sender, _quantity, salePrice, _totalMinted() - _quantity);
         _refundIfOver(total);
+    }
+
+    /// @notice Returns the current phase
+    /// @return phase Current phase
+    function currentPhase() public view override returns (Phase) {
+        if (
+            allowlistStartTime == 0 ||
+            publicSaleStartTime == 0 ||
+            block.timestamp < allowlistStartTime
+        ) {
+            return Phase.NotStarted;
+        } else if (
+            block.timestamp >= allowlistStartTime &&
+            block.timestamp < publicSaleStartTime
+        ) {
+            return Phase.Allowlist;
+        }
+        return Phase.PublicSale;
     }
 
     /// @dev Returns true if this contract implements the interface defined by

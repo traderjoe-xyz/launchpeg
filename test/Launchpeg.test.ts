@@ -1,7 +1,7 @@
 import { config as hardhatConfig, ethers, network } from 'hardhat'
 import { expect } from 'chai'
 import { advanceTimeAndBlock, latest, duration } from './utils/time'
-import { initializePhases, getDefaultLaunchpegConfig, Phase, LaunchpegConfig } from './utils/helpers'
+import { initializePhasesLaunchpeg, getDefaultLaunchpegConfig, Phase, LaunchpegConfig } from './utils/helpers'
 import { ContractFactory, Contract, BigNumber } from 'ethers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
@@ -119,8 +119,8 @@ describe('Launchpeg', () => {
     it('Phases can be initialized only once', async () => {
       config.auctionStartTime = (await latest()).add(duration.minutes(5))
       await deployLaunchpeg()
-      await initializePhases(launchpeg, config, Phase.NotStarted)
-      await expect(initializePhases(launchpeg, config, Phase.DutchAuction)).to.be.revertedWith(
+      await initializePhasesLaunchpeg(launchpeg, config, Phase.NotStarted)
+      await expect(initializePhasesLaunchpeg(launchpeg, config, Phase.DutchAuction)).to.be.revertedWith(
         'Launchpeg__AuctionAlreadyInitialized()'
       )
     })
@@ -132,27 +132,27 @@ describe('Launchpeg', () => {
 
     it('Auction dates should be correct', async () => {
       config.auctionDropInterval = BigNumber.from(0)
-      await expect(initializePhases(launchpeg, config, Phase.DutchAuction)).to.be.revertedWith(
+      await expect(initializePhasesLaunchpeg(launchpeg, config, Phase.DutchAuction)).to.be.revertedWith(
         'Launchpeg__InvalidAuctionDropInterval()'
       )
 
       config.auctionStartTime = BigNumber.from(0)
-      await expect(initializePhases(launchpeg, config, Phase.DutchAuction)).to.be.revertedWith(
-        'Launchpeg__InvalidAuctionStartTime()'
+      await expect(initializePhasesLaunchpeg(launchpeg, config, Phase.DutchAuction)).to.be.revertedWith(
+        'Launchpeg__InvalidStartTime()'
       )
     })
 
     it('AuctionStartPrice must be lower than auctionEndPrice', async () => {
       config.startPrice = ethers.utils.parseEther('1')
       config.endPrice = ethers.utils.parseEther('1.5')
-      await expect(initializePhases(launchpeg, config, Phase.DutchAuction)).to.be.revertedWith(
+      await expect(initializePhasesLaunchpeg(launchpeg, config, Phase.DutchAuction)).to.be.revertedWith(
         'Launchpeg__EndPriceGreaterThanStartPrice()'
       )
     })
 
     it('Allowlist must happen after auction', async () => {
       config.allowlistStartTime = config.auctionStartTime.sub(duration.minutes(10))
-      await expect(initializePhases(launchpeg, config, Phase.DutchAuction)).to.be.revertedWith(
+      await expect(initializePhasesLaunchpeg(launchpeg, config, Phase.DutchAuction)).to.be.revertedWith(
         'Launchpeg__AllowlistBeforeAuction()'
       )
     })
@@ -160,7 +160,7 @@ describe('Launchpeg', () => {
     it('Public sale must happen after allowlist', async () => {
       config.publicSaleStartTime = config.auctionStartTime.sub(duration.minutes(20))
 
-      await expect(initializePhases(launchpeg, config, Phase.DutchAuction)).to.be.revertedWith(
+      await expect(initializePhasesLaunchpeg(launchpeg, config, Phase.DutchAuction)).to.be.revertedWith(
         'Launchpeg__PublicSaleBeforeAllowlist()'
       )
     })
@@ -168,7 +168,7 @@ describe('Launchpeg', () => {
     it('Public sale and allowlist discount must be < 100%', async () => {
       config.allowlistDiscount = 10_001
 
-      await expect(initializePhases(launchpeg, config, Phase.DutchAuction)).to.be.revertedWith(
+      await expect(initializePhasesLaunchpeg(launchpeg, config, Phase.DutchAuction)).to.be.revertedWith(
         'Launchpeg__InvalidPercent()'
       )
     })
@@ -216,7 +216,7 @@ describe('Launchpeg', () => {
     it('NFT price decreases at correct pace', async () => {
       // Start auction
       const saleStartTime = config.auctionStartTime
-      await initializePhases(launchpeg, config, Phase.DutchAuction)
+      await initializePhasesLaunchpeg(launchpeg, config, Phase.DutchAuction)
 
       // Verify start price
       var auctionPrice = await launchpeg.getAuctionPrice(saleStartTime)
@@ -243,13 +243,13 @@ describe('Launchpeg', () => {
     })
 
     it('Mint reverts when sale has not started yet', async () => {
-      await initializePhases(launchpeg, config, Phase.NotStarted)
+      await initializePhasesLaunchpeg(launchpeg, config, Phase.NotStarted)
 
       await expect(launchpeg.auctionMint(1)).to.be.revertedWith('Launchpeg__WrongPhase()')
     })
 
     it('NFT are transfered to sender when user has enough AVAX', async () => {
-      await initializePhases(launchpeg, config, Phase.DutchAuction)
+      await initializePhasesLaunchpeg(launchpeg, config, Phase.DutchAuction)
 
       expect(await launchpeg.balanceOf(alice.address)).to.eq(0)
       await launchpeg
@@ -259,7 +259,7 @@ describe('Launchpeg', () => {
     })
 
     it('Ownership data is correct', async () => {
-      await initializePhases(launchpeg, config, Phase.DutchAuction)
+      await initializePhasesLaunchpeg(launchpeg, config, Phase.DutchAuction)
 
       await launchpeg
         .connect(alice)
@@ -272,7 +272,7 @@ describe('Launchpeg', () => {
     })
 
     it('Refund caller when too much AVAX sent', async () => {
-      await initializePhases(launchpeg, config, Phase.DutchAuction)
+      await initializePhasesLaunchpeg(launchpeg, config, Phase.DutchAuction)
 
       const quantity = 2
       const aliceInitialBalance = await alice.getBalance()
@@ -292,7 +292,7 @@ describe('Launchpeg', () => {
       config.amountForDevs = 5
       config.batchRevealSize = 5
       await deployLaunchpeg()
-      await initializePhases(launchpeg, config, Phase.DutchAuction)
+      await initializePhasesLaunchpeg(launchpeg, config, Phase.DutchAuction)
 
       await launchpeg.connect(projectOwner).devMint(5)
       await launchpeg.connect(alice).auctionMint(5, { value: config.startPrice.mul(5) })
@@ -308,7 +308,7 @@ describe('Launchpeg', () => {
       config.amountForDevs = 5
       config.batchRevealSize = 5
       await deployLaunchpeg()
-      await initializePhases(launchpeg, config, Phase.DutchAuction)
+      await initializePhasesLaunchpeg(launchpeg, config, Phase.DutchAuction)
 
       await launchpeg.connect(alice).auctionMint(4, { value: config.startPrice.mul(5) })
       await launchpeg.connect(projectOwner).devMint(5)
@@ -320,7 +320,7 @@ describe('Launchpeg', () => {
 
   describe('Allowlist phase', () => {
     it('NFT is transfered when user is on allowlist', async () => {
-      await initializePhases(launchpeg, config, Phase.Allowlist)
+      await initializePhasesLaunchpeg(launchpeg, config, Phase.Allowlist)
 
       await launchpeg.seedAllowlist([bob.address], [5])
       const discount = config.startPrice.mul(config.allowlistDiscount).div(10000)
@@ -330,7 +330,7 @@ describe('Launchpeg', () => {
     })
 
     it('Mint reverts when user tries to mint more NFTs than allowed', async () => {
-      await initializePhases(launchpeg, config, Phase.Allowlist)
+      await initializePhasesLaunchpeg(launchpeg, config, Phase.Allowlist)
 
       const discount = config.startPrice.mul(config.allowlistDiscount).div(10000)
       const price = config.startPrice.sub(discount)
@@ -346,13 +346,13 @@ describe('Launchpeg', () => {
     })
 
     it('Mint reverts when not started yet', async () => {
-      await initializePhases(launchpeg, config, Phase.DutchAuction)
+      await initializePhasesLaunchpeg(launchpeg, config, Phase.DutchAuction)
 
       await expect(launchpeg.connect(bob).allowlistMint(1)).to.be.revertedWith('Launchpeg__WrongPhase()')
     })
 
     it('Mint reverts when the caller is not on allowlist during mint phase', async () => {
-      await initializePhases(launchpeg, config, Phase.Allowlist)
+      await initializePhasesLaunchpeg(launchpeg, config, Phase.Allowlist)
 
       await expect(launchpeg.connect(bob).allowlistMint(1)).to.be.revertedWith(
         'Launchpeg__NotEligibleForAllowlistMint()'
@@ -360,14 +360,14 @@ describe('Launchpeg', () => {
     })
 
     it("Mint reverts when the caller didn't send enough AVAX", async () => {
-      await initializePhases(launchpeg, config, Phase.Allowlist)
+      await initializePhasesLaunchpeg(launchpeg, config, Phase.Allowlist)
 
       await launchpeg.seedAllowlist([alice.address], [1])
       await expect(launchpeg.connect(alice).allowlistMint(1)).to.be.revertedWith('Launchpeg__NotEnoughAVAX(0)')
     })
 
     it('Mint reverts during public sale', async () => {
-      await initializePhases(launchpeg, config, Phase.PublicSale)
+      await initializePhasesLaunchpeg(launchpeg, config, Phase.PublicSale)
 
       await launchpeg.seedAllowlist([alice.address], [1])
       await expect(launchpeg.connect(alice).allowlistMint(1)).to.be.revertedWith('Launchpeg__WrongPhase')
@@ -380,14 +380,14 @@ describe('Launchpeg', () => {
     })
 
     it('Mint price is discounted', async () => {
-      await initializePhases(launchpeg, config, Phase.Allowlist)
+      await initializePhasesLaunchpeg(launchpeg, config, Phase.Allowlist)
       expect(await launchpeg.getAllowlistPrice()).to.eq(ethers.utils.parseUnits('0.9', 18))
     })
   })
 
   describe('Public sale phase', () => {
     it('The correct amount of NFTs is transfered when the user mints', async () => {
-      await initializePhases(launchpeg, config, Phase.PublicSale)
+      await initializePhasesLaunchpeg(launchpeg, config, Phase.PublicSale)
 
       const quantity = 2
       const discount = config.startPrice.mul(config.publicSaleDiscount).div(10000)
@@ -398,31 +398,31 @@ describe('Launchpeg', () => {
     })
 
     it('Mint reverts during dutch auction', async () => {
-      await initializePhases(launchpeg, config, Phase.DutchAuction)
+      await initializePhasesLaunchpeg(launchpeg, config, Phase.DutchAuction)
 
       await expect(launchpeg.connect(alice).publicSaleMint(1)).to.be.revertedWith('Launchpeg__WrongPhase()')
     })
 
     it('Mint reverts during allowlist phase', async () => {
-      await initializePhases(launchpeg, config, Phase.Allowlist)
+      await initializePhasesLaunchpeg(launchpeg, config, Phase.Allowlist)
 
       await expect(launchpeg.connect(alice).publicSaleMint(1)).to.be.revertedWith('Launchpeg__WrongPhase()')
     })
 
     it('Mint reverts when buy size > max allowed', async () => {
-      await initializePhases(launchpeg, config, Phase.PublicSale)
+      await initializePhasesLaunchpeg(launchpeg, config, Phase.PublicSale)
 
       await expect(launchpeg.connect(alice).publicSaleMint(6)).to.be.revertedWith('Launchpeg__CanNotMintThisMany()')
     })
 
     it('Mint reverts when not enough AVAX sent', async () => {
-      await initializePhases(launchpeg, config, Phase.PublicSale)
+      await initializePhasesLaunchpeg(launchpeg, config, Phase.PublicSale)
 
       await expect(launchpeg.connect(alice).publicSaleMint(2)).to.be.revertedWith('Launchpeg__NotEnoughAVAX(0)')
     })
 
     it('Mint reverts when the user already minted max amount', async () => {
-      await initializePhases(launchpeg, config, Phase.PublicSale)
+      await initializePhasesLaunchpeg(launchpeg, config, Phase.PublicSale)
 
       const discount = config.startPrice.mul(config.publicSaleDiscount).div(10000)
       const price = config.startPrice.sub(discount)
@@ -436,7 +436,7 @@ describe('Launchpeg', () => {
 
     it('User can only mint up to maxPerAddressDuringMint', async () => {
       // start auction
-      await initializePhases(launchpeg, config, Phase.DutchAuction)
+      await initializePhasesLaunchpeg(launchpeg, config, Phase.DutchAuction)
 
       // mint 4 during auction
       await launchpeg.connect(alice).auctionMint(4, { value: config.startPrice.mul(4) })
@@ -449,7 +449,7 @@ describe('Launchpeg', () => {
     })
 
     it('Public sale price is discounted', async () => {
-      await initializePhases(launchpeg, config, Phase.PublicSale)
+      await initializePhasesLaunchpeg(launchpeg, config, Phase.PublicSale)
       expect(await launchpeg.getPublicSalePrice()).to.eq(ethers.utils.parseUnits('0.8', 18))
     })
 
@@ -460,7 +460,7 @@ describe('Launchpeg', () => {
       config.amountForDevs = 5
       config.batchRevealSize = 5
       await deployLaunchpeg()
-      await initializePhases(launchpeg, config, Phase.PublicSale)
+      await initializePhasesLaunchpeg(launchpeg, config, Phase.PublicSale)
 
       await launchpeg.connect(alice).publicSaleMint(5, { value: config.startPrice.mul(5) })
       await expect(launchpeg.connect(alice).publicSaleMint(5, { value: config.startPrice.mul(5) })).to.be.revertedWith(
@@ -486,7 +486,7 @@ describe('Launchpeg', () => {
       config.amountForAllowlist = 0
       config.batchRevealSize = 10
       await deployLaunchpeg()
-      await initializePhases(launchpeg, config, Phase.DutchAuction)
+      await initializePhasesLaunchpeg(launchpeg, config, Phase.DutchAuction)
 
       await launchpeg.connect(projectOwner).devMint(config.amountForDevs)
       await expect(launchpeg.connect(projectOwner).devMint(1)).to.be.revertedWith('Launchpeg__MaxSupplyReached()')
@@ -505,7 +505,7 @@ describe('Launchpeg', () => {
 
   describe('Funds flow', () => {
     it('Owner can withdraw money', async () => {
-      await initializePhases(launchpeg, config, Phase.DutchAuction)
+      await initializePhasesLaunchpeg(launchpeg, config, Phase.DutchAuction)
 
       await launchpeg.connect(alice).auctionMint(5, { value: config.startPrice.mul(5) })
       await launchpeg.connect(bob).auctionMint(4, { value: config.startPrice.mul(4) })
@@ -546,7 +546,7 @@ describe('Launchpeg', () => {
       const feePercent = 200
       const feeCollector = bob
       await launchpeg.initializeJoeFee(feePercent, feeCollector.address)
-      await initializePhases(launchpeg, config, Phase.DutchAuction)
+      await initializePhasesLaunchpeg(launchpeg, config, Phase.DutchAuction)
 
       const total = config.startPrice.mul(5)
       await launchpeg.connect(alice).auctionMint(5, { value: total })
@@ -583,7 +583,7 @@ describe('Launchpeg', () => {
     })
 
     it('NFTs should be unrevealed initially', async () => {
-      await initializePhases(launchpeg, config, Phase.DutchAuction)
+      await initializePhasesLaunchpeg(launchpeg, config, Phase.DutchAuction)
       expect(await launchpeg.tokenURI(0)).to.be.equal(config.unrevealedTokenURI)
     })
 
@@ -596,7 +596,7 @@ describe('Launchpeg', () => {
       config.batchRevealStart = BigNumber.from(0)
       config.batchRevealInterval = BigNumber.from(0)
       await deployLaunchpeg()
-      await initializePhases(launchpeg, config, Phase.DutchAuction)
+      await initializePhasesLaunchpeg(launchpeg, config, Phase.DutchAuction)
 
       await launchpeg.connect(projectOwner).devMint(config.batchRevealSize)
       expect((await launchpeg.hasBatchToReveal())[0]).to.eq(true)
@@ -631,7 +631,7 @@ describe('Launchpeg', () => {
       config.batchRevealInterval = BigNumber.from(0)
       await deployLaunchpeg()
 
-      await initializePhases(launchpeg, config, Phase.DutchAuction)
+      await initializePhasesLaunchpeg(launchpeg, config, Phase.DutchAuction)
 
       await expect(launchpeg.connect(alice).revealNextBatch()).to.be.revertedWith(
         'Launchpeg__RevealNextBatchNotAvailable'
@@ -653,7 +653,7 @@ describe('Launchpeg', () => {
       config.amountForAllowlist = 0
       config.batchRevealSize = 10
       await deployLaunchpeg()
-      await initializePhases(launchpeg, config, Phase.DutchAuction)
+      await initializePhasesLaunchpeg(launchpeg, config, Phase.DutchAuction)
 
       await launchpeg.connect(projectOwner).devMint(config.batchRevealSize)
 
@@ -678,7 +678,7 @@ describe('Launchpeg', () => {
       config.batchRevealSize = 10
       await deployLaunchpeg()
 
-      await initializePhases(launchpeg, config, Phase.Reveal)
+      await initializePhasesLaunchpeg(launchpeg, config, Phase.Reveal)
 
       await launchpeg.connect(projectOwner).devMint(3 * config.batchRevealSize)
 
@@ -698,7 +698,7 @@ describe('Launchpeg', () => {
     })
 
     it('Owner should be able to reveal if the collection does not sell out', async () => {
-      await initializePhases(launchpeg, config, Phase.PublicSale)
+      await initializePhasesLaunchpeg(launchpeg, config, Phase.PublicSale)
 
       // No one bought the collection :(
       await launchpeg.connect(projectOwner).devMint(config.amountForDevs)

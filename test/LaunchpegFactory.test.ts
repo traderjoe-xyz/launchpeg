@@ -83,7 +83,6 @@ describe('LaunchpegFactory', () => {
       config.collectionSize,
       config.amountForDevs,
       config.amountForAllowlist,
-      [config.flatPublicSalePrice, config.flatAllowlistSalePrice],
       config.batchRevealSize,
       config.batchRevealStart,
       config.batchRevealInterval
@@ -180,7 +179,6 @@ describe('LaunchpegFactory', () => {
         config.collectionSize,
         config.amountForDevs,
         config.amountForAllowlist,
-        [config.flatPublicSalePrice, config.flatAllowlistSalePrice],
         [config.batchRevealSize, config.batchRevealStart, config.batchRevealInterval]
       )
 

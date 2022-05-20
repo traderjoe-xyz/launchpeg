@@ -7,20 +7,9 @@ import "./IBaseLaunchpeg.sol";
 /// @author Trader Joe
 /// @notice Defines the basic interface of Launchpeg
 interface ILaunchpeg is IBaseLaunchpeg {
-    enum Phase {
-        NotStarted,
-        DutchAuction,
-        Allowlist,
-        PublicSale
-    }
-
     function amountForAuction() external view returns (uint256);
 
     function auctionSaleStartTime() external view returns (uint256);
-
-    function allowlistStartTime() external view returns (uint256);
-
-    function publicSaleStartTime() external view returns (uint256);
 
     function auctionStartPrice() external view returns (uint256);
 
@@ -80,6 +69,4 @@ interface ILaunchpeg is IBaseLaunchpeg {
     function getAllowlistPrice() external view returns (uint256);
 
     function getPublicSalePrice() external view returns (uint256);
-
-    function currentPhase() external view returns (Phase);
 }

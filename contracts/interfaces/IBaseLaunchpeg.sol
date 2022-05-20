@@ -10,6 +10,13 @@ import "erc721a-upgradeable/contracts/ERC721AUpgradeable.sol";
 /// @author Trader Joe
 /// @notice Defines the basic interface of BaseLaunchpeg
 interface IBaseLaunchpeg is IERC721Upgradeable, IERC721MetadataUpgradeable {
+    enum Phase {
+        NotStarted,
+        DutchAuction,
+        Allowlist,
+        PublicSale
+    }
+
     function collectionSize() external view returns (uint256);
 
     function amountForDevs() external view returns (uint256);
@@ -33,6 +40,10 @@ interface IBaseLaunchpeg is IERC721Upgradeable, IERC721MetadataUpgradeable {
     function amountMintedDuringAllowlist() external view returns (uint256);
 
     function amountMintedDuringPublicSale() external view returns (uint256);
+
+    function allowlistStartTime() external view returns (uint256);
+
+    function publicSaleStartTime() external view returns (uint256);
 
     function initializeJoeFee(uint256 _joeFeePercent, address _joeFeeCollector)
         external;
@@ -66,4 +77,6 @@ interface IBaseLaunchpeg is IERC721Upgradeable, IERC721MetadataUpgradeable {
         returns (ERC721AUpgradeable.TokenOwnership memory);
 
     function numberMinted(address owner) external view returns (uint256);
+
+    function currentPhase() external view returns (Phase);
 }
