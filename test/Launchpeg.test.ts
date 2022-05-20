@@ -248,6 +248,12 @@ describe('Launchpeg', () => {
       await expect(launchpeg.auctionMint(1)).to.be.revertedWith('Launchpeg__WrongPhase()')
     })
 
+    it('Mint reverts when sale is over', async () => {
+      await initializePhasesLaunchpeg(launchpeg, config, Phase.Allowlist)
+
+      await expect(launchpeg.auctionMint(1)).to.be.revertedWith('Launchpeg__WrongPhase()')
+    })
+
     it('NFT are transfered to sender when user has enough AVAX', async () => {
       await initializePhasesLaunchpeg(launchpeg, config, Phase.DutchAuction)
 

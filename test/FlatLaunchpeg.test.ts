@@ -128,6 +128,12 @@ describe('FlatLaunchpeg', () => {
       await expect(flatLaunchpeg.connect(bob).allowlistMint(1)).to.be.revertedWith('Launchpeg__WrongPhase()')
     })
 
+    it('Mint reverts when the allowlist sale is over', async () => {
+      await initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.PublicSale)
+
+      await expect(flatLaunchpeg.connect(bob).allowlistMint(1)).to.be.revertedWith('Launchpeg__WrongPhase()')
+    })
+
     it('Mint reverts when user tries to mint more NFTs than allowed', async () => {
       await initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.Allowlist)
       const price = config.flatAllowlistSalePrice
@@ -170,6 +176,18 @@ describe('FlatLaunchpeg', () => {
       const price = config.flatPublicSalePrice
       await flatLaunchpeg.connect(bob).publicSaleMint(quantity, { value: price.mul(quantity) })
       expect(await flatLaunchpeg.balanceOf(bob.address)).to.eq(2)
+    })
+
+    it('Mint reverts if sale not started', async () => {
+      await initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.NotStarted)
+
+      await expect(flatLaunchpeg.connect(alice).publicSaleMint(1)).to.be.revertedWith('Launchpeg__WrongPhase()')
+    })
+
+    it('Mint reverts during allowlist phase', async () => {
+      await initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.Allowlist)
+
+      await expect(flatLaunchpeg.connect(alice).publicSaleMint(1)).to.be.revertedWith('Launchpeg__WrongPhase()')
     })
 
     it('Mint reverts when buy size > max allowed', async () => {
