@@ -10,7 +10,7 @@ interface ILaunchpeg is IBaseLaunchpeg {
     enum Phase {
         NotStarted,
         DutchAuction,
-        Mintlist,
+        Allowlist,
         PublicSale
     }
 
@@ -48,7 +48,7 @@ interface ILaunchpeg is IBaseLaunchpeg {
         uint256 _maxBatchSize,
         uint256 _collectionSize,
         uint256 _amountForAuction,
-        uint256 _amountForMintlist,
+        uint256 _amountForAllowlist,
         uint256 _amountForDevs,
         uint256 _batchRevealSize,
         uint256 _revealStartTime,
@@ -68,7 +68,7 @@ interface ILaunchpeg is IBaseLaunchpeg {
 
     function auctionMint(uint256 _quantity) external payable;
 
-    function allowListMint(uint256 _quantity) external payable;
+    function allowlistMint(uint256 _quantity) external payable;
 
     function publicSaleMint(uint256 _quantity) external payable;
 
@@ -77,7 +77,7 @@ interface ILaunchpeg is IBaseLaunchpeg {
         view
         returns (uint256);
 
-    function getMintlistPrice() external view returns (uint256);
+    function getAllowlistPrice() external view returns (uint256);
 
     function getPublicSalePrice() external view returns (uint256);
 

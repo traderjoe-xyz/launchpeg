@@ -25,7 +25,7 @@ contract LaunchpegLens {
 
     struct LaunchpegData {
         uint256 amountForAuction;
-        uint256 amountForMintlist;
+        uint256 amountForAllowlist;
         uint256 auctionSaleStartTime;
         uint256 mintlistStartTime;
         uint256 publicSaleStartTime;
@@ -42,7 +42,7 @@ contract LaunchpegLens {
         uint256 publicSalePrice;
         uint256 amountMintedDuringAuction;
         uint256 lastAuctionPrice;
-        uint256 amountMintedDuringMintlist;
+        uint256 amountMintedDuringAllowlist;
         uint256 amountMintedDuringPublicSale;
     }
 
@@ -50,9 +50,9 @@ contract LaunchpegLens {
         uint256 mintlistPrice;
         uint256 salePrice;
         bool isPublicSaleActive;
-        uint256 amountMintedDuringMintlist;
+        uint256 amountMintedDuringAllowlist;
         uint256 amountMintedDuringPublicSale;
-        uint256 amountForMintlist;
+        uint256 amountForAllowlist;
     }
 
     struct RevealData {
@@ -195,8 +195,8 @@ contract LaunchpegLens {
         if (data.launchType == LaunchpegType.Launchpeg) {
             data.launchpegData.amountForAuction = ILaunchpeg(_launchpeg)
                 .amountForAuction();
-            data.launchpegData.amountForMintlist = ILaunchpeg(_launchpeg)
-                .amountForMintlist();
+            data.launchpegData.amountForAllowlist = ILaunchpeg(_launchpeg)
+                .amountForAllowlist();
             data.launchpegData.auctionSaleStartTime = ILaunchpeg(_launchpeg)
                 .auctionSaleStartTime();
             data.launchpegData.mintlistStartTime = ILaunchpeg(_launchpeg)
@@ -223,7 +223,7 @@ contract LaunchpegLens {
             data.launchpegData.auctionPrice = ILaunchpeg(_launchpeg)
                 .getAuctionPrice(data.launchpegData.auctionSaleStartTime);
             data.launchpegData.mintlistPrice = ILaunchpeg(_launchpeg)
-                .getMintlistPrice();
+                .getAllowlistPrice();
             data.launchpegData.publicSalePrice = ILaunchpeg(_launchpeg)
                 .getPublicSalePrice();
             data.launchpegData.amountMintedDuringAuction = ILaunchpeg(
@@ -231,9 +231,9 @@ contract LaunchpegLens {
             ).amountMintedDuringAuction();
             data.launchpegData.lastAuctionPrice = ILaunchpeg(_launchpeg)
                 .lastAuctionPrice();
-            data.launchpegData.amountMintedDuringMintlist = IBaseLaunchpeg(
+            data.launchpegData.amountMintedDuringAllowlist = IBaseLaunchpeg(
                 _launchpeg
-            ).amountMintedDuringMintlist();
+            ).amountMintedDuringAllowlist();
             data.launchpegData.amountMintedDuringPublicSale = IBaseLaunchpeg(
                 _launchpeg
             ).amountMintedDuringPublicSale();
@@ -247,16 +247,16 @@ contract LaunchpegLens {
             data.flatLaunchpegData.isPublicSaleActive = IFlatLaunchpeg(
                 _launchpeg
             ).isPublicSaleActive();
-            data.flatLaunchpegData.amountMintedDuringMintlist = IBaseLaunchpeg(
+            data.flatLaunchpegData.amountMintedDuringAllowlist = IBaseLaunchpeg(
                 _launchpeg
-            ).amountMintedDuringMintlist();
+            ).amountMintedDuringAllowlist();
             data
                 .flatLaunchpegData
                 .amountMintedDuringPublicSale = IBaseLaunchpeg(_launchpeg)
                 .amountMintedDuringPublicSale();
-            data.flatLaunchpegData.amountForMintlist = IBaseLaunchpeg(
+            data.flatLaunchpegData.amountForAllowlist = IBaseLaunchpeg(
                 _launchpeg
-            ).amountForMintlist();
+            ).amountForAllowlist();
         }
 
         if (_user != address(0)) {
@@ -266,7 +266,7 @@ contract LaunchpegLens {
             data.userData.numberMinted = IBaseLaunchpeg(_launchpeg)
                 .numberMinted(_user);
             data.userData.allowanceForAllowlistMint = IBaseLaunchpeg(_launchpeg)
-                .allowList(_user);
+                .allowlist(_user);
         }
 
         return data;

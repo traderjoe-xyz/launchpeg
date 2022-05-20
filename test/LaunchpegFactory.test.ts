@@ -63,7 +63,7 @@ describe('LaunchpegFactory', () => {
       config.maxBatchSize,
       config.collectionSize,
       config.amountForAuction,
-      config.amountForMintlist,
+      config.amountForAllowlist,
       config.amountForDevs,
       config.batchRevealSize,
       config.batchRevealStart,
@@ -82,8 +82,8 @@ describe('LaunchpegFactory', () => {
       config.maxBatchSize,
       config.collectionSize,
       config.amountForDevs,
-      config.amountForMintlist,
-      [config.flatPublicSalePrice, config.flatMintListSalePrice],
+      config.amountForAllowlist,
+      [config.flatPublicSalePrice, config.flatAllowlistSalePrice],
       config.batchRevealSize,
       config.batchRevealStart,
       config.batchRevealInterval
@@ -160,7 +160,7 @@ describe('LaunchpegFactory', () => {
         config.maxBatchSize,
         config.collectionSize,
         config.amountForAuction,
-        config.amountForMintlist,
+        config.amountForAllowlist,
         config.amountForDevs,
         [config.batchRevealSize, config.batchRevealStart, config.batchRevealInterval]
       )
@@ -179,8 +179,8 @@ describe('LaunchpegFactory', () => {
         config.maxBatchSize,
         config.collectionSize,
         config.amountForDevs,
-        config.amountForMintlist,
-        [config.flatPublicSalePrice, config.flatMintListSalePrice],
+        config.amountForAllowlist,
+        [config.flatPublicSalePrice, config.flatAllowlistSalePrice],
         [config.batchRevealSize, config.batchRevealStart, config.batchRevealInterval]
       )
 
@@ -220,7 +220,7 @@ describe('LaunchpegFactory', () => {
         config.maxBatchSize,
         config.collectionSize,
         config.amountForAuction,
-        config.amountForMintlist,
+        config.amountForAllowlist,
         config.amountForDevs,
         [config.batchRevealSize, config.batchRevealStart, config.batchRevealInterval]
       )

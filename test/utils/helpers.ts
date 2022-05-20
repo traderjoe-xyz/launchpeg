@@ -9,7 +9,7 @@ export interface LaunchpegConfig {
   maxBatchSize: number
   collectionSize: number
   amountForAuction: number
-  amountForMintlist: number
+  amountForAllowlist: number
   amountForDevs: number
   startPrice: BigNumber
   endPrice: BigNumber
@@ -22,7 +22,7 @@ export interface LaunchpegConfig {
   baseTokenURI: string
   unrevealedTokenURI: string
   flatPublicSalePrice: BigNumber
-  flatMintListSalePrice: BigNumber
+  flatAllowlistSalePrice: BigNumber
 }
 
 const AUCTION_START_OFFSET = 10
@@ -40,7 +40,7 @@ export const getDefaultLaunchpegConfig = async (): Promise<LaunchpegConfig> => {
     maxBatchSize: 5,
     collectionSize: 10000,
     amountForAuction: 8000,
-    amountForMintlist: 1900,
+    amountForAllowlist: 1900,
     amountForDevs: 100,
     startPrice: ethers.utils.parseUnits('1', 18),
     endPrice: ethers.utils.parseUnits('0.15', 18),
@@ -53,14 +53,14 @@ export const getDefaultLaunchpegConfig = async (): Promise<LaunchpegConfig> => {
     baseTokenURI: 'ipfs://bafybeib3jkgtnqmnevrafzlrhroa6ws7wbmdh7dndonij7jvmvho5fmxj4/',
     unrevealedTokenURI: 'unrevealed',
     flatPublicSalePrice: ethers.utils.parseUnits('1', 18),
-    flatMintListSalePrice: ethers.utils.parseUnits('0.5', 18),
+    flatAllowlistSalePrice: ethers.utils.parseUnits('0.5', 18),
   }
 }
 
 export enum Phase {
   NotStarted,
   DutchAuction,
-  Mintlist,
+  Allowlist,
   PublicSale,
   Reveal,
 }
@@ -88,7 +88,7 @@ const advanceTimeAndBlockToPhase = async (phase: Phase) => {
     case Phase.DutchAuction:
       await advanceTimeAndBlock(duration.minutes(AUCTION_START_OFFSET))
       break
-    case Phase.Mintlist:
+    case Phase.Allowlist:
       await advanceTimeAndBlock(duration.minutes(MINTLIST_START_OFFSET + AUCTION_START_OFFSET))
       break
     case Phase.PublicSale:

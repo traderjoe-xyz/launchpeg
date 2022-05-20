@@ -26,14 +26,14 @@ interface IFlatLaunchpeg is IBaseLaunchpeg {
         uint256 _maxBatchSize,
         uint256 _collectionSize,
         uint256 _amountForDevs,
-        uint256 _amountForMintlist,
+        uint256 _amountForAllowlist,
         FlatLaunchpegPrices calldata _prices,
         uint256 _batchRevealSize,
         uint256 _revealStartTime,
         uint256 _revealInterval
     ) external;
 
-    function allowListMint(uint256 _quantity) external payable;
+    function allowlistMint(uint256 _quantity) external payable;
 
     function publicSaleMint(uint256 _quantity) external payable;
 

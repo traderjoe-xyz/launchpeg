@@ -27,7 +27,7 @@ contract LaunchpegFactory is
         uint256 maxBatchSize,
         uint256 collectionSize,
         uint256 amountForAuction,
-        uint256 amountForMintlist,
+        uint256 amountForAllowlist,
         uint256 amountForDevs,
         uint256 batchRevealSize,
         uint256 revealStartTime,
@@ -126,7 +126,7 @@ contract LaunchpegFactory is
     /// @param _maxBatchSize Max amount of NFTs that can be minted at once
     /// @param _collectionSize The collection size (e.g 10000)
     /// @param _amountForAuction Amount of NFTs available for the auction (e.g 8000)
-    /// @param _amountForMintlist Amount of NFTs available for the allowList mint (e.g 1000)
+    /// @param _amountForAllowlist Amount of NFTs available for the allowlist mint (e.g 1000)
     /// @param _amountForDevs Amount of NFTs reserved for `projectOwner` (e.g 200)
     /// @param _batchRevealData Contains batch reveal informations :
     ///  Size of the batch reveal, start of the token URIs reveal in seconds
@@ -140,7 +140,7 @@ contract LaunchpegFactory is
         uint256 _maxBatchSize,
         uint256 _collectionSize,
         uint256 _amountForAuction,
-        uint256 _amountForMintlist,
+        uint256 _amountForAllowlist,
         uint256 _amountForDevs,
         BatchReveal calldata _batchRevealData
     ) external override onlyOwner returns (address) {
@@ -157,7 +157,7 @@ contract LaunchpegFactory is
             _maxBatchSize,
             _collectionSize,
             _amountForAuction,
-            _amountForMintlist,
+            _amountForAllowlist,
             _amountForDevs,
             _batchRevealData.batchRevealSize,
             _batchRevealData.revealStartTime,
@@ -180,7 +180,7 @@ contract LaunchpegFactory is
             _maxBatchSize,
             _collectionSize,
             _amountForAuction,
-            _amountForMintlist,
+            _amountForAllowlist,
             _amountForDevs,
             _batchRevealData.batchRevealSize,
             _batchRevealData.revealStartTime,
@@ -198,7 +198,7 @@ contract LaunchpegFactory is
     /// @param _maxBatchSize Max amount of NFTs that can be minted at once
     /// @param _collectionSize The collection size (e.g 10000)
     /// @param _amountForDevs Amount of NFTs reserved for `projectOwner` (e.g 200)
-    /// @param _amountForMintlist Amount of NFTs available for the allowList mint (e.g 1000)
+    /// @param _amountForAllowlist Amount of NFTs available for the allowlist mint (e.g 1000)
     /// @param _prices Structure containing the price of the public sale in Avax
     /// and price of the whitelist sale in Avax
     /// @param _batchRevealData Contains batch reveal informations :
@@ -213,7 +213,7 @@ contract LaunchpegFactory is
         uint256 _maxBatchSize,
         uint256 _collectionSize,
         uint256 _amountForDevs,
-        uint256 _amountForMintlist,
+        uint256 _amountForAllowlist,
         IFlatLaunchpeg.FlatLaunchpegPrices calldata _prices,
         BatchReveal calldata _batchRevealData
     ) external override onlyOwner returns (address) {
@@ -230,7 +230,7 @@ contract LaunchpegFactory is
             _maxBatchSize,
             _collectionSize,
             _amountForDevs,
-            _amountForMintlist,
+            _amountForAllowlist,
             _prices,
             _batchRevealData.batchRevealSize,
             _batchRevealData.revealStartTime,

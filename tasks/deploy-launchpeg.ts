@@ -25,7 +25,7 @@ task('deploy-launchpeg', 'Deploy Launchpeg contract')
       launchConfig.maxBatchSize,
       launchConfig.collectionSize,
       launchConfig.amountForAuction,
-      launchConfig.amountForMintlist,
+      launchConfig.amountForAllowlist,
       launchConfig.amountForDevs,
       [launchConfig.batchRevealSize, launchConfig.batchRevealStart, launchConfig.batchRevealInterval]
     )

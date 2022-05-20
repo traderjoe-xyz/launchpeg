@@ -14,7 +14,7 @@ interface IBaseLaunchpeg is IERC721Upgradeable, IERC721MetadataUpgradeable {
 
     function amountForDevs() external view returns (uint256);
 
-    function amountForMintlist() external view returns (uint256);
+    function amountForAllowlist() external view returns (uint256);
 
     function maxBatchSize() external view returns (uint256);
 
@@ -26,11 +26,11 @@ interface IBaseLaunchpeg is IERC721Upgradeable, IERC721MetadataUpgradeable {
 
     function projectOwner() external view returns (address);
 
-    function allowList(address) external view returns (uint256);
+    function allowlist(address) external view returns (uint256);
 
     function amountMintedByDevs() external view returns (uint256);
 
-    function amountMintedDuringMintlist() external view returns (uint256);
+    function amountMintedDuringAllowlist() external view returns (uint256);
 
     function amountMintedDuringPublicSale() external view returns (uint256);
 

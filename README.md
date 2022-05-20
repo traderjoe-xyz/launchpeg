@@ -1,8 +1,8 @@
 # Launchpeg
 
 This repository contains two [ERC721A](https://github.com/chiru-labs/ERC721A) implementations: 
-- **Launchpeg** implements a fair and gas efficient NFT launch mechanism in three phases: dutch auction, allowList mint and public sale.
-- **FlatLaunchpeg** implements a simple minting NFT contract with an allowList and public sale phase.
+- **Launchpeg** implements a fair and gas efficient NFT launch mechanism in three phases: dutch auction, allowlist mint and public sale.
+- **FlatLaunchpeg** implements a simple minting NFT contract with an allowlist and public sale phase.
 
 Both contracts implement [BatchReveal](https://github.com/tubby-cats/batch-nft-reveal) developed by Tubby Cats. This is an on-chain shuffling algorithm used to reveal NFTs in batches.
 
@@ -21,13 +21,13 @@ The sale takes place in three phases:
 
 It starts with a dutch auction: the price gradually decreases over time until the end of the phase or when all tokens allocated are sold.
 
-The allowList mint starts right after the dutch auction: whitelisted users can mint at a discount from the last auction price from the previous phase.
+The allowlist mint starts right after the dutch auction: whitelisted users can mint at a discount from the last auction price from the previous phase.
 
-Once the allowList mint ends, all remaining NFTs are sold in the public sale at a discount from the last auction price.
+Once the allowlist mint ends, all remaining NFTs are sold in the public sale at a discount from the last auction price.
 
 #### FlatLaunchpeg
 
-In this contract, the sale is simpler; all NFTs are minted at a fixed price and takes place in two phases: an allowList mint and public sale that can be enabled / disabled with `setPublicSaleActive`. 
+In this contract, the sale is simpler; all NFTs are minted at a fixed price and takes place in two phases: an allowlist mint and public sale that can be enabled / disabled with `setPublicSaleActive`. 
 
 ### [](https://github.com/traderjoe-xyz/launchpeg/blob/45acb0516d2a0405ddf12a231ed422cfabc5f0e6/README.md#erc721a-from-azuki-)ERC721A from Azuki:
 

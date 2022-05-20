@@ -31,8 +31,8 @@ abstract contract BaseLaunchpeg is
     /// @dev It can be minted any time via `devMint`
     uint256 public override amountForDevs;
 
-    /// @notice Amount of NFTs available for the allowList mint (e.g 1000)
-    uint256 public override amountForMintlist;
+    /// @notice Amount of NFTs available for the allowlist mint (e.g 1000)
+    uint256 public override amountForAllowlist;
 
     /// @notice Max amount of NFTs that can be minted at once
     uint256 public override maxBatchSize;
@@ -60,14 +60,14 @@ abstract contract BaseLaunchpeg is
     /// @notice Token URI before the collection reveal
     string public unrevealedURI;
 
-    /// @notice The amount of NFTs each allowed address can mint during the allowList mint
-    mapping(address => uint256) public override allowList;
+    /// @notice The amount of NFTs each allowed address can mint during the allowlist mint
+    mapping(address => uint256) public override allowlist;
 
     /// @notice Tracks the amount of NFTs minted by `projectOwner`
     uint256 public override amountMintedByDevs;
 
-    /// @notice Tracks the amount of NFTs minted on Mintlist phase
-    uint256 public override amountMintedDuringMintlist;
+    /// @notice Tracks the amount of NFTs minted on Allowlist phase
+    uint256 public override amountMintedDuringAllowlist;
 
     /// @notice Tracks the amount of NFTs minted on Public Sale phase
     uint256 public override amountMintedDuringPublicSale;
@@ -130,7 +130,7 @@ abstract contract BaseLaunchpeg is
     /// @param _maxBatchSize Max amount of NFTs that can be minted at once
     /// @param _collectionSize The collection size (e.g 10000)
     /// @param _amountForDevs Amount of NFTs reserved for `projectOwner` (e.g 200)
-    /// @param _amountForMintlist Amount of NFTs available for the allowList mint (e.g 1000)
+    /// @param _amountForAllowlist Amount of NFTs available for the allowlist mint (e.g 1000)
     /// @param _batchRevealSize Size of the batch reveal
     function initializeBaseLaunchpeg(
         string memory _name,
@@ -140,7 +140,7 @@ abstract contract BaseLaunchpeg is
         uint256 _maxBatchSize,
         uint256 _collectionSize,
         uint256 _amountForDevs,
-        uint256 _amountForMintlist,
+        uint256 _amountForAllowlist,
         uint256 _batchRevealSize,
         uint256 _revealStartTime,
         uint256 _revealInterval
@@ -156,7 +156,7 @@ abstract contract BaseLaunchpeg is
             revert Launchpeg__InvalidProjectOwner();
         }
 
-        if (_amountForDevs + _amountForMintlist > _collectionSize) {
+        if (_amountForDevs + _amountForAllowlist > _collectionSize) {
             revert Launchpeg__LargerCollectionSizeNeeded();
         }
 
@@ -180,7 +180,7 @@ abstract contract BaseLaunchpeg is
         collectionSize = _collectionSize;
         maxPerAddressDuringMint = _maxBatchSize;
         amountForDevs = _amountForDevs;
-        amountForMintlist = _amountForMintlist;
+        amountForAllowlist = _amountForAllowlist;
 
         revealStartTime = _revealStartTime;
         revealInterval = _revealInterval;
@@ -224,8 +224,8 @@ abstract contract BaseLaunchpeg is
         emit DefaultRoyaltySet(_receiver, _feePercent);
     }
 
-    /// @notice Set amount of NFTs mintable per address during the allowList phase
-    /// @param _addresses List of addresses allowed to mint during the allowList phase
+    /// @notice Set amount of NFTs mintable per address during the allowlist phase
+    /// @param _addresses List of addresses allowed to mint during the allowlist phase
     /// @param _numNfts List of NFT quantities mintable per address
     function seedAllowlist(
         address[] calldata _addresses,
@@ -236,7 +236,7 @@ abstract contract BaseLaunchpeg is
             revert Launchpeg__WrongAddressesAndNumSlotsLength();
         }
         for (uint256 i; i < addressesLength; i++) {
-            allowList[_addresses[i]] = _numNfts[i];
+            allowlist[_addresses[i]] = _numNfts[i];
         }
 
         emit AllowlistSeeded();

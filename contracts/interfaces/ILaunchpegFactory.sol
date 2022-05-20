@@ -44,7 +44,7 @@ interface ILaunchpegFactory {
         uint256 _maxBatchSize,
         uint256 _collectionSize,
         uint256 _amountForAuction,
-        uint256 _amountForMintlist,
+        uint256 _amountForAllowlist,
         uint256 _amountForDevs,
         BatchReveal calldata _batchRevealData
     ) external returns (address);
@@ -57,7 +57,7 @@ interface ILaunchpegFactory {
         uint256 _maxBatchSize,
         uint256 _collectionSize,
         uint256 _amountForDevs,
-        uint256 _amountForMintlist,
+        uint256 _amountForAllowlist,
         IFlatLaunchpeg.FlatLaunchpegPrices calldata prices,
         BatchReveal calldata _batchRevealData
     ) external returns (address);
