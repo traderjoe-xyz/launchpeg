@@ -187,15 +187,19 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
     /// @notice Returns the current phase
     /// @return phase Current phase
     function currentPhase() public view override returns (Phase) {
-        if (allowlistStartTime == 0 || publicSaleStartTime == 0) {
+        if (
+            allowlistStartTime == 0 ||
+            publicSaleStartTime == 0 ||
+            block.timestamp < allowlistStartTime
+        ) {
             return Phase.NotStarted;
-        }
-        if (block.timestamp >= publicSaleStartTime) {
-            return Phase.PublicSale;
-        } else if (block.timestamp >= allowlistStartTime) {
+        } else if (
+            block.timestamp >= allowlistStartTime &&
+            block.timestamp < publicSaleStartTime
+        ) {
             return Phase.Allowlist;
         }
-        return Phase.NotStarted;
+        return Phase.PublicSale;
     }
 
     /// @dev Returns true if this contract implements the interface defined by
