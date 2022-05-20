@@ -369,22 +369,18 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
         if (
             auctionSaleStartTime == 0 ||
             allowlistStartTime == 0 ||
-            publicSaleStartTime == 0 ||
-            block.timestamp < auctionSaleStartTime
+            publicSaleStartTime == 0
         ) {
             return Phase.NotStarted;
-        } else if (
-            block.timestamp >= auctionSaleStartTime &&
-            block.timestamp < allowlistStartTime
-        ) {
-            return Phase.DutchAuction;
-        } else if (
-            block.timestamp >= allowlistStartTime &&
-            block.timestamp < publicSaleStartTime
-        ) {
-            return Phase.Allowlist;
         }
-        return Phase.PublicSale;
+        if (block.timestamp >= publicSaleStartTime) {
+            return Phase.PublicSale;
+        } else if (block.timestamp >= allowlistStartTime) {
+            return Phase.Allowlist;
+        } else if (block.timestamp >= auctionSaleStartTime) {
+            return Phase.DutchAuction;
+        }
+        return Phase.NotStarted;
     }
 
     /// @dev Returns true if this contract implements the interface defined by
