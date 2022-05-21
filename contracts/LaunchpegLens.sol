@@ -26,6 +26,7 @@ contract LaunchpegLens {
     struct LaunchpegData {
         uint256 amountForAuction;
         uint256 amountForAllowlist;
+        uint256 amountForDevs;
         uint256 auctionSaleStartTime;
         uint256 allowlistStartTime;
         uint256 publicSaleStartTime;
@@ -49,6 +50,7 @@ contract LaunchpegLens {
     struct FlatLaunchpegData {
         ILaunchpeg.Phase currentPhase;
         uint256 amountForAllowlist;
+        uint256 amountForDevs;
         uint256 allowlistStartTime;
         uint256 publicSaleStartTime;
         uint256 allowlistPrice;
@@ -199,6 +201,8 @@ contract LaunchpegLens {
                 .amountForAuction();
             data.launchpegData.amountForAllowlist = ILaunchpeg(_launchpeg)
                 .amountForAllowlist();
+            data.launchpegData.amountForDevs = ILaunchpeg(_launchpeg)
+                .amountForDevs();
             data.launchpegData.auctionSaleStartTime = ILaunchpeg(_launchpeg)
                 .auctionSaleStartTime();
             data.launchpegData.allowlistStartTime = ILaunchpeg(_launchpeg)
@@ -258,6 +262,8 @@ contract LaunchpegLens {
             data.flatLaunchpegData.amountForAllowlist = IFlatLaunchpeg(
                 _launchpeg
             ).amountForAllowlist();
+            data.launchpegData.amountForDevs = IFlatLaunchpeg(_launchpeg)
+                .amountForDevs();
             data.flatLaunchpegData.allowlistStartTime = IFlatLaunchpeg(
                 _launchpeg
             ).allowlistStartTime();
