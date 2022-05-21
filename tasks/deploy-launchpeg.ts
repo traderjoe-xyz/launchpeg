@@ -11,8 +11,7 @@ task('deploy-launchpeg', 'Deploy Launchpeg contract')
 
     const ethers = hre.ethers
     const factoryAddress = (await hre.deployments.get('LaunchpegFactory')).address
-    console.log(factoryAddress)
-
+    
     const factory = await ethers.getContractAt('LaunchpegFactory', factoryAddress)
 
     const launchConfig = loadLaunchConfig(configFilename)

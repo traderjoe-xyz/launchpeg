@@ -40,10 +40,10 @@ task('deploy-flatlaunchpeg', 'Deploy FlatLaunchpeg contract')
     const launchpeg = await ethers.getContractAt('FlatLaunchpeg', launchpegAddress)
 
     const initTx = await launchpeg.initializePhases(
-      launchConfig.allowlistPrice,
-      launchConfig.salePrice,
       launchConfig.allowlistStartTime,
-      launchConfig.publicSaleStartTime
+      launchConfig.publicSaleStartTime,
+      launchConfig.allowlistPrice,
+      launchConfig.salePrice
     )
 
     await initTx.wait()
