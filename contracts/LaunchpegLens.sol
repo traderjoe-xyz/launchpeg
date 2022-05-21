@@ -47,6 +47,7 @@ contract LaunchpegLens {
     }
 
     struct FlatLaunchpegData {
+        ILaunchpeg.Phase currentPhase;
         uint256 amountForAllowlist;
         uint256 allowlistStartTime;
         uint256 publicSaleStartTime;
@@ -241,6 +242,8 @@ contract LaunchpegLens {
         }
 
         if (data.launchType == LaunchpegType.FlatLaunchpeg) {
+            data.flatLaunchpegData.currentPhase = IFlatLaunchpeg(_launchpeg)
+                .currentPhase();
             data.flatLaunchpegData.allowlistPrice = IFlatLaunchpeg(_launchpeg)
                 .allowlistPrice();
             data.flatLaunchpegData.salePrice = IFlatLaunchpeg(_launchpeg)
