@@ -262,7 +262,7 @@ contract LaunchpegLens {
             data.flatLaunchpegData.amountForAllowlist = IFlatLaunchpeg(
                 _launchpeg
             ).amountForAllowlist();
-            data.launchpegData.amountForDevs = IFlatLaunchpeg(_launchpeg)
+            data.flatLaunchpegData.amountForDevs = IFlatLaunchpeg(_launchpeg)
                 .amountForDevs();
             data.flatLaunchpegData.allowlistStartTime = IFlatLaunchpeg(
                 _launchpeg
