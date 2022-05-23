@@ -125,6 +125,24 @@ describe('Launchpeg', () => {
       )
     })
 
+    it('Phases can be only be initialized by owner', async () => {
+      await deployLaunchpeg()
+      await expect(
+        launchpeg
+          .connect(bob)
+          .initializePhases(
+            config.auctionStartTime,
+            config.startPrice,
+            config.endPrice,
+            config.auctionDropInterval,
+            config.allowlistStartTime,
+            config.allowlistDiscount,
+            config.publicSaleStartTime,
+            config.publicSaleDiscount
+          )
+      ).to.be.revertedWith('Ownable: caller is not the owner')
+    })
+
     it('MaxBatchSize must be smaller than collection', async () => {
       config.maxBatchSize = config.collectionSize * 2
       await expect(deployLaunchpeg()).to.be.revertedWith('Launchpeg__InvalidMaxBatchSize()')
