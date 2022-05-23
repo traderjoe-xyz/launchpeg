@@ -103,7 +103,7 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
         uint256 _publicSaleStartTime,
         uint256 _allowlistPrice,
         uint256 _salePrice
-    ) external override atPhase(Phase.NotStarted) {
+    ) external override onlyOwner atPhase(Phase.NotStarted) {
         if (allowlistStartTime != 0) {
             revert Launchpeg__PhasesAlreadyInitialized();
         }
