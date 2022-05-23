@@ -163,7 +163,7 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
         uint256 _allowlistDiscountPercent,
         uint256 _publicSaleStartTime,
         uint256 _publicSaleDiscountPercent
-    ) external override atPhase(Phase.NotStarted) {
+    ) external override onlyOwner atPhase(Phase.NotStarted) {
         if (auctionSaleStartTime != 0) {
             revert Launchpeg__PhasesAlreadyInitialized();
         }
