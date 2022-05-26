@@ -16,6 +16,14 @@ task('deploy-flatlaunchpeg', 'Deploy FlatLaunchpeg contract')
 
     const launchConfig = loadLaunchConfig(configFilename)
 
+    // This is used for testing purposes
+    if (launchConfig.allowlistStartTime === 'Soon') {
+      launchConfig.allowlistStartTime = Math.floor(Date.now() / 1000) + 120
+    }
+    if (launchConfig.publicSaleStartTime === 'Soon') {
+      launchConfig.publicSaleStartTime = launchConfig.allowlistStartTime + 120
+    }
+
     const creationTx = await factory.createFlatLaunchpeg(
       launchConfig.name,
       launchConfig.symbol,
@@ -47,4 +55,21 @@ task('deploy-flatlaunchpeg', 'Deploy FlatLaunchpeg contract')
     )
 
     await initTx.wait()
+
+    console.log('-- Phases initialized --')
+
+    if (launchConfig.allowlistLocalPath) {
+      await hre.run('configure-allowlist', {
+        csvpath: launchConfig.allowlistLocalPath,
+        contractaddress: launchpeg.address,
+      })
+    }
+
+    if (launchConfig.unrevealedURI && launchConfig.baseURI) {
+      await hre.run('set-uris', {
+        contractaddress: launchpeg.address,
+        unrevealeduri: launchConfig.unrevealedURI,
+        baseuri: launchConfig.baseURI,
+      })
+    }
   })

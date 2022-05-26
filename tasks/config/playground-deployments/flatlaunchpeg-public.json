@@ -1,0 +1,17 @@
+{
+  "name": "Forever Public sale FlatLaunchpeg",
+  "symbol": "FJPG",
+  "projectOwner": "0x1119fbb02f38764cd90f2d9fb35fedcd8378ac2a",
+  "royaltyReceiver": "0x1119fbb02f38764cd90f2d9fb35fedcd8378ac2a",
+  "maxBatchSize": "5",
+  "collectionSize": "40",
+  "amountForDevs": "10",
+  "amountForAllowlist": "10",
+  "batchRevealSize": "40",
+  "batchRevealStart": "0",
+  "batchRevealInterval": "0",
+  "allowlistPrice": "500000000000000000",
+  "salePrice": "1000000000000000000",
+  "allowlistStartTime": "Soon",
+  "publicSaleStartTime": "Soon"
+}

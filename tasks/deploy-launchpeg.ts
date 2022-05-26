@@ -11,10 +11,21 @@ task('deploy-launchpeg', 'Deploy Launchpeg contract')
 
     const ethers = hre.ethers
     const factoryAddress = (await hre.deployments.get('LaunchpegFactory')).address
-    
+
     const factory = await ethers.getContractAt('LaunchpegFactory', factoryAddress)
 
     const launchConfig = loadLaunchConfig(configFilename)
+
+    // This is used for testing purposes
+    if (launchConfig.auctionSaleStartTime === 'Soon') {
+      launchConfig.auctionSaleStartTime = Math.floor(Date.now() / 1000) + 120
+    }
+    if (launchConfig.allowlistStartTime === 'Soon') {
+      launchConfig.allowlistStartTime = launchConfig.auctionSaleStartTime + launchConfig.auctionDropInterval * 5
+    }
+    if (launchConfig.publicSaleStartTime === 'Soon') {
+      launchConfig.publicSaleStartTime = launchConfig.allowlistStartTime + 120
+    }
 
     const creationTx = await factory.createLaunchpeg(
       launchConfig.name,
@@ -52,4 +63,19 @@ task('deploy-launchpeg', 'Deploy Launchpeg contract')
     )
 
     await initTx.wait()
+
+    if (launchConfig.allowlistLocalPath) {
+      await hre.run('configure-allowlist', {
+        csvpath: launchConfig.allowlistLocalPath,
+        contractaddress: launchpeg.address,
+      })
+    }
+
+    if (launchConfig.unrevealedURI && launchConfig.baseURI) {
+      await hre.run('set-uris', {
+        contractaddress: launchpeg.address,
+        unrevealeduri: launchConfig.unrevealedURI,
+        baseuri: launchConfig.baseURI,
+      })
+    }
   })
