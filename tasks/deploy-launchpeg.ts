@@ -16,17 +16,6 @@ task('deploy-launchpeg', 'Deploy Launchpeg contract')
 
     const launchConfig = loadLaunchConfig(configFilename)
 
-    // This is used for testing purposes
-    if (launchConfig.auctionSaleStartTime === 'Soon') {
-      launchConfig.auctionSaleStartTime = Math.floor(Date.now() / 1000) + 120
-    }
-    if (launchConfig.allowlistStartTime === 'Soon') {
-      launchConfig.allowlistStartTime = launchConfig.auctionSaleStartTime + launchConfig.auctionDropInterval * 5
-    }
-    if (launchConfig.publicSaleStartTime === 'Soon') {
-      launchConfig.publicSaleStartTime = launchConfig.allowlistStartTime + 120
-    }
-
     const creationTx = await factory.createLaunchpeg(
       launchConfig.name,
       launchConfig.symbol,

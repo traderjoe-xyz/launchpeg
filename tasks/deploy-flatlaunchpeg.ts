@@ -16,14 +16,6 @@ task('deploy-flatlaunchpeg', 'Deploy FlatLaunchpeg contract')
 
     const launchConfig = loadLaunchConfig(configFilename)
 
-    // This is used for testing purposes
-    if (launchConfig.allowlistStartTime === 'Soon') {
-      launchConfig.allowlistStartTime = Math.floor(Date.now() / 1000) + 120
-    }
-    if (launchConfig.publicSaleStartTime === 'Soon') {
-      launchConfig.publicSaleStartTime = launchConfig.allowlistStartTime + 120
-    }
-
     const creationTx = await factory.createFlatLaunchpeg(
       launchConfig.name,
       launchConfig.symbol,
