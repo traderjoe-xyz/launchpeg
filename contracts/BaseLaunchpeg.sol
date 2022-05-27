@@ -55,10 +55,10 @@ abstract contract BaseLaunchpeg is
     address public override projectOwner;
 
     /// @notice Token URI after collection reveal
-    string public baseURI;
+    string public override baseURI;
 
     /// @notice Token URI before the collection reveal
-    string public unrevealedURI;
+    string public override unrevealedURI;
 
     /// @notice The amount of NFTs each allowed address can mint during the allowlist mint
     mapping(address => uint256) public override allowlist;
