@@ -8,7 +8,7 @@ export const loadLaunchConfig = (filename: string) => {
 }
 
 // This is used for testing purposes
-const convertTimestampIfNeeded = (launchConfig) => {
+const convertTimestampIfNeeded = (launchConfig: any) => {
   if (launchConfig.auctionSaleStartTime) {
     // Launchpeg
     if (launchConfig.auctionSaleStartTime === 'Soon') {
