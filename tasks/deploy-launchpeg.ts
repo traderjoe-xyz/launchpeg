@@ -66,16 +66,16 @@ task('deploy-launchpeg', 'Deploy Launchpeg contract')
 
     if (launchConfig.allowlistLocalPath) {
       await hre.run('configure-allowlist', {
-        csvpath: launchConfig.allowlistLocalPath,
-        contractaddress: launchpeg.address,
+        csvPath: launchConfig.allowlistLocalPath,
+        contractAddress: launchpeg.address,
       })
     }
 
     if (launchConfig.unrevealedURI && launchConfig.baseURI) {
       await hre.run('set-uris', {
-        contractaddress: launchpeg.address,
-        unrevealeduri: launchConfig.unrevealedURI,
-        baseuri: launchConfig.baseURI,
+        contractAddress: launchpeg.address,
+        unrevealedURI: launchConfig.unrevealedURI,
+        baseURI: launchConfig.baseURI,
       })
     }
   })
