@@ -21,6 +21,8 @@ contract LaunchpegLens {
         uint256 collectionSize;
         uint256 maxBatchSize;
         uint256 totalSupply;
+        string unrevealedURI;
+        string baseURI;
     }
 
     struct LaunchpegData {
@@ -186,6 +188,9 @@ contract LaunchpegLens {
             .maxBatchSize();
         data.collectionData.totalSupply = ERC721AUpgradeable(_launchpeg)
             .totalSupply();
+        data.collectionData.unrevealedURI = IBaseLaunchpeg(_launchpeg)
+            .unrevealedURI();
+        data.collectionData.baseURI = IBaseLaunchpeg(_launchpeg).baseURI();
 
         data.revealData.revealBatchSize = IBatchReveal(_launchpeg)
             .revealBatchSize();

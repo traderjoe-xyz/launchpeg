@@ -10,10 +10,11 @@
   "batchRevealSize": "1000",
   "batchRevealStart": "0",
   "batchRevealInterval": "0",
-  "joeFeePercent": "100",
-  "joeFeeCollector": "0x0000000000000000000000000000000000000000",
   "allowlistPrice": "5000000000000000000",
   "salePrice": "10000000000000000000",
   "allowlistStartTime": "1660737600",
-  "publicSaleStartTime": "1660737900"
+  "publicSaleStartTime": "1660737900",
+  "allowlistLocalPath": "SomeAllowlistFile.csv",
+  "unrevealedURI": "ipfs://bafybeid4cydpmpnlvzfsdrfvgbd7cyl2rq3nrfrg22ue5tn7z2uhgvrsbq/0",
+  "baseURI": "ipfs://bafybeihqbeiuqb4lqpxl7abrlvgumfy5xhlcmqccgmob6ghpxul573dwhu/"
 }

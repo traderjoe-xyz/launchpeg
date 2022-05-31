@@ -20,6 +20,9 @@ tmp
 deployments/localhost
 
 tasks/config/*
+!tasks/config/playground-deployments/
 !tasks/config/example.json
 !tasks/config/flat-example.json
 !tasks/config/factory-example.json
+
+*.csv

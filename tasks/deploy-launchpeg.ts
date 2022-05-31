@@ -11,7 +11,7 @@ task('deploy-launchpeg', 'Deploy Launchpeg contract')
 
     const ethers = hre.ethers
     const factoryAddress = (await hre.deployments.get('LaunchpegFactory')).address
-    
+
     const factory = await ethers.getContractAt('LaunchpegFactory', factoryAddress)
 
     const launchConfig = loadLaunchConfig(configFilename)
@@ -52,4 +52,19 @@ task('deploy-launchpeg', 'Deploy Launchpeg contract')
     )
 
     await initTx.wait()
+
+    if (launchConfig.allowlistLocalPath) {
+      await hre.run('configure-allowlist', {
+        csvPath: launchConfig.allowlistLocalPath,
+        contractAddress: launchpeg.address,
+      })
+    }
+
+    if (launchConfig.unrevealedURI && launchConfig.baseURI) {
+      await hre.run('set-uris', {
+        contractAddress: launchpeg.address,
+        unrevealedURI: launchConfig.unrevealedURI,
+        baseURI: launchConfig.baseURI,
+      })
+    }
   })

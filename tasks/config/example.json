@@ -21,6 +21,7 @@
   "publicSaleDiscountPercent": "2000",
   "revealStartTime": "1650189742",
   "revealInterval": "300",
-  "joeFeePercent": "100",
-  "joeFeeCollector": "0x0000000000000000000000000000000000000000"
+  "allowlistLocalPath": "SomeAllowlistFile.csv",
+  "unrevealedURI": "ipfs://bafybeid4cydpmpnlvzfsdrfvgbd7cyl2rq3nrfrg22ue5tn7z2uhgvrsbq/0",
+  "baseURI": "ipfs://bafybeihqbeiuqb4lqpxl7abrlvgumfy5xhlcmqccgmob6ghpxul573dwhu/"
 }

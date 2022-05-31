@@ -47,4 +47,21 @@ task('deploy-flatlaunchpeg', 'Deploy FlatLaunchpeg contract')
     )
 
     await initTx.wait()
+
+    console.log('-- Phases initialized --')
+
+    if (launchConfig.allowlistLocalPath) {
+      await hre.run('configure-allowlist', {
+        csvPath: launchConfig.allowlistLocalPath,
+        contractAddress: launchpeg.address,
+      })
+    }
+
+    if (launchConfig.unrevealedURI && launchConfig.baseURI) {
+      await hre.run('set-uris', {
+        contractAddress: launchpeg.address,
+        unrevealedURI: launchConfig.unrevealedURI,
+        baseURI: launchConfig.baseURI,
+      })
+    }
   })
