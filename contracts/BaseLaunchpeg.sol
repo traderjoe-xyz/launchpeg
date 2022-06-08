@@ -349,6 +349,19 @@ abstract contract BaseLaunchpeg is
         _forceReveal();
     }
 
+    function initializeVRF(
+        address _vrfCoordinator,
+        bytes32 _keyHash,
+        uint64 _s_subscriptionId,
+        uint32 _callbackGasLimit
+    ) external onlyOwner {
+        useVRF = true;
+        initializeVRFConsumer(_vrfCoordinator);
+        keyHash = _keyHash;
+        s_subscriptionId = _s_subscriptionId;
+        callbackGasLimit = _callbackGasLimit;
+    }
+
     /// @notice Tells you if a batch can be revealed
     /// @return bool Whether reveal can be triggered or not
     /// @return uint256 The number of the next batch that will be revealed

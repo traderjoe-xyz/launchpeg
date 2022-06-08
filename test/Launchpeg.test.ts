@@ -7,7 +7,9 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
 describe('Launchpeg', () => {
   let launchpegCF: ContractFactory
+  let coordinatorMockCF: ContractFactory
   let launchpeg: Contract
+  let coordinatorMock: Contract
 
   let config: LaunchpegConfig
 
@@ -20,6 +22,7 @@ describe('Launchpeg', () => {
 
   before(async () => {
     launchpegCF = await ethers.getContractFactory('Launchpeg')
+    coordinatorMockCF = await ethers.getContractFactory('CoordinatorMock')
 
     signers = await ethers.getSigners()
     dev = signers[0]
@@ -32,15 +35,19 @@ describe('Launchpeg', () => {
       method: 'hardhat_reset',
       params: [
         {
-          forking: {
-            jsonRpcUrl: (hardhatConfig as any).networks.avalanche.url,
-          },
+          // forking: {
+          //   jsonRpcUrl: (hardhatConfig as any).networks.avalanche.url,
+          // },
           live: false,
           saveDeployments: true,
           tags: ['test', 'local'],
         },
       ],
     })
+
+    coordinatorMock = await coordinatorMockCF.deploy(1, 1)
+    await coordinatorMock.createSubscription()
+    await coordinatorMock.fundSubscription(1, 100_000)
   })
 
   const deployLaunchpeg = async () => {
@@ -59,6 +66,15 @@ describe('Launchpeg', () => {
       config.batchRevealSize,
       config.batchRevealStart,
       config.batchRevealInterval
+    )
+  }
+
+  const initializeVRF = async () => {
+    await launchpeg.initializeVRF(
+      coordinatorMock.address,
+      '0x354d2f95da55398f44b7cff77da56283d9c6c829a4bdf1bbcaf2ad6a4d081f61',
+      1,
+      200_000
     )
   }
 
@@ -738,6 +754,34 @@ describe('Launchpeg', () => {
       // Batch 1 is revealed
       expect(await launchpeg.tokenURI(0)).to.contains(config.baseTokenURI)
       expect(await launchpeg.tokenURI(config.batchRevealSize)).to.be.equal(config.unrevealedTokenURI)
+    })
+  })
+
+  describe.only('VRF', () => {
+    it('Should initialize properly', async () => {
+      await initializeVRF()
+    })
+
+    it('Should draw', async () => {
+      config.collectionSize = 50
+      config.amountForDevs = 50
+      config.amountForAuction = 0
+      config.amountForAllowlist = 0
+      config.batchRevealSize = 10
+      config.batchRevealStart = BigNumber.from(0)
+      config.batchRevealInterval = BigNumber.from(0)
+      await deployLaunchpeg()
+      await initializePhasesLaunchpeg(launchpeg, config, Phase.DutchAuction)
+      await initializeVRF()
+      await launchpeg.setBaseURI('base/')
+      await launchpeg.setUnrevealedURI('unrevealed')
+
+      await launchpeg.connect(projectOwner).devMint(config.batchRevealSize)
+      await launchpeg.revealNextBatch()
+      expect(await launchpeg.tokenURI(3)).to.eq('unrevealed')
+      await coordinatorMock.fulfillRandomWords(1, launchpeg.address)
+      expect(await launchpeg.tokenURI(3)).to.contains('base')
+      expect(await launchpeg.tokenURI(3 + config.batchRevealSize)).to.eq('unrevealed')
     })
   })
 
