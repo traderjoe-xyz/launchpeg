@@ -35,19 +35,12 @@ describe('Launchpeg', () => {
       method: 'hardhat_reset',
       params: [
         {
-          // forking: {
-          //   jsonRpcUrl: (hardhatConfig as any).networks.avalanche.url,
-          // },
           live: false,
           saveDeployments: true,
           tags: ['test', 'local'],
         },
       ],
     })
-
-    coordinatorMock = await coordinatorMockCF.deploy(1, 1)
-    await coordinatorMock.createSubscription()
-    await coordinatorMock.fundSubscription(1, 100_000)
   })
 
   const deployLaunchpeg = async () => {
@@ -757,12 +750,12 @@ describe('Launchpeg', () => {
     })
   })
 
-  describe.only('VRF', () => {
-    it('Should initialize properly', async () => {
-      await initializeVRF()
-    })
+  describe('VRF', () => {
+    beforeEach(async () => {
+      coordinatorMock = await coordinatorMockCF.deploy(1, 1)
+      await coordinatorMock.createSubscription()
+      await coordinatorMock.fundSubscription(1, 1_000_000)
 
-    it('Should draw', async () => {
       config.collectionSize = 50
       config.amountForDevs = 50
       config.amountForAuction = 0
@@ -775,13 +768,46 @@ describe('Launchpeg', () => {
       await initializeVRF()
       await launchpeg.setBaseURI('base/')
       await launchpeg.setUnrevealedURI('unrevealed')
+    })
+
+    it('Should draw correctly', async () => {
+      await launchpeg.connect(projectOwner).devMint(config.batchRevealSize)
+      await launchpeg.revealNextBatch()
+      // URIs are not revealed before Chainlink's coordinator response
+      expect(await launchpeg.tokenURI(3)).to.eq('unrevealed')
+
+      await coordinatorMock.fulfillRandomWords(1, launchpeg.address)
+      const token3URI = await launchpeg.tokenURI(3)
+      expect(token3URI).to.contains('base')
+      expect(await launchpeg.tokenURI(3 + config.batchRevealSize)).to.eq('unrevealed')
 
       await launchpeg.connect(projectOwner).devMint(config.batchRevealSize)
       await launchpeg.revealNextBatch()
+      await coordinatorMock.fulfillRandomWords(2, launchpeg.address)
+      expect(await launchpeg.tokenURI(3)).to.eq(token3URI)
+      expect(await launchpeg.tokenURI(3 + config.batchRevealSize)).to.contains('base')
+      expect(await launchpeg.tokenURI(3 + 2 * config.batchRevealSize)).to.eq('unrevealed')
+    })
+
+    it('Should be able to force reveal if VRF fails', async () => {
+      await launchpeg.connect(projectOwner).devMint(config.batchRevealSize)
+      await launchpeg.revealNextBatch()
       expect(await launchpeg.tokenURI(3)).to.eq('unrevealed')
-      await coordinatorMock.fulfillRandomWords(1, launchpeg.address)
+
+      await launchpeg.connect(projectOwner).forceReveal()
       expect(await launchpeg.tokenURI(3)).to.contains('base')
       expect(await launchpeg.tokenURI(3 + config.batchRevealSize)).to.eq('unrevealed')
+
+      // Coordinator's response coming too late
+      await coordinatorMock.fulfillRandomWords(1, launchpeg.address)
+      // Doesn't reveal anything
+      expect(await launchpeg.tokenURI(3 + config.batchRevealSize)).to.eq('unrevealed')
+    })
+
+    it('Should not be able to spam VRF requests', async () => {
+      await launchpeg.connect(projectOwner).devMint(config.batchRevealSize)
+      await launchpeg.revealNextBatch()
+      await expect(launchpeg.revealNextBatch()).to.be.revertedWith('Launchpeg__RevealNextBatchNotAvailable')
     })
   })
 

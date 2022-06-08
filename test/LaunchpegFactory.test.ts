@@ -37,9 +37,6 @@ describe('LaunchpegFactory', () => {
       method: 'hardhat_reset',
       params: [
         {
-          forking: {
-            jsonRpcUrl: (hardhatConfig as any).networks.avalanche.url,
-          },
           live: false,
           saveDeployments: true,
           tags: ['test', 'local'],
