@@ -3,7 +3,7 @@
 // Forked from chainlink/contracts/src/v0.8/mocks/VRFCoordinatorV2Mock.sol
 pragma solidity ^0.8.4;
 
-import "./VRFConsumerBaseV2Upgradable.sol";
+import "./VRFConsumerBaseV2Upgradeable.sol";
 
 contract VRFCoordinatorV2Mock {
     uint96 public immutable BASE_FEE;
@@ -87,7 +87,7 @@ contract VRFCoordinatorV2Mock {
             words[i] = uint256(keccak256(abi.encode(_requestId, i)));
         }
 
-        VRFConsumerBaseV2Upgradable v;
+        VRFConsumerBaseV2Upgradeable v;
         bytes memory callReq = abi.encodeWithSelector(
             v.rawFulfillRandomWords.selector,
             _requestId,

@@ -115,6 +115,18 @@ abstract contract BaseLaunchpeg is
     /// @param feePercent Royalty fee percent in basis point
     event DefaultRoyaltySet(address indexed receiver, uint256 feePercent);
 
+    /// @dev emitted on initializeVRF()
+    /// @param _vrfCoordinator Chainlink coordinator address
+    /// @param _keyHash Keyhash of the gas lane wanted
+    /// @param _subscriptionId Chainlink subscription ID
+    /// @param _callbackGasLimit Max gas used by the coordinator callback
+    event VRFInitialized(
+        address _vrfCoordinator,
+        bytes32 _keyHash,
+        uint64 _subscriptionId,
+        uint32 _callbackGasLimit
+    );
+
     modifier isEOA() {
         if (tx.origin != msg.sender) {
             revert Launchpeg__Unauthorized();
@@ -286,6 +298,31 @@ abstract contract BaseLaunchpeg is
         emit ProjectOwnerUpdated(projectOwner);
     }
 
+    /// @notice Itinialize VRF
+    /// @param _vrfCoordinator Chainlink coordinator address
+    /// @param _keyHash Keyhash of the gas lane wanted
+    /// @param _subscriptionId Chainlink subscription ID
+    /// @param _callbackGasLimit Max gas used by the coordinator callback
+    function initializeVRF(
+        address _vrfCoordinator,
+        bytes32 _keyHash,
+        uint64 _subscriptionId,
+        uint32 _callbackGasLimit
+    ) external onlyOwner {
+        useVRF = true;
+        initializeVRFConsumer(_vrfCoordinator);
+        keyHash = _keyHash;
+        subscriptionId = _subscriptionId;
+        callbackGasLimit = _callbackGasLimit;
+
+        emit VRFInitialized(
+            _vrfCoordinator,
+            _keyHash,
+            _subscriptionId,
+            _callbackGasLimit
+        );
+    }
+
     /// @notice Mint NFTs to the project owner
     /// @dev Can only mint up to `amountForDevs`
     /// @param _quantity Quantity of NFTs to mint
@@ -347,24 +384,6 @@ abstract contract BaseLaunchpeg is
     /// @notice Allows ProjectOwner to reveal batches even if the conditions are not met
     function forceReveal() external override onlyProjectOwner {
         _forceReveal();
-    }
-
-    /// @notice Itinialize VRF
-    /// @param _vrfCoordinator Chainlink coordinator address
-    /// @param _keyHash Keyhash of the gas lane wanted
-    /// @param _subscriptionId Chainlink subscription ID
-    /// @param _callbackGasLimit Mas gas used by the coordinator callback
-    function initializeVRF(
-        address _vrfCoordinator,
-        bytes32 _keyHash,
-        uint64 _subscriptionId,
-        uint32 _callbackGasLimit
-    ) external onlyOwner {
-        useVRF = true;
-        initializeVRFConsumer(_vrfCoordinator);
-        keyHash = _keyHash;
-        subscriptionId = _subscriptionId;
-        callbackGasLimit = _callbackGasLimit;
     }
 
     /// @notice Tells you if a batch can be revealed

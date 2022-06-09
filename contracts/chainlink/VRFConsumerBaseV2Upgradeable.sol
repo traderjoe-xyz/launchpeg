@@ -98,7 +98,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 /// @dev and so remains effective only in the case of unmodified oracle software).
 ///
 
-abstract contract VRFConsumerBaseV2Upgradable is Initializable {
+abstract contract VRFConsumerBaseV2Upgradeable is Initializable {
     error OnlyCoordinatorCanFulfill(address have, address want);
     address internal vrfCoordinator;
 

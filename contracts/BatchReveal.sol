@@ -4,7 +4,7 @@ pragma solidity ^0.8.4;
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
 
-import "./chainlink/VRFConsumerBaseV2Upgradable.sol";
+import "./chainlink/VRFConsumerBaseV2Upgradeable.sol";
 import "./interfaces/IBatchReveal.sol";
 import "./LaunchpegErrors.sol";
 
@@ -13,7 +13,7 @@ import "./LaunchpegErrors.sol";
 
 /// @title BatchReveal
 /// @notice Implements a gas efficient way of revealing NFT URIs gradually
-abstract contract BatchReveal is IBatchReveal, VRFConsumerBaseV2Upgradable {
+abstract contract BatchReveal is IBatchReveal, VRFConsumerBaseV2Upgradeable {
     /// @dev Initialized on parent contract creation
     uint256 private collectionSize;
     int128 private intCollectionSize;
