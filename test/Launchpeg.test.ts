@@ -22,7 +22,7 @@ describe('Launchpeg', () => {
 
   before(async () => {
     launchpegCF = await ethers.getContractFactory('Launchpeg')
-    coordinatorMockCF = await ethers.getContractFactory('CoordinatorMock')
+    coordinatorMockCF = await ethers.getContractFactory('VRFCoordinatorV2Mock')
 
     signers = await ethers.getSigners()
     dev = signers[0]
@@ -795,13 +795,15 @@ describe('Launchpeg', () => {
       expect(await launchpeg.tokenURI(3)).to.eq('unrevealed')
 
       await launchpeg.connect(projectOwner).forceReveal()
-      expect(await launchpeg.tokenURI(3)).to.contains('base')
+      const token3URI = await launchpeg.tokenURI(3)
+      expect(token3URI).to.contains('base')
       expect(await launchpeg.tokenURI(3 + config.batchRevealSize)).to.eq('unrevealed')
 
       // Coordinator's response coming too late
       await coordinatorMock.fulfillRandomWords(1, launchpeg.address)
       // Doesn't reveal anything
       expect(await launchpeg.tokenURI(3 + config.batchRevealSize)).to.eq('unrevealed')
+      expect(await launchpeg.tokenURI(3)).to.eq(token3URI)
     })
 
     it('Should not be able to spam VRF requests', async () => {

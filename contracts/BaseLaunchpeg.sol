@@ -349,16 +349,21 @@ abstract contract BaseLaunchpeg is
         _forceReveal();
     }
 
+    /// @notice Itinialize VRF
+    /// @param _vrfCoordinator Chainlink coordinator address
+    /// @param _keyHash Keyhash of the gas lane wanted
+    /// @param _subscriptionId Chainlink subscription ID
+    /// @param _callbackGasLimit Mas gas used by the coordinator callback
     function initializeVRF(
         address _vrfCoordinator,
         bytes32 _keyHash,
-        uint64 _s_subscriptionId,
+        uint64 _subscriptionId,
         uint32 _callbackGasLimit
     ) external onlyOwner {
         useVRF = true;
         initializeVRFConsumer(_vrfCoordinator);
         keyHash = _keyHash;
-        s_subscriptionId = _s_subscriptionId;
+        subscriptionId = _subscriptionId;
         callbackGasLimit = _callbackGasLimit;
     }
 
