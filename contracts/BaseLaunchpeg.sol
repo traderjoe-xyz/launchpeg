@@ -298,7 +298,7 @@ abstract contract BaseLaunchpeg is
         emit ProjectOwnerUpdated(projectOwner);
     }
 
-    /// @notice Itinialize VRF
+    /// @notice Initialize VRF
     /// @param _vrfCoordinator Chainlink coordinator address
     /// @param _keyHash Keyhash of the gas lane wanted
     /// @param _subscriptionId Chainlink subscription ID

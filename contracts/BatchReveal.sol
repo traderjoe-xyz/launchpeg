@@ -283,7 +283,7 @@ abstract contract BatchReveal is IBatchReveal, VRFConsumerBaseV2Upgradeable {
     }
 
     /// @dev Reveals next batch if possible
-    /// @dev If using VRF, the reveal will happen on the coordinator callback call
+    /// @dev If using VRF, the reveal happens on the coordinator callback call
     /// @param _totalSupply Number of token already minted
     /// @return isRevealed Returns false if it is not possible to reveal the next batch
     function _revealNextBatch(uint256 _totalSupply) internal returns (bool) {
@@ -315,8 +315,8 @@ abstract contract BatchReveal is IBatchReveal, VRFConsumerBaseV2Upgradeable {
 
     /// @dev Callback triggered by the VRF coordinator
     /// @dev First parameter is the requestId, not used
-    /// @param randomWords Array of random numbers provided by the VRF coordinator
-    function fulfillRandomWords(uint256, uint256[] memory randomWords)
+    /// @param _randomWords Array of random numbers provided by the VRF coordinator
+    function fulfillRandomWords(uint256, uint256[] memory _randomWords)
         internal
         override
     {
@@ -325,7 +325,7 @@ abstract contract BatchReveal is IBatchReveal, VRFConsumerBaseV2Upgradeable {
         }
         lastTokenRevealed += revealBatchSize;
         batchToSeed[nextBatchToReveal] =
-            randomWords[0] %
+            _randomWords[0] %
             (collectionSize - (nextBatchToReveal * revealBatchSize));
 
         emit Reveal(nextBatchToReveal, batchToSeed[nextBatchToReveal]);
