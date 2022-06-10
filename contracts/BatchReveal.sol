@@ -314,22 +314,24 @@ abstract contract BatchReveal is IBatchReveal, VRFConsumerBaseV2Upgradeable {
     }
 
     /// @dev Callback triggered by the VRF coordinator
-    /// @dev First parameter is the requestId, not used
     /// @param _randomWords Array of random numbers provided by the VRF coordinator
-    function fulfillRandomWords(uint256, uint256[] memory _randomWords)
-        internal
-        override
-    {
+    function fulfillRandomWords(
+        uint256, /* requestId */
+        uint256[] memory _randomWords
+    ) internal override {
         if (hasBeenForceRevealed) {
             revert Launchpeg__HasBeenForceRevealed();
         }
-        lastTokenRevealed += revealBatchSize;
-        batchToSeed[nextBatchToReveal] =
-            _randomWords[0] %
-            (collectionSize - (nextBatchToReveal * revealBatchSize));
 
-        emit Reveal(nextBatchToReveal, batchToSeed[nextBatchToReveal]);
-        nextBatchToReveal++;
+        uint256 _batchToReveal = nextBatchToReveal++;
+        uint256 _revealBatchSize = revealBatchSize;
+        uint256 _seed = _randomWords[0] %
+            (collectionSize - (_batchToReveal * _revealBatchSize));
+
+        batchToSeed[_batchToReveal] = _seed;
+        lastTokenRevealed += _revealBatchSize;
+
+        emit Reveal(_batchToReveal, batchToSeed[_batchToReveal]);
     }
 
     /// @dev Force reveal, should be restricted to owner

@@ -11,6 +11,8 @@ error Launchpeg__JoeFeeAlreadyInitialized();
 error Launchpeg__InvalidAuctionDropInterval();
 error Launchpeg__InvalidStartTime();
 error Launchpeg__InvalidBatchRevealSize();
+error Launchpeg__InvalidCallbackGasLimit();
+error Launchpeg__InvalidCoordinator();
 error Launchpeg__InvalidJoeFeeCollector();
 error Launchpeg__InvalidMaxBatchSize();
 error Launchpeg__InvalidAllowlistPrice();

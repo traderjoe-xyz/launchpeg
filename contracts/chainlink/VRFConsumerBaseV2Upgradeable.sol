@@ -104,7 +104,7 @@ abstract contract VRFConsumerBaseV2Upgradeable is Initializable {
 
     /// @notice Initializes the vrf coordinator address
     /// @param _vrfCoordinator address of VRFCoordinator contract
-    function initializeVRFConsumer(address _vrfCoordinator) internal {
+    function setVRFConsumer(address _vrfCoordinator) internal {
         vrfCoordinator = _vrfCoordinator;
     }
 

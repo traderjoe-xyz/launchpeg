@@ -62,8 +62,8 @@ describe('Launchpeg', () => {
     )
   }
 
-  const initializeVRF = async () => {
-    await launchpeg.initializeVRF(
+  const setVRF = async () => {
+    await launchpeg.setVRF(
       coordinatorMock.address,
       '0x354d2f95da55398f44b7cff77da56283d9c6c829a4bdf1bbcaf2ad6a4d081f61',
       1,
@@ -765,7 +765,7 @@ describe('Launchpeg', () => {
       config.batchRevealInterval = BigNumber.from(0)
       await deployLaunchpeg()
       await initializePhasesLaunchpeg(launchpeg, config, Phase.DutchAuction)
-      await initializeVRF()
+      await setVRF()
       await launchpeg.setBaseURI('base/')
       await launchpeg.setUnrevealedURI('unrevealed')
     })

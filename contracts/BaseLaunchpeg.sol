@@ -4,6 +4,7 @@ pragma solidity ^0.8.4;
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/common/ERC2981Upgradeable.sol";
+import "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
 
 import "erc721a-upgradeable/contracts/ERC721AUpgradeable.sol";
 
@@ -115,12 +116,12 @@ abstract contract BaseLaunchpeg is
     /// @param feePercent Royalty fee percent in basis point
     event DefaultRoyaltySet(address indexed receiver, uint256 feePercent);
 
-    /// @dev emitted on initializeVRF()
+    /// @dev emitted on setVRF()
     /// @param _vrfCoordinator Chainlink coordinator address
     /// @param _keyHash Keyhash of the gas lane wanted
     /// @param _subscriptionId Chainlink subscription ID
     /// @param _callbackGasLimit Max gas used by the coordinator callback
-    event VRFInitialized(
+    event VRFSet(
         address _vrfCoordinator,
         bytes32 _keyHash,
         uint64 _subscriptionId,
@@ -298,24 +299,36 @@ abstract contract BaseLaunchpeg is
         emit ProjectOwnerUpdated(projectOwner);
     }
 
-    /// @notice Initialize VRF
+    /// @notice Set VRF configuration
     /// @param _vrfCoordinator Chainlink coordinator address
     /// @param _keyHash Keyhash of the gas lane wanted
     /// @param _subscriptionId Chainlink subscription ID
     /// @param _callbackGasLimit Max gas used by the coordinator callback
-    function initializeVRF(
+    function setVRF(
         address _vrfCoordinator,
         bytes32 _keyHash,
         uint64 _subscriptionId,
         uint32 _callbackGasLimit
-    ) external onlyOwner {
+    ) external override onlyOwner {
+        if (_vrfCoordinator == address(0)) {
+            revert Launchpeg__InvalidCoordinator();
+        }
+
+        (, uint32 _maxGasLimit, ) = VRFCoordinatorV2Interface(_vrfCoordinator)
+            .getRequestConfig();
+
+        // 20_000 is the cost of storing one word, callback cost will never be lower than that
+        if (_callbackGasLimit > _maxGasLimit || _callbackGasLimit < 20_000) {
+            revert Launchpeg__InvalidCallbackGasLimit();
+        }
+
         useVRF = true;
-        initializeVRFConsumer(_vrfCoordinator);
+        setVRFConsumer(_vrfCoordinator);
         keyHash = _keyHash;
         subscriptionId = _subscriptionId;
         callbackGasLimit = _callbackGasLimit;
 
-        emit VRFInitialized(
+        emit VRFSet(
             _vrfCoordinator,
             _keyHash,
             _subscriptionId,
