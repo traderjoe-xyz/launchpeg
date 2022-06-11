@@ -329,6 +329,7 @@ abstract contract BaseLaunchpeg is
         for (uint256 i; i < s_provingKeyHashes.length; i++) {
             if (s_provingKeyHashes[i] == _keyHash) {
                 keyHashFound = true;
+                break;
             }
         }
 
@@ -344,6 +345,7 @@ abstract contract BaseLaunchpeg is
         for (uint256 i; i < consumers.length; i++) {
             if (consumers[i] == address(this)) {
                 isInConsumerList = true;
+                break;
             }
         }
 
