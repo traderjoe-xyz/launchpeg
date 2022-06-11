@@ -63,12 +63,7 @@ describe('Launchpeg', () => {
   }
 
   const setVRF = async () => {
-    await launchpeg.setVRF(
-      coordinatorMock.address,
-      '0x354d2f95da55398f44b7cff77da56283d9c6c829a4bdf1bbcaf2ad6a4d081f61',
-      1,
-      200_000
-    )
+    await launchpeg.setVRF(coordinatorMock.address, ethers.utils.formatBytes32String('Oxff'), 1, 200_000)
   }
 
   beforeEach(async () => {
@@ -755,6 +750,7 @@ describe('Launchpeg', () => {
       coordinatorMock = await coordinatorMockCF.deploy(1, 1)
       await coordinatorMock.createSubscription()
       await coordinatorMock.fundSubscription(1, 1_000_000)
+      await coordinatorMock.addKeyHash(ethers.utils.formatBytes32String('Oxff'))
 
       config.collectionSize = 50
       config.amountForDevs = 50
@@ -765,9 +761,29 @@ describe('Launchpeg', () => {
       config.batchRevealInterval = BigNumber.from(0)
       await deployLaunchpeg()
       await initializePhasesLaunchpeg(launchpeg, config, Phase.DutchAuction)
+      await coordinatorMock.addConsumer(0, launchpeg.address)
       await setVRF()
       await launchpeg.setBaseURI('base/')
       await launchpeg.setUnrevealedURI('unrevealed')
+    })
+
+    it('Initialisation checks', async () => {
+      await expect(
+        launchpeg.setVRF(ethers.constants.AddressZero, ethers.utils.formatBytes32String('Oxff'), 1, 200_000)
+      ).to.be.revertedWith('Launchpeg__InvalidCoordinator')
+
+      await expect(
+        launchpeg.setVRF(coordinatorMock.address, ethers.utils.formatBytes32String('Oxff'), 1, 0)
+      ).to.be.revertedWith('Launchpeg__InvalidCallbackGasLimit')
+
+      await expect(
+        launchpeg.setVRF(coordinatorMock.address, ethers.utils.formatBytes32String('Ox00'), 1, 200_000)
+      ).to.be.revertedWith('Launchpeg__InvalidKeyHash')
+
+      await coordinatorMock.removeConsumer(0, ethers.constants.AddressZero)
+      await expect(
+        launchpeg.setVRF(coordinatorMock.address, ethers.utils.formatBytes32String('Oxff'), 1, 200_000)
+      ).to.be.revertedWith('Launchpeg__IsNotInTheConsumerList')
     })
 
     it('Should draw correctly', async () => {

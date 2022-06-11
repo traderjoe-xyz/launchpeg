@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-
 /// ------------------------------------------------------------------------------
 /// @notice Interface for contracts using VRF randomness
 ///   Forked from chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol
@@ -98,7 +96,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 /// @dev and so remains effective only in the case of unmodified oracle software).
 ///
 
-abstract contract VRFConsumerBaseV2Upgradeable is Initializable {
+abstract contract VRFConsumerBaseV2Upgradeable {
     error OnlyCoordinatorCanFulfill(address have, address want);
     address internal vrfCoordinator;
 

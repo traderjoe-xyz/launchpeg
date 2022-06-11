@@ -314,12 +314,41 @@ abstract contract BaseLaunchpeg is
             revert Launchpeg__InvalidCoordinator();
         }
 
-        (, uint32 _maxGasLimit, ) = VRFCoordinatorV2Interface(_vrfCoordinator)
-            .getRequestConfig();
+        (
+            ,
+            uint32 _maxGasLimit,
+            bytes32[] memory s_provingKeyHashes
+        ) = VRFCoordinatorV2Interface(_vrfCoordinator).getRequestConfig();
 
         // 20_000 is the cost of storing one word, callback cost will never be lower than that
         if (_callbackGasLimit > _maxGasLimit || _callbackGasLimit < 20_000) {
             revert Launchpeg__InvalidCallbackGasLimit();
+        }
+
+        bool keyHashFound;
+        for (uint256 i; i < s_provingKeyHashes.length; i++) {
+            if (s_provingKeyHashes[i] == _keyHash) {
+                keyHashFound = true;
+            }
+        }
+
+        if (!keyHashFound) {
+            revert Launchpeg__InvalidKeyHash();
+        }
+
+        (, , , address[] memory consumers) = VRFCoordinatorV2Interface(
+            _vrfCoordinator
+        ).getSubscription(_subscriptionId);
+
+        bool isInConsumerList;
+        for (uint256 i; i < consumers.length; i++) {
+            if (consumers[i] == address(this)) {
+                isInConsumerList = true;
+            }
+        }
+
+        if (!isInConsumerList) {
+            revert Launchpeg__IsNotInTheConsumerList();
         }
 
         useVRF = true;

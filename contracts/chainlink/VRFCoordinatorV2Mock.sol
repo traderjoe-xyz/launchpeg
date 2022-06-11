@@ -9,6 +9,9 @@ contract VRFCoordinatorV2Mock {
     uint96 public immutable BASE_FEE;
     uint96 public immutable GAS_PRICE_LINK;
 
+    bytes32[] public keyHashList;
+    address[] public consumers;
+
     error InvalidSubscription();
     error InsufficientBalance();
     error MustBeSubOwner(address owner);
@@ -171,7 +174,7 @@ contract VRFCoordinatorV2Mock {
             uint96 balance,
             uint64 reqCount,
             address owner,
-            address[] memory consumers
+            address[] memory consumersList
         )
     {
         if (s_subscriptions[_subId].owner == address(0)) {
@@ -181,7 +184,7 @@ contract VRFCoordinatorV2Mock {
             s_subscriptions[_subId].balance,
             0,
             s_subscriptions[_subId].owner,
-            new address[](0)
+            consumers
         );
     }
 
@@ -206,26 +209,29 @@ contract VRFCoordinatorV2Mock {
 
     function getRequestConfig()
         external
-        pure
+        view
         returns (
             uint16,
             uint32,
             bytes32[] memory
         )
     {
-        return (3, 2000000, new bytes32[](0));
+        return (3, 2000000, keyHashList);
     }
 
-    function addConsumer(uint64 _subId, address _consumer) external pure {
-        _subId;
-        _consumer;
-        revert("not implemented");
+    function addKeyHash(bytes32 _newKeyHash) external {
+        keyHashList.push(_newKeyHash);
     }
 
-    function removeConsumer(uint64 _subId, address _consumer) external pure {
+    function addConsumer(uint64 _subId, address _consumer) external {
+        _subId;
+        consumers.push(_consumer);
+    }
+
+    function removeConsumer(uint64 _subId, address _consumer) external {
         _subId;
         _consumer;
-        revert("not implemented");
+        consumers.pop();
     }
 
     function requestSubscriptionOwnerTransfer(uint64 _subId, address _newOwner)

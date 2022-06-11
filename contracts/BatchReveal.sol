@@ -13,7 +13,11 @@ import "./LaunchpegErrors.sol";
 
 /// @title BatchReveal
 /// @notice Implements a gas efficient way of revealing NFT URIs gradually
-abstract contract BatchReveal is IBatchReveal, VRFConsumerBaseV2Upgradeable {
+abstract contract BatchReveal is
+    IBatchReveal,
+    VRFConsumerBaseV2Upgradeable,
+    Initializable
+{
     /// @dev Initialized on parent contract creation
     uint256 private collectionSize;
     int128 private intCollectionSize;
@@ -58,7 +62,7 @@ abstract contract BatchReveal is IBatchReveal, VRFConsumerBaseV2Upgradeable {
     /// function.
     uint32 public override callbackGasLimit;
 
-    /// @notice Number of block confirmations that will the coordinator wait before triggering the callback
+    /// @notice Number of block confirmations that the coordinator will wait before triggering the callback
     /// The default is 3
     uint16 public constant override requestConfirmations = 3;
 
