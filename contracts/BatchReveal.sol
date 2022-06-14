@@ -2,7 +2,9 @@
 pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
 
+import "./chainlink/VRFConsumerBaseV2Upgradeable.sol";
 import "./interfaces/IBatchReveal.sol";
 import "./LaunchpegErrors.sol";
 
@@ -11,7 +13,11 @@ import "./LaunchpegErrors.sol";
 
 /// @title BatchReveal
 /// @notice Implements a gas efficient way of revealing NFT URIs gradually
-abstract contract BatchReveal is IBatchReveal, Initializable {
+abstract contract BatchReveal is
+    IBatchReveal,
+    VRFConsumerBaseV2Upgradeable,
+    Initializable
+{
     /// @dev Initialized on parent contract creation
     uint256 private collectionSize;
     int128 private intCollectionSize;
@@ -36,6 +42,41 @@ abstract contract BatchReveal is IBatchReveal, Initializable {
     /// @notice Time interval for gradual reveal
     /// @dev Can be set to zero in order to reveal the collection all at once
     uint256 public override revealInterval;
+
+    /// @notice Contract uses VRF or pseudo-randomness
+    bool public override useVRF;
+
+    /// @notice Chainlink subscription ID
+    uint64 public override subscriptionId;
+
+    /// @notice The gas lane to use, which specifies the maximum gas price to bump to.
+    /// For a list of available gas lanes on each network,
+    /// see https://docs.chain.link/docs/vrf-contracts/#configurations
+    bytes32 public override keyHash;
+
+    /// @notice Depends on the number of requested values that you want sent to the
+    /// fulfillRandomWords() function. Storing each word costs about 20,000 gas,
+    /// so 100,000 is a safe default for this example contract. Test and adjust
+    /// this limit based on the network that you select, the size of the request,
+    /// and the processing of the callback request in the fulfillRandomWords()
+    /// function.
+    uint32 public override callbackGasLimit;
+
+    /// @notice Number of block confirmations that the coordinator will wait before triggering the callback
+    /// The default is 3
+    uint16 public constant override requestConfirmations = 3;
+
+    /// @notice Next batch that will be revealed by VRF, if activated
+    uint256 public override nextBatchToReveal;
+
+    /// @notice Has a batch been force revealed
+    /// @dev VRF will not be used anymore if a batch has been force revealed
+    bool public override hasBeenForceRevealed;
+
+    /// @notice Has the random number for a batch already been asked
+    /// @dev Prevents people from spamming the random words request
+    /// and therefore reveal more batches than expected
+    mapping(uint256 => bool) public override vrfRequestedForBatch;
 
     struct Range {
         int128 start;
@@ -233,9 +274,11 @@ abstract contract BatchReveal is IBatchReveal, Initializable {
             batchNumber = lastTokenRevealed / revealBatchSize;
         }
 
+        // We don't want to reveal other batches if a VRF random words request is pending
         if (
             block.timestamp < revealStartTime + batchNumber * revealInterval ||
-            _totalSupply < lastTokenRevealed + revealBatchSize
+            _totalSupply < lastTokenRevealed + revealBatchSize ||
+            vrfRequestedForBatch[batchNumber]
         ) {
             return (false, batchNumber);
         }
@@ -244,6 +287,7 @@ abstract contract BatchReveal is IBatchReveal, Initializable {
     }
 
     /// @dev Reveals next batch if possible
+    /// @dev If using VRF, the reveal happens on the coordinator callback call
     /// @param _totalSupply Number of token already minted
     /// @return isRevealed Returns false if it is not possible to reveal the next batch
     function _revealNextBatch(uint256 _totalSupply) internal returns (bool) {
@@ -255,11 +299,43 @@ abstract contract BatchReveal is IBatchReveal, Initializable {
             return false;
         }
 
-        lastTokenRevealed += revealBatchSize;
-        _setBatchSeed(batchNumber);
+        if (useVRF) {
+            VRFCoordinatorV2Interface(vrfCoordinator).requestRandomWords(
+                keyHash,
+                subscriptionId,
+                requestConfirmations,
+                callbackGasLimit,
+                1
+            );
+            vrfRequestedForBatch[batchNumber] = true;
+        } else {
+            lastTokenRevealed += revealBatchSize;
+            _setBatchSeed(batchNumber);
+            emit Reveal(batchNumber, batchToSeed[batchNumber]);
+        }
 
-        emit Reveal(batchNumber, batchToSeed[batchNumber]);
         return true;
+    }
+
+    /// @dev Callback triggered by the VRF coordinator
+    /// @param _randomWords Array of random numbers provided by the VRF coordinator
+    function fulfillRandomWords(
+        uint256, /* requestId */
+        uint256[] memory _randomWords
+    ) internal override {
+        if (hasBeenForceRevealed) {
+            revert Launchpeg__HasBeenForceRevealed();
+        }
+
+        uint256 _batchToReveal = nextBatchToReveal++;
+        uint256 _revealBatchSize = revealBatchSize;
+        uint256 _seed = _randomWords[0] %
+            (collectionSize - (_batchToReveal * _revealBatchSize));
+
+        batchToSeed[_batchToReveal] = _seed;
+        lastTokenRevealed += _revealBatchSize;
+
+        emit Reveal(_batchToReveal, batchToSeed[_batchToReveal]);
     }
 
     /// @dev Force reveal, should be restricted to owner
@@ -271,6 +347,7 @@ abstract contract BatchReveal is IBatchReveal, Initializable {
         }
 
         _setBatchSeed(batchNumber);
+        hasBeenForceRevealed = true;
         emit Reveal(batchNumber, batchToSeed[batchNumber]);
     }
 }

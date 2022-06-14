@@ -65,6 +65,13 @@ interface IBaseLaunchpeg is IERC721Upgradeable, IERC721MetadataUpgradeable {
 
     function setProjectOwner(address _projectOwner) external;
 
+    function setVRF(
+        address _vrfCoordinator,
+        bytes32 _keyHash,
+        uint64 _subscriptionId,
+        uint32 _callbackGasLimit
+    ) external;
+
     function devMint(uint256 quantity) external;
 
     function withdrawAVAX(address to) external;
