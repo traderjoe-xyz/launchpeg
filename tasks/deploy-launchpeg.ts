@@ -67,4 +67,13 @@ task('deploy-launchpeg', 'Deploy Launchpeg contract')
         baseURI: launchConfig.baseURI,
       })
     }
+
+    if (launchConfig.keyHash && launchConfig.subscriptionId && launchConfig.maxGasLimit) {
+      await hre.run('set-VRF', {
+        contractAddress: launchpeg.address,
+        keyHash: launchConfig.keyHash,
+        subscriptionId: launchConfig.subscriptionId,
+        maxGasLimit: launchConfig.maxGasLimit,
+      })
+    }
   })
