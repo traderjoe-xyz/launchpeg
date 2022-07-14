@@ -129,13 +129,13 @@ contract LaunchpegLens {
 
     /// @notice Fetch Launchpeg data
     /// @param _type Type of Launchpeg to consider
-    /// @param _offset Index to start at when looking up Launchpegs
-    /// @param _limit Maximum number of Launchpegs datas to return
+    /// @param _number Number of Launchpeg to fetch
+    /// @param _limit Last Launchpeg index to fetch
     /// @param _user Address to consider for NFT balances and allowlist allocations
     /// @return LensDataList List of contracts datas
     function getAllLaunchpegsFromType(
         uint8 _type,
-        uint256 _offset,
+        uint256 _number,
         uint256 _limit,
         address _user
     ) external view returns (LensData[] memory) {
@@ -143,19 +143,17 @@ contract LaunchpegLens {
         uint256 numLaunchpegs = ILaunchpegFactory(launchpegFactory)
             .numLaunchpegs(_type);
 
-        if (_offset >= numLaunchpegs || _limit == 0) {
-            return LensDatas;
-        }
+        uint256 end = _limit > numLaunchpegs ? numLaunchpegs : _limit;
+        uint256 start = _number > end ? 0 : end - _number;
 
-        uint256 end = _offset + _limit > numLaunchpegs
-            ? numLaunchpegs
-            : _offset + _limit;
-
-        LensDatas = new LensData[](end - _offset);
+        LensDatas = new LensData[](end - start);
 
         for (uint256 i = 0; i < LensDatas.length; i++) {
             LensDatas[i] = getLaunchpegData(
-                ILaunchpegFactory(launchpegFactory).allLaunchpegs(_type, i),
+                ILaunchpegFactory(launchpegFactory).allLaunchpegs(
+                    _type,
+                    end - 1 - i
+                ),
                 _user
             );
         }
