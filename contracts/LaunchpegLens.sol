@@ -132,7 +132,7 @@ contract LaunchpegLens {
     /// @param _number Number of Launchpeg to fetch
     /// @param _limit Last Launchpeg index to fetch
     /// @param _user Address to consider for NFT balances and allowlist allocations
-    /// @return LensDataList List of contracts datas
+    /// @return LensDataList List of contracts datas, in descending order
     function getAllLaunchpegsFromType(
         uint8 _type,
         uint256 _number,
