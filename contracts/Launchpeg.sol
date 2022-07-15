@@ -164,9 +164,6 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
         uint256 _publicSaleStartTime,
         uint256 _publicSaleDiscountPercent
     ) external override onlyOwner atPhase(Phase.NotStarted) {
-        if (auctionSaleStartTime != 0) {
-            revert Launchpeg__PhasesAlreadyInitialized();
-        }
         if (_auctionSaleStartTime < block.timestamp) {
             revert Launchpeg__InvalidStartTime();
         }
@@ -176,7 +173,7 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
         if (_allowlistStartTime <= _auctionSaleStartTime) {
             revert Launchpeg__AllowlistBeforeAuction();
         }
-        if (_publicSaleStartTime <= _allowlistStartTime) {
+        if (_publicSaleStartTime < _allowlistStartTime) {
             revert Launchpeg__PublicSaleBeforeAllowlist();
         }
         if (
@@ -299,6 +296,7 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
         external
         payable
         override
+        isEOA
         atPhase(Phase.PublicSale)
     {
         if (

@@ -63,11 +63,12 @@ describe('FlatLaunchpeg', () => {
   })
 
   describe('Initialization', () => {
-    it('Phases can be initialized only once', async () => {
+    it('Phases can be updated', async () => {
       await initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.NotStarted)
-      await expect(initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.Allowlist)).to.be.revertedWith(
-        'Launchpeg__PhasesAlreadyInitialized()'
-      )
+
+      config.allowlistStartTime = config.allowlistStartTime.add(120)
+      await initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.NotStarted)
+      expect(await flatLaunchpeg.allowlistStartTime()).to.be.eq(config.allowlistStartTime)
     })
 
     it('Sale dates should be correct', async () => {

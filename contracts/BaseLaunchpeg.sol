@@ -425,8 +425,8 @@ abstract contract BaseLaunchpeg is
         }
     }
 
-    /// @notice Allows ProjectOwner to reveal batches even if the conditions are not met
-    function forceReveal() external override onlyProjectOwner {
+    /// @notice Allows Owner to reveal batches even if the conditions are not met
+    function forceReveal() external override onlyOwner {
         _forceReveal();
     }
 

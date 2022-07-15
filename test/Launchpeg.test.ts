@@ -120,13 +120,13 @@ describe('Launchpeg', () => {
       )
     })
 
-    it('Phases can be initialized only once', async () => {
+    it('Phases can be updated', async () => {
       config.auctionStartTime = (await latest()).add(duration.minutes(5))
       await deployLaunchpeg()
       await initializePhasesLaunchpeg(launchpeg, config, Phase.NotStarted)
-      await expect(initializePhasesLaunchpeg(launchpeg, config, Phase.DutchAuction)).to.be.revertedWith(
-        'Launchpeg__PhasesAlreadyInitialized()'
-      )
+      config.auctionStartTime = config.auctionStartTime.add(120)
+      await initializePhasesLaunchpeg(launchpeg, config, Phase.NotStarted)
+      expect(await launchpeg.allowlistStartTime()).to.be.eq(config.allowlistStartTime)
     })
 
     it('Phases can be only be initialized by owner', async () => {
@@ -736,9 +736,9 @@ describe('Launchpeg', () => {
         'Launchpeg__RevealNextBatchNotAvailable'
       )
 
-      await expect(launchpeg.connect(bob).forceReveal()).to.be.revertedWith('Launchpeg__Unauthorized')
+      await expect(launchpeg.connect(bob).forceReveal()).to.be.revertedWith('Ownable: caller is not the owner')
 
-      await launchpeg.connect(projectOwner).forceReveal()
+      await launchpeg.connect(dev).forceReveal()
       // Batch 1 is revealed
       expect(await launchpeg.tokenURI(0)).to.contains(config.baseTokenURI)
       expect(await launchpeg.tokenURI(config.batchRevealSize)).to.be.equal(config.unrevealedTokenURI)
@@ -810,7 +810,7 @@ describe('Launchpeg', () => {
       await launchpeg.revealNextBatch()
       expect(await launchpeg.tokenURI(3)).to.eq('unrevealed')
 
-      await launchpeg.connect(projectOwner).forceReveal()
+      await launchpeg.connect(dev).forceReveal()
       const token3URI = await launchpeg.tokenURI(3)
       expect(token3URI).to.contains('base')
       expect(await launchpeg.tokenURI(3 + config.batchRevealSize)).to.eq('unrevealed')

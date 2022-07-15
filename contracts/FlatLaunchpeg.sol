@@ -104,13 +104,10 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
         uint256 _allowlistPrice,
         uint256 _salePrice
     ) external override onlyOwner atPhase(Phase.NotStarted) {
-        if (allowlistStartTime != 0) {
-            revert Launchpeg__PhasesAlreadyInitialized();
-        }
         if (_allowlistStartTime < block.timestamp) {
             revert Launchpeg__InvalidStartTime();
         }
-        if (_publicSaleStartTime <= _allowlistStartTime) {
+        if (_publicSaleStartTime < _allowlistStartTime) {
             revert Launchpeg__PublicSaleBeforeAllowlist();
         }
         if (_allowlistPrice > _salePrice) {
@@ -168,6 +165,7 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
         external
         payable
         override
+        isEOA
         atPhase(Phase.PublicSale)
     {
         if (numberMinted(msg.sender) + _quantity > maxPerAddressDuringMint) {
