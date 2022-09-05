@@ -377,13 +377,14 @@ abstract contract BaseLaunchpeg is
         if (amountMintedByDevs + _quantity > amountForDevs) {
             revert Launchpeg__MaxSupplyForDevReached();
         }
-        if (_quantity % maxBatchSize != 0) {
-            revert Launchpeg__CanOnlyMintMultipleOfMaxBatchSize();
-        }
         amountMintedByDevs = amountMintedByDevs + _quantity;
         uint256 numChunks = _quantity / maxBatchSize;
         for (uint256 i; i < numChunks; i++) {
             _mint(msg.sender, maxBatchSize, "", false);
+        }
+        uint256 remainingQty = _quantity % maxBatchSize;
+        if (remainingQty != 0) {
+            _mint(msg.sender, remainingQty, "", false);
         }
         emit DevMint(msg.sender, _quantity);
     }

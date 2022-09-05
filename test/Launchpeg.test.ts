@@ -499,10 +499,9 @@ describe('Launchpeg', () => {
 
   describe('Project owner mint', () => {
     it('Mint up to max limit', async () => {
-      await expect(launchpeg.connect(projectOwner).devMint(config.amountForDevs - 1)).to.be.revertedWith(
-        'Launchpeg__CanOnlyMintMultipleOfMaxBatchSize()'
-      )
-      await launchpeg.connect(projectOwner).devMint(config.amountForDevs)
+      // mint amount that is not a multiple of max batch size
+      await launchpeg.connect(projectOwner).devMint(config.amountForDevs - 1)
+      await launchpeg.connect(projectOwner).devMint(1)
       await expect(launchpeg.connect(projectOwner).devMint(1)).to.be.revertedWith('Launchpeg__MaxSupplyForDevReached()')
       expect(await launchpeg.balanceOf(projectOwner.address)).to.eq(config.amountForDevs)
     })
