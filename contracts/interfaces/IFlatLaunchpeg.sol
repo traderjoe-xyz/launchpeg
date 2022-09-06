@@ -33,6 +33,7 @@ interface IFlatLaunchpeg is IBaseLaunchpeg {
     function initializePhases(
         uint256 _allowlistStartTime,
         uint256 _publicSaleStartTime,
+        uint256 _publicSaleEndTime,
         uint256 _allowlistPrice,
         uint256 _salePrice
     ) external;

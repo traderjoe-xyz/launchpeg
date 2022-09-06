@@ -142,6 +142,7 @@ describe('Launchpeg', () => {
             config.allowlistStartTime,
             config.allowlistDiscount,
             config.publicSaleStartTime,
+            config.publicSaleEndTime,
             config.publicSaleDiscount
           )
       ).to.be.revertedWith('Ownable: caller is not the owner')
@@ -184,6 +185,14 @@ describe('Launchpeg', () => {
 
       await expect(initializePhasesLaunchpeg(launchpeg, config, Phase.DutchAuction)).to.be.revertedWith(
         'Launchpeg__PublicSaleBeforeAllowlist()'
+      )
+    })
+
+    it('Public sale end time must be after public sale start time', async () => {
+      config.publicSaleEndTime = config.publicSaleStartTime.sub(duration.minutes(60))
+
+      await expect(initializePhasesLaunchpeg(launchpeg, config, Phase.DutchAuction)).to.be.revertedWith(
+        'Launchpeg__PublicSaleEndBeforePublicSaleStart()'
       )
     })
 
@@ -433,6 +442,12 @@ describe('Launchpeg', () => {
 
     it('Mint reverts during allowlist phase', async () => {
       await initializePhasesLaunchpeg(launchpeg, config, Phase.Allowlist)
+
+      await expect(launchpeg.connect(alice).publicSaleMint(1)).to.be.revertedWith('Launchpeg__WrongPhase()')
+    })
+
+    it('Mint reverts when public sale has ended', async () => {
+      await initializePhasesLaunchpeg(launchpeg, config, Phase.Ended)
 
       await expect(launchpeg.connect(alice).publicSaleMint(1)).to.be.revertedWith('Launchpeg__WrongPhase()')
     })

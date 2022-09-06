@@ -28,6 +28,7 @@ error Launchpeg__AllowlistBeforeAuction();
 error Launchpeg__NotEligibleForAllowlistMint();
 error Launchpeg__NotEnoughAVAX(uint256 avaxSent);
 error Launchpeg__PublicSaleBeforeAllowlist();
+error Launchpeg__PublicSaleEndBeforePublicSaleStart();
 error Launchpeg__RevealNextBatchNotAvailable();
 error Launchpeg__TransferFailed();
 error Launchpeg__Unauthorized();

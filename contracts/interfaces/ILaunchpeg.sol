@@ -52,6 +52,7 @@ interface ILaunchpeg is IBaseLaunchpeg {
         uint256 _allowlistStartTime,
         uint256 _allowlistDiscountPercent,
         uint256 _publicSaleStartTime,
+        uint256 _publicSaleEndTime,
         uint256 _publicSaleDiscountPercent
     ) external;
 

@@ -14,7 +14,8 @@ interface IBaseLaunchpeg is IERC721Upgradeable, IERC721MetadataUpgradeable {
         NotStarted,
         DutchAuction,
         Allowlist,
-        PublicSale
+        PublicSale,
+        Ended
     }
 
     function collectionSize() external view returns (uint256);
@@ -48,6 +49,8 @@ interface IBaseLaunchpeg is IERC721Upgradeable, IERC721MetadataUpgradeable {
     function allowlistStartTime() external view returns (uint256);
 
     function publicSaleStartTime() external view returns (uint256);
+
+    function publicSaleEndTime() external view returns (uint256);
 
     function initializeJoeFee(uint256 _joeFeePercent, address _joeFeeCollector)
         external;

@@ -80,6 +80,10 @@ abstract contract BaseLaunchpeg is
     /// @dev A timestamp greater than the allowlist mint start
     uint256 public override publicSaleStartTime;
 
+    /// @notice End time of the public sale in seconds
+    /// @dev A timestamp greater than the public sale start
+    uint256 public override publicSaleEndTime;
+
     /// @dev Emitted on initializeJoeFee()
     /// @param feePercent The fees collected by Joepegs on the sale benefits
     /// @param feeCollector The address to which the fees on the sale will be sent

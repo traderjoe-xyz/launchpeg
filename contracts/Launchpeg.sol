@@ -60,6 +60,7 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
     /// @param allowlistStartTime allowlist mint start time in seconds
     /// @param allowlistDiscountPercent Discount applied to the last auction price during the allowlist mint
     /// @param publicSaleStartTime Public sale start time in seconds
+    /// @param publicSaleEndTime Public sale end time in seconds
     /// @param publicSaleDiscountPercent Discount applied to the last auction price during the public sale
     event Initialized(
         uint256 auctionSaleStartTime,
@@ -69,6 +70,7 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
         uint256 allowlistStartTime,
         uint256 allowlistDiscountPercent,
         uint256 publicSaleStartTime,
+        uint256 publicSaleEndTime,
         uint256 publicSaleDiscountPercent
     );
 
@@ -153,6 +155,7 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
     /// @param _allowlistStartTime allowlist mint start time in seconds
     /// @param _allowlistDiscountPercent Discount applied to the last auction price during the allowlist mint
     /// @param _publicSaleStartTime Public sale start time in seconds
+    /// @param _publicSaleEndTime Public sale end time in seconds
     /// @param _publicSaleDiscountPercent Discount applied to the last auction price during the public sale
     function initializePhases(
         uint256 _auctionSaleStartTime,
@@ -162,6 +165,7 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
         uint256 _allowlistStartTime,
         uint256 _allowlistDiscountPercent,
         uint256 _publicSaleStartTime,
+        uint256 _publicSaleEndTime,
         uint256 _publicSaleDiscountPercent
     ) external override onlyOwner atPhase(Phase.NotStarted) {
         if (_auctionSaleStartTime < block.timestamp) {
@@ -175,6 +179,9 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
         }
         if (_publicSaleStartTime < _allowlistStartTime) {
             revert Launchpeg__PublicSaleBeforeAllowlist();
+        }
+        if (_publicSaleEndTime < _publicSaleStartTime) {
+            revert Launchpeg__PublicSaleEndBeforePublicSaleStart();
         }
         if (
             _allowlistDiscountPercent > BASIS_POINT_PRECISION ||
@@ -207,6 +214,7 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
         allowlistDiscountPercent = _allowlistDiscountPercent;
 
         publicSaleStartTime = _publicSaleStartTime;
+        publicSaleEndTime = _publicSaleEndTime;
         publicSaleDiscountPercent = _publicSaleDiscountPercent;
 
         emit Initialized(
@@ -217,6 +225,7 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
             allowlistStartTime,
             allowlistDiscountPercent,
             publicSaleStartTime,
+            publicSaleEndTime,
             publicSaleDiscountPercent
         );
     }
@@ -381,8 +390,13 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
             block.timestamp < publicSaleStartTime
         ) {
             return Phase.Allowlist;
+        } else if (
+            block.timestamp >= publicSaleStartTime &&
+            block.timestamp < publicSaleEndTime
+        ) {
+            return Phase.PublicSale;
         }
-        return Phase.PublicSale;
+        return Phase.Ended;
     }
 
     /// @dev Returns true if this contract implements the interface defined by

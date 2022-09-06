@@ -86,6 +86,14 @@ describe('FlatLaunchpeg', () => {
       )
     })
 
+    it('Public sale end time must be after public sale start time', async () => {
+      config.publicSaleEndTime = config.publicSaleStartTime.sub(duration.minutes(20))
+
+      await expect(initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.Allowlist)).to.be.revertedWith(
+        'Launchpeg__PublicSaleEndBeforePublicSaleStart()'
+      )
+    })
+
     it('Allowlist price should be lower than Public sale', async () => {
       config.flatAllowlistSalePrice = config.flatAllowlistSalePrice.mul(10)
       await expect(initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.NotStarted)).to.be.revertedWith(
@@ -184,6 +192,12 @@ describe('FlatLaunchpeg', () => {
 
     it('Mint reverts during allowlist phase', async () => {
       await initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.Allowlist)
+
+      await expect(flatLaunchpeg.connect(alice).publicSaleMint(1)).to.be.revertedWith('Launchpeg__WrongPhase()')
+    })
+
+    it('Mint reverts when public sale has ended', async () => {
+      await initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.Ended)
 
       await expect(flatLaunchpeg.connect(alice).publicSaleMint(1)).to.be.revertedWith('Launchpeg__WrongPhase()')
     })
