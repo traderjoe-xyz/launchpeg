@@ -132,6 +132,14 @@ abstract contract BaseLaunchpeg is
         uint32 _callbackGasLimit
     );
 
+    /// @dev Emitted on setPublicSaleEndTime()
+    /// @param oldPublicSaleEndTime old public sale end time
+    /// @param newPublicSaleEndTime new public sale end time
+    event PublicSaleEndTimeSet(
+        uint256 oldPublicSaleEndTime,
+        uint256 newPublicSaleEndTime
+    );
+
     modifier isEOA() {
         if (tx.origin != msg.sender) {
             revert Launchpeg__Unauthorized();
@@ -369,6 +377,36 @@ abstract contract BaseLaunchpeg is
             _subscriptionId,
             _callbackGasLimit
         );
+    }
+
+    /// @notice Set the public sale end time. Can only be set after phases
+    /// have been initialized. Cannot be set once public sale has started.
+    /// @dev Only callable by owner
+    /// @param _publicSaleEndTime new public sale end time
+    function setPublicSaleEndTime(uint256 _publicSaleEndTime)
+        external
+        override
+        onlyOwner
+    {
+        _setPublicSaleEndTime(_publicSaleEndTime);
+    }
+
+    /// @notice Set the public sale end time. Can only be set after phases
+    /// have been initialized. Cannot be set once public sale has started.
+    /// @param _publicSaleEndTime new public sale end time
+    function _setPublicSaleEndTime(uint256 _publicSaleEndTime) internal {
+        if (publicSaleEndTime == 0) {
+            revert Launchpeg__NotInitialized();
+        }
+        if (block.timestamp >= publicSaleStartTime) {
+            revert Launchpeg__WrongPhase();
+        }
+        if (_publicSaleEndTime < publicSaleStartTime) {
+            revert Launchpeg__PublicSaleEndBeforePublicSaleStart();
+        }
+        uint256 oldPublicSaleEndTime = publicSaleEndTime;
+        publicSaleEndTime = _publicSaleEndTime;
+        emit PublicSaleEndTimeSet(oldPublicSaleEndTime, _publicSaleEndTime);
     }
 
     /// @notice Mint NFTs to the project owner

@@ -241,6 +241,13 @@ describe('Launchpeg', () => {
         )
       ).to.be.revertedWith('Launchpeg__InvalidRevealDates()')
     })
+
+    it('Reverts when setting public sale end time before phases are initialized', async () => {
+      const newPublicSaleEndTime = config.publicSaleEndTime.sub(duration.minutes(30))
+      await expect(launchpeg.setPublicSaleEndTime(newPublicSaleEndTime)).to.be.revertedWith(
+        'Launchpeg__NotInitialized()'
+      )
+    })
   })
 
   describe('Dutch auction phase', () => {
@@ -353,6 +360,20 @@ describe('Launchpeg', () => {
       expect(await launchpeg.balanceOf(alice.address)).to.eq(4)
       expect(await launchpeg.balanceOf(bob.address)).to.eq(1)
     })
+
+    it('Owner can set public sale end time', async () => {
+      const invalidPublicSaleEndTime = config.publicSaleStartTime.sub(duration.minutes(30))
+      const newPublicSaleEndTime = config.publicSaleEndTime.sub(duration.minutes(30))
+      await initializePhasesLaunchpeg(launchpeg, config, Phase.DutchAuction)
+      await expect(launchpeg.connect(projectOwner).setPublicSaleEndTime(newPublicSaleEndTime)).to.be.revertedWith(
+        'Ownable: caller is not the owner'
+      )
+      await expect(launchpeg.setPublicSaleEndTime(invalidPublicSaleEndTime)).to.be.revertedWith(
+        'Launchpeg__PublicSaleEndBeforePublicSaleStart()'
+      )
+      await launchpeg.setPublicSaleEndTime(newPublicSaleEndTime)
+      expect(await launchpeg.publicSaleEndTime()).to.eq(newPublicSaleEndTime)
+    })
   })
 
   describe('Allowlist phase', () => {
@@ -419,6 +440,13 @@ describe('Launchpeg', () => {
     it('Mint price is discounted', async () => {
       await initializePhasesLaunchpeg(launchpeg, config, Phase.Allowlist)
       expect(await launchpeg.getAllowlistPrice()).to.eq(ethers.utils.parseUnits('0.9', 18))
+    })
+
+    it('Owner can set public sale end time', async () => {
+      const newPublicSaleEndTime = config.publicSaleEndTime.sub(duration.minutes(30))
+      await initializePhasesLaunchpeg(launchpeg, config, Phase.Allowlist)
+      await launchpeg.setPublicSaleEndTime(newPublicSaleEndTime)
+      expect(await launchpeg.publicSaleEndTime()).to.eq(newPublicSaleEndTime)
     })
   })
 
@@ -508,6 +536,14 @@ describe('Launchpeg', () => {
       await launchpeg.connect(alice).publicSaleMint(5, { value: config.startPrice.mul(5) })
       await expect(launchpeg.connect(alice).publicSaleMint(5, { value: config.startPrice.mul(5) })).to.be.revertedWith(
         'Launchpeg__MaxSupplyReached()'
+      )
+    })
+
+    it('Reverts when setting public sale end time', async () => {
+      const newPublicSaleEndTime = config.publicSaleEndTime.sub(duration.minutes(30))
+      await initializePhasesLaunchpeg(launchpeg, config, Phase.PublicSale)
+      await expect(launchpeg.setPublicSaleEndTime(newPublicSaleEndTime)).to.be.revertedWith(
+        'Launchpeg__WrongPhase()'
       )
     })
   })
