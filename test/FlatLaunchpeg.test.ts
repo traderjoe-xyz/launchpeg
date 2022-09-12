@@ -86,10 +86,39 @@ describe('FlatLaunchpeg', () => {
       )
     })
 
+    it('Public sale end time must be after public sale start time', async () => {
+      config.publicSaleEndTime = config.publicSaleStartTime.sub(duration.minutes(20))
+
+      await expect(initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.Allowlist)).to.be.revertedWith(
+        'Launchpeg__PublicSaleEndBeforePublicSaleStart()'
+      )
+    })
+
     it('Allowlist price should be lower than Public sale', async () => {
       config.flatAllowlistSalePrice = config.flatAllowlistSalePrice.mul(10)
       await expect(initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.NotStarted)).to.be.revertedWith(
         'Launchpeg__InvalidAllowlistPrice()'
+      )
+    })
+
+    it('Reverts when setting allowlist start time before phases are initialized', async () => {
+      const newAllowlistStartTime = config.allowlistStartTime.sub(duration.minutes(30))
+      await expect(flatLaunchpeg.setAllowlistStartTime(newAllowlistStartTime)).to.be.revertedWith(
+        'Launchpeg__NotInitialized()'
+      )
+    })
+
+    it('Reverts when setting public sale start time before phases are initialized', async () => {
+      const newPublicSaleStartTime = config.publicSaleStartTime.sub(duration.minutes(30))
+      await expect(flatLaunchpeg.setPublicSaleStartTime(newPublicSaleStartTime)).to.be.revertedWith(
+        'Launchpeg__NotInitialized()'
+      )
+    })
+
+    it('Reverts when setting public sale end time before phases are initialized', async () => {
+      const newPublicSaleEndTime = config.publicSaleEndTime.sub(duration.minutes(30))
+      await expect(flatLaunchpeg.setPublicSaleEndTime(newPublicSaleEndTime)).to.be.revertedWith(
+        'Launchpeg__NotInitialized()'
       )
     })
   })
@@ -164,6 +193,56 @@ describe('FlatLaunchpeg', () => {
         'Launchpeg__WrongAddressesAndNumSlotsLength()'
       )
     })
+
+    it('Owner can set allowlist start time', async () => {
+      let invalidAllowlistStartTime = BigNumber.from(0)
+      const newAllowlistStartTime = config.allowlistStartTime.add(duration.minutes(30))
+      await initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.Allowlist)
+      await expect(flatLaunchpeg.connect(projectOwner).setAllowlistStartTime(newAllowlistStartTime)).to.be.revertedWith(
+        'Ownable: caller is not the owner'
+      )
+      await expect(flatLaunchpeg.setAllowlistStartTime(invalidAllowlistStartTime)).to.be.revertedWith(
+        'Launchpeg__InvalidStartTime()'
+      )
+      invalidAllowlistStartTime = config.publicSaleStartTime.add(duration.minutes(30))
+      await expect(flatLaunchpeg.setAllowlistStartTime(invalidAllowlistStartTime)).to.be.revertedWith(
+        'Launchpeg__PublicSaleBeforeAllowlist()'
+      )
+      await flatLaunchpeg.setAllowlistStartTime(newAllowlistStartTime)
+      expect(await flatLaunchpeg.allowlistStartTime()).to.eq(newAllowlistStartTime)
+    })
+
+    it('Owner can set public sale start time', async () => {
+      let invalidPublicSaleStartTime = config.allowlistStartTime.sub(duration.minutes(30))
+      const newPublicSaleStartTime = config.publicSaleStartTime.sub(duration.minutes(30))
+      await initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.Allowlist)
+      await expect(flatLaunchpeg.connect(projectOwner).setPublicSaleStartTime(newPublicSaleStartTime)).to.be.revertedWith(
+        'Ownable: caller is not the owner'
+      )
+      await expect(flatLaunchpeg.setPublicSaleStartTime(invalidPublicSaleStartTime)).to.be.revertedWith(
+        'Launchpeg__PublicSaleBeforeAllowlist()'
+      )
+      invalidPublicSaleStartTime = config.publicSaleEndTime.add(duration.minutes(30))
+      await expect(flatLaunchpeg.setPublicSaleStartTime(invalidPublicSaleStartTime)).to.be.revertedWith(
+        'Launchpeg__PublicSaleEndBeforePublicSaleStart()'
+      )
+      await flatLaunchpeg.setPublicSaleStartTime(newPublicSaleStartTime)
+      expect(await flatLaunchpeg.publicSaleStartTime()).to.eq(newPublicSaleStartTime)
+    })
+
+    it('Owner can set public sale end time', async () => {
+      const invalidPublicSaleEndTime = config.publicSaleStartTime.sub(duration.minutes(30))
+      const newPublicSaleEndTime = config.publicSaleEndTime.sub(duration.minutes(30))
+      await initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.Allowlist)
+      await expect(flatLaunchpeg.connect(projectOwner).setPublicSaleEndTime(newPublicSaleEndTime)).to.be.revertedWith(
+        'Ownable: caller is not the owner'
+      )
+      await expect(flatLaunchpeg.setPublicSaleEndTime(invalidPublicSaleEndTime)).to.be.revertedWith(
+        'Launchpeg__PublicSaleEndBeforePublicSaleStart()'
+      )
+      await flatLaunchpeg.setPublicSaleEndTime(newPublicSaleEndTime)
+      expect(await flatLaunchpeg.publicSaleEndTime()).to.eq(newPublicSaleEndTime)
+    })
   })
 
   describe('Public sale phase', () => {
@@ -188,6 +267,12 @@ describe('FlatLaunchpeg', () => {
       await expect(flatLaunchpeg.connect(alice).publicSaleMint(1)).to.be.revertedWith('Launchpeg__WrongPhase()')
     })
 
+    it('Mint reverts when public sale has ended', async () => {
+      await initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.Ended)
+
+      await expect(flatLaunchpeg.connect(alice).publicSaleMint(1)).to.be.revertedWith('Launchpeg__WrongPhase()')
+    })
+
     it('Mint reverts when buy size > max allowed', async () => {
       await initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.PublicSale)
       await expect(flatLaunchpeg.connect(alice).publicSaleMint(6)).to.be.revertedWith('Launchpeg__CanNotMintThisMany()')
@@ -207,13 +292,21 @@ describe('FlatLaunchpeg', () => {
       await deployFlatLaunchpeg()
       await initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.PublicSale)
 
-      let quantity = 10
+      let quantity = 5
       const price = config.flatPublicSalePrice
+      await flatLaunchpeg.connect(bob).publicSaleMint(quantity, { value: price.mul(quantity) })
+
+      quantity = 6
+      await expect(flatLaunchpeg.connect(alice).publicSaleMint(quantity)).to.be.revertedWith(
+        'Launchpeg__MaxSupplyReached()'
+      )
+
+      quantity = 5
       await flatLaunchpeg.connect(bob).publicSaleMint(quantity, { value: price.mul(quantity) })
 
       quantity = 1
       await expect(flatLaunchpeg.connect(alice).publicSaleMint(quantity)).to.be.revertedWith(
-        'Launchpeg__MaxSupplyReached()'
+        'Launchpeg__WrongPhase()'
       )
     })
 
@@ -228,6 +321,13 @@ describe('FlatLaunchpeg', () => {
       await expect(
         flatLaunchpeg.connect(bob).publicSaleMint(quantity, { value: price.mul(quantity) })
       ).to.be.revertedWith('Launchpeg__CanNotMintThisMany()')
+    })
+
+    it('Owner can set public sale end time', async () => {
+      const newPublicSaleEndTime = config.publicSaleEndTime.sub(duration.minutes(30))
+      await initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.PublicSale)
+      await flatLaunchpeg.setPublicSaleEndTime(newPublicSaleEndTime)
+      expect(await flatLaunchpeg.publicSaleEndTime()).to.eq(newPublicSaleEndTime)
     })
   })
 

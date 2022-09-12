@@ -6,6 +6,7 @@ export interface LaunchpegConfig {
   auctionStartTime: BigNumber
   allowlistStartTime: BigNumber
   publicSaleStartTime: BigNumber
+  publicSaleEndTime: BigNumber
   maxBatchSize: number
   collectionSize: number
   amountForAuction: number
@@ -28,6 +29,7 @@ export interface LaunchpegConfig {
 const AUCTION_START_OFFSET = 10
 const ALLOWLIST_START_OFFSET = 100
 const PUBLIC_SALE_START_OFFSET = 200
+const PUBLIC_SALE_END_OFFSET = 300
 const REVEAL_START_OFFSET = 400
 const REVEAL_INTERVAL = 50
 
@@ -37,6 +39,7 @@ export const getDefaultLaunchpegConfig = async (): Promise<LaunchpegConfig> => {
     auctionStartTime,
     allowlistStartTime: auctionStartTime.add(duration.minutes(ALLOWLIST_START_OFFSET)),
     publicSaleStartTime: auctionStartTime.add(duration.minutes(PUBLIC_SALE_START_OFFSET)),
+    publicSaleEndTime: auctionStartTime.add(duration.minutes(PUBLIC_SALE_END_OFFSET)),
     maxBatchSize: 5,
     collectionSize: 10000,
     amountForAuction: 8000,
@@ -63,6 +66,7 @@ export enum Phase {
   Allowlist,
   PublicSale,
   Reveal,
+  Ended
 }
 
 export const initializePhasesLaunchpeg = async (launchpeg: Contract, config: LaunchpegConfig, currentPhase: Phase) => {
@@ -74,6 +78,7 @@ export const initializePhasesLaunchpeg = async (launchpeg: Contract, config: Lau
     config.allowlistStartTime,
     config.allowlistDiscount,
     config.publicSaleStartTime,
+    config.publicSaleEndTime,
     config.publicSaleDiscount
   )
   await launchpeg.setUnrevealedURI(config.unrevealedTokenURI)
@@ -89,6 +94,7 @@ export const initializePhasesFlatLaunchpeg = async (
   await flatLaunchpeg.initializePhases(
     config.allowlistStartTime,
     config.publicSaleStartTime,
+    config.publicSaleEndTime,
     config.flatAllowlistSalePrice,
     config.flatPublicSalePrice
   )
@@ -109,6 +115,9 @@ const advanceTimeAndBlockToPhase = async (phase: Phase) => {
       break
     case Phase.PublicSale:
       await advanceTimeAndBlock(duration.minutes(PUBLIC_SALE_START_OFFSET + AUCTION_START_OFFSET))
+      break
+    case Phase.Ended:
+      await advanceTimeAndBlock(duration.minutes(PUBLIC_SALE_END_OFFSET + AUCTION_START_OFFSET))
       break
     case Phase.Reveal:
       await advanceTimeAndBlock(duration.minutes(REVEAL_START_OFFSET + AUCTION_START_OFFSET))

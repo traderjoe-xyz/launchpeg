@@ -19,11 +19,13 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
     /// @dev Emitted on initializePhases()
     /// @param allowlistStartTime Allowlist mint start time in seconds
     /// @param publicSaleStartTime Public sale start time in seconds
+    /// @param publicSaleEndTime Public sale end time in seconds
     /// @param allowlistPrice Price of the allowlist sale in Avax
     /// @param salePrice Price of the public sale in Avax
     event Initialized(
         uint256 allowlistStartTime,
         uint256 publicSaleStartTime,
+        uint256 publicSaleEndTime,
         uint256 allowlistPrice,
         uint256 salePrice
     );
@@ -96,11 +98,13 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
     /// @dev Can only be called once
     /// @param _allowlistStartTime Allowlist mint start time in seconds
     /// @param _publicSaleStartTime Public sale start time in seconds
+    /// @param _publicSaleEndTime Public sale end time in seconds
     /// @param _allowlistPrice Price of the allowlist sale in Avax
     /// @param _salePrice Price of the public sale in Avax
     function initializePhases(
         uint256 _allowlistStartTime,
         uint256 _publicSaleStartTime,
+        uint256 _publicSaleEndTime,
         uint256 _allowlistPrice,
         uint256 _salePrice
     ) external override onlyOwner atPhase(Phase.NotStarted) {
@@ -109,6 +113,9 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
         }
         if (_publicSaleStartTime < _allowlistStartTime) {
             revert Launchpeg__PublicSaleBeforeAllowlist();
+        }
+        if (_publicSaleEndTime < _publicSaleStartTime) {
+            revert Launchpeg__PublicSaleEndBeforePublicSaleStart();
         }
         if (_allowlistPrice > _salePrice) {
             revert Launchpeg__InvalidAllowlistPrice();
@@ -119,13 +126,44 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
 
         allowlistStartTime = _allowlistStartTime;
         publicSaleStartTime = _publicSaleStartTime;
+        publicSaleEndTime = _publicSaleEndTime;
 
         emit Initialized(
             allowlistStartTime,
             publicSaleStartTime,
+            publicSaleEndTime,
             allowlistPrice,
             salePrice
         );
+    }
+
+    /// @notice Set the allowlist start time. Can only be set after phases
+    /// have been initialized.
+    /// @dev Only callable by owner
+    /// @param _allowlistStartTime New allowlist start time
+    function setAllowlistStartTime(uint256 _allowlistStartTime)
+        external
+        override
+        onlyOwner
+    {
+        _setAllowlistStartTime(_allowlistStartTime);
+    }
+
+    /// @notice Set the allowlist start time. Can only be set after phases
+    /// have been initialized.
+    /// @param _allowlistStartTime New allowlist start time
+    function _setAllowlistStartTime(uint256 _allowlistStartTime) private {
+        if (allowlistStartTime == 0) {
+            revert Launchpeg__NotInitialized();
+        }
+        if (_allowlistStartTime < block.timestamp) {
+            revert Launchpeg__InvalidStartTime();
+        }
+        if (publicSaleStartTime < _allowlistStartTime) {
+            revert Launchpeg__PublicSaleBeforeAllowlist();
+        }
+        allowlistStartTime = _allowlistStartTime;
+        emit AllowlistStartTimeSet(_allowlistStartTime);
     }
 
     /// @notice Mint NFTs during the allowlist mint
@@ -188,16 +226,26 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
         if (
             allowlistStartTime == 0 ||
             publicSaleStartTime == 0 ||
+            publicSaleEndTime == 0 ||
             block.timestamp < allowlistStartTime
         ) {
             return Phase.NotStarted;
+        } else if (
+            totalSupply() >= collectionSize
+        ) {
+            return Phase.Ended;
         } else if (
             block.timestamp >= allowlistStartTime &&
             block.timestamp < publicSaleStartTime
         ) {
             return Phase.Allowlist;
+        } else if (
+            block.timestamp >= publicSaleStartTime &&
+            block.timestamp < publicSaleEndTime
+        ) {
+            return Phase.PublicSale;
         }
-        return Phase.PublicSale;
+        return Phase.Ended;
     }
 
     /// @dev Returns true if this contract implements the interface defined by

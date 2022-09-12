@@ -80,6 +80,10 @@ abstract contract BaseLaunchpeg is
     /// @dev A timestamp greater than the allowlist mint start
     uint256 public override publicSaleStartTime;
 
+    /// @notice End time of the public sale in seconds
+    /// @dev A timestamp greater than the public sale start
+    uint256 public override publicSaleEndTime;
+
     /// @dev Emitted on initializeJoeFee()
     /// @param feePercent The fees collected by Joepegs on the sale benefits
     /// @param feeCollector The address to which the fees on the sale will be sent
@@ -127,6 +131,18 @@ abstract contract BaseLaunchpeg is
         uint64 _subscriptionId,
         uint32 _callbackGasLimit
     );
+
+    /// @dev Emitted on setAllowlistStartTime()
+    /// @param allowlistStartTime New allowlist start time
+    event AllowlistStartTimeSet(uint256 allowlistStartTime);
+
+    /// @dev Emitted on setPublicSaleStartTime()
+    /// @param publicSaleStartTime New public sale start time
+    event PublicSaleStartTimeSet(uint256 publicSaleStartTime);
+
+    /// @dev Emitted on setPublicSaleEndTime()
+    /// @param publicSaleEndTime New public sale end time
+    event PublicSaleEndTimeSet(uint256 publicSaleEndTime);
 
     modifier isEOA() {
         if (tx.origin != msg.sender) {
@@ -367,6 +383,61 @@ abstract contract BaseLaunchpeg is
         );
     }
 
+    /// @notice Set the public sale start time. Can only be set after phases
+    /// have been initialized.
+    /// @dev Only callable by owner
+    /// @param _publicSaleStartTime New public sale start time
+    function setPublicSaleStartTime(uint256 _publicSaleStartTime)
+        external
+        override
+        onlyOwner
+    {
+        _setPublicSaleStartTime(_publicSaleStartTime);
+    }
+
+    /// @notice Set the public sale start time. Can only be set after phases
+    /// have been initialized.
+    /// @param _publicSaleStartTime New public sale start time
+    function _setPublicSaleStartTime(uint256 _publicSaleStartTime) private {
+        if (publicSaleStartTime == 0) {
+            revert Launchpeg__NotInitialized();
+        }
+        if (_publicSaleStartTime < allowlistStartTime) {
+            revert Launchpeg__PublicSaleBeforeAllowlist();
+        }
+        if (publicSaleEndTime < _publicSaleStartTime) {
+            revert Launchpeg__PublicSaleEndBeforePublicSaleStart();
+        }
+        publicSaleStartTime = _publicSaleStartTime;
+        emit PublicSaleStartTimeSet(_publicSaleStartTime);
+    }
+
+    /// @notice Set the public sale end time. Can only be set after phases
+    /// have been initialized.
+    /// @dev Only callable by owner
+    /// @param _publicSaleEndTime New public sale end time
+    function setPublicSaleEndTime(uint256 _publicSaleEndTime)
+        external
+        override
+        onlyOwner
+    {
+        _setPublicSaleEndTime(_publicSaleEndTime);
+    }
+
+    /// @notice Set the public sale end time. Can only be set after phases
+    /// have been initialized.
+    /// @param _publicSaleEndTime New public sale end time
+    function _setPublicSaleEndTime(uint256 _publicSaleEndTime) private {
+        if (publicSaleEndTime == 0) {
+            revert Launchpeg__NotInitialized();
+        }
+        if (_publicSaleEndTime < publicSaleStartTime) {
+            revert Launchpeg__PublicSaleEndBeforePublicSaleStart();
+        }
+        publicSaleEndTime = _publicSaleEndTime;
+        emit PublicSaleEndTimeSet(_publicSaleEndTime);
+    }
+
     /// @notice Mint NFTs to the project owner
     /// @dev Can only mint up to `amountForDevs`
     /// @param _quantity Quantity of NFTs to mint
@@ -377,13 +448,14 @@ abstract contract BaseLaunchpeg is
         if (amountMintedByDevs + _quantity > amountForDevs) {
             revert Launchpeg__MaxSupplyForDevReached();
         }
-        if (_quantity % maxBatchSize != 0) {
-            revert Launchpeg__CanOnlyMintMultipleOfMaxBatchSize();
-        }
         amountMintedByDevs = amountMintedByDevs + _quantity;
         uint256 numChunks = _quantity / maxBatchSize;
         for (uint256 i; i < numChunks; i++) {
             _mint(msg.sender, maxBatchSize, "", false);
+        }
+        uint256 remainingQty = _quantity % maxBatchSize;
+        if (remainingQty != 0) {
+            _mint(msg.sender, remainingQty, "", false);
         }
         emit DevMint(msg.sender, _quantity);
     }

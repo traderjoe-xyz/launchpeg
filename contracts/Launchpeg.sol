@@ -60,6 +60,7 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
     /// @param allowlistStartTime allowlist mint start time in seconds
     /// @param allowlistDiscountPercent Discount applied to the last auction price during the allowlist mint
     /// @param publicSaleStartTime Public sale start time in seconds
+    /// @param publicSaleEndTime Public sale end time in seconds
     /// @param publicSaleDiscountPercent Discount applied to the last auction price during the public sale
     event Initialized(
         uint256 auctionSaleStartTime,
@@ -69,8 +70,13 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
         uint256 allowlistStartTime,
         uint256 allowlistDiscountPercent,
         uint256 publicSaleStartTime,
+        uint256 publicSaleEndTime,
         uint256 publicSaleDiscountPercent
     );
+
+    /// @dev Emitted on setAuctionSaleStartTime()
+    /// @param auctionSaleStartTime New auction sale start time
+    event AuctionSaleStartTimeSet(uint256 auctionSaleStartTime);
 
     /// @dev Emitted on auctionMint(), allowlistMint(), publicSaleMint()
     /// @param sender The address that minted
@@ -153,6 +159,7 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
     /// @param _allowlistStartTime allowlist mint start time in seconds
     /// @param _allowlistDiscountPercent Discount applied to the last auction price during the allowlist mint
     /// @param _publicSaleStartTime Public sale start time in seconds
+    /// @param _publicSaleEndTime Public sale end time in seconds
     /// @param _publicSaleDiscountPercent Discount applied to the last auction price during the public sale
     function initializePhases(
         uint256 _auctionSaleStartTime,
@@ -162,6 +169,7 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
         uint256 _allowlistStartTime,
         uint256 _allowlistDiscountPercent,
         uint256 _publicSaleStartTime,
+        uint256 _publicSaleEndTime,
         uint256 _publicSaleDiscountPercent
     ) external override onlyOwner atPhase(Phase.NotStarted) {
         if (_auctionSaleStartTime < block.timestamp) {
@@ -175,6 +183,9 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
         }
         if (_publicSaleStartTime < _allowlistStartTime) {
             revert Launchpeg__PublicSaleBeforeAllowlist();
+        }
+        if (_publicSaleEndTime < _publicSaleStartTime) {
+            revert Launchpeg__PublicSaleEndBeforePublicSaleStart();
         }
         if (
             _allowlistDiscountPercent > BASIS_POINT_PRECISION ||
@@ -207,6 +218,7 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
         allowlistDiscountPercent = _allowlistDiscountPercent;
 
         publicSaleStartTime = _publicSaleStartTime;
+        publicSaleEndTime = _publicSaleEndTime;
         publicSaleDiscountPercent = _publicSaleDiscountPercent;
 
         emit Initialized(
@@ -217,8 +229,67 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
             allowlistStartTime,
             allowlistDiscountPercent,
             publicSaleStartTime,
+            publicSaleEndTime,
             publicSaleDiscountPercent
         );
+    }
+
+    /// @notice Set the auction sale start time. Can only be set after phases
+    /// have been initialized.
+    /// @dev Only callable by owner
+    /// @param _auctionSaleStartTime New auction sale start time
+    function setAuctionSaleStartTime(uint256 _auctionSaleStartTime)
+        external
+        override
+        onlyOwner
+    {
+        _setAuctionSaleStartTime(_auctionSaleStartTime);
+    }
+
+    /// @notice Set the auction sale start time. Can only be set after phases
+    /// have been initialized.
+    /// @param _auctionSaleStartTime New auction sale start time
+    function _setAuctionSaleStartTime(uint256 _auctionSaleStartTime) private {
+        if (auctionSaleStartTime == 0) {
+            revert Launchpeg__NotInitialized();
+        }
+        if (_auctionSaleStartTime < block.timestamp) {
+            revert Launchpeg__InvalidStartTime();
+        }
+        if (allowlistStartTime <= _auctionSaleStartTime) {
+            revert Launchpeg__AllowlistBeforeAuction();
+        }
+        auctionSaleStartTime = _auctionSaleStartTime;
+        emit AuctionSaleStartTimeSet(_auctionSaleStartTime);
+    }
+
+    /// @notice Set the allowlist start time. Can only be set after phases
+    /// have been initialized.
+    /// @dev Only callable by owner
+    /// @param _allowlistStartTime New allowlist start time
+    function setAllowlistStartTime(uint256 _allowlistStartTime)
+        external
+        override
+        onlyOwner
+    {
+        _setAllowlistStartTime(_allowlistStartTime);
+    }
+
+    /// @notice Set the allowlist start time. Can only be set after phases
+    /// have been initialized.
+    /// @param _allowlistStartTime New allowlist start time
+    function _setAllowlistStartTime(uint256 _allowlistStartTime) private {
+        if (allowlistStartTime == 0) {
+            revert Launchpeg__NotInitialized();
+        }
+        if (_allowlistStartTime <= auctionSaleStartTime) {
+            revert Launchpeg__AllowlistBeforeAuction();
+        }
+        if (publicSaleStartTime < _allowlistStartTime) {
+            revert Launchpeg__PublicSaleBeforeAllowlist();
+        }
+        allowlistStartTime = _allowlistStartTime;
+        emit AllowlistStartTimeSet(_allowlistStartTime);
     }
 
     /// @notice Mint NFTs during the dutch auction
@@ -372,6 +443,10 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
         ) {
             return Phase.NotStarted;
         } else if (
+            totalSupply() >= collectionSize
+        ) {
+            return Phase.Ended;
+        } else if (
             block.timestamp >= auctionSaleStartTime &&
             block.timestamp < allowlistStartTime
         ) {
@@ -381,8 +456,13 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
             block.timestamp < publicSaleStartTime
         ) {
             return Phase.Allowlist;
+        } else if (
+            block.timestamp >= publicSaleStartTime &&
+            block.timestamp < publicSaleEndTime
+        ) {
+            return Phase.PublicSale;
         }
-        return Phase.PublicSale;
+        return Phase.Ended;
     }
 
     /// @dev Returns true if this contract implements the interface defined by
