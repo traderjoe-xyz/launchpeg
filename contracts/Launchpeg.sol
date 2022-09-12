@@ -74,6 +74,14 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
         uint256 publicSaleDiscountPercent
     );
 
+    /// @dev Emitted on setAuctionSaleStartTime()
+    /// @param oldAuctionSaleStartTime old auction sale start time
+    /// @param newAuctionSaleStartTime new auction sale start time
+    event AuctionSaleStartTimeSet(
+        uint256 oldAuctionSaleStartTime,
+        uint256 newAuctionSaleStartTime
+    );
+
     /// @dev Emitted on auctionMint(), allowlistMint(), publicSaleMint()
     /// @param sender The address that minted
     /// @param quantity Amount of NFTs minted
@@ -230,6 +238,66 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
         );
     }
 
+    /// @notice Set the auction sale start time. Can only be set after phases
+    /// have been initialized.
+    /// @dev Only callable by owner
+    /// @param _auctionSaleStartTime new auction sale start time
+    function setAuctionSaleStartTime(uint256 _auctionSaleStartTime)
+        external
+        override
+        onlyOwner
+    {
+        _setAuctionSaleStartTime(_auctionSaleStartTime);
+    }
+
+    /// @notice Set the auction sale start time. Can only be set after phases
+    /// have been initialized.
+    /// @param _auctionSaleStartTime new auction sale start time
+    function _setAuctionSaleStartTime(uint256 _auctionSaleStartTime) internal {
+        if (auctionSaleStartTime == 0) {
+            revert Launchpeg__NotInitialized();
+        }
+        if (_auctionSaleStartTime < block.timestamp) {
+            revert Launchpeg__InvalidStartTime();
+        }
+        if (allowlistStartTime <= _auctionSaleStartTime) {
+            revert Launchpeg__AllowlistBeforeAuction();
+        }
+        uint256 oldAuctionSaleStartTime = auctionSaleStartTime;
+        auctionSaleStartTime = _auctionSaleStartTime;
+        emit AuctionSaleStartTimeSet(oldAuctionSaleStartTime, _auctionSaleStartTime);
+    }
+
+    /// @notice Set the allowlist start time. Can only be set after phases
+    /// have been initialized.
+    /// @dev Only callable by owner
+    /// @param _allowlistStartTime new allowlist start time
+    function setAllowlistStartTime(uint256 _allowlistStartTime)
+        external
+        override
+        onlyOwner
+    {
+        _setAllowlistStartTime(_allowlistStartTime);
+    }
+
+    /// @notice Set the allowlist start time. Can only be set after phases
+    /// have been initialized.
+    /// @param _allowlistStartTime new allowlist start time
+    function _setAllowlistStartTime(uint256 _allowlistStartTime) internal {
+        if (allowlistStartTime == 0) {
+            revert Launchpeg__NotInitialized();
+        }
+        if (_allowlistStartTime <= auctionSaleStartTime) {
+            revert Launchpeg__AllowlistBeforeAuction();
+        }
+        if (publicSaleStartTime < _allowlistStartTime) {
+            revert Launchpeg__PublicSaleBeforeAllowlist();
+        }
+        uint256 oldAllowlistStartTime = allowlistStartTime;
+        allowlistStartTime = _allowlistStartTime;
+        emit AllowlistStartTimeSet(oldAllowlistStartTime, _allowlistStartTime);
+    }
+
     /// @notice Mint NFTs during the dutch auction
     /// @dev The price decreases every `auctionDropInterval` by `auctionDropPerStep`
     /// @param _quantity Quantity of NFTs to buy
@@ -380,6 +448,10 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
             block.timestamp < auctionSaleStartTime
         ) {
             return Phase.NotStarted;
+        } else if (
+            totalSupply() >= collectionSize
+        ) {
+            return Phase.Ended;
         } else if (
             block.timestamp >= auctionSaleStartTime &&
             block.timestamp < allowlistStartTime

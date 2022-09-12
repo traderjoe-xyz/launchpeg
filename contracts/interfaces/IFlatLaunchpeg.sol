@@ -38,6 +38,8 @@ interface IFlatLaunchpeg is IBaseLaunchpeg {
         uint256 _salePrice
     ) external;
 
+    function setAllowlistStartTime(uint256 _allowlistStartTime) external;
+
     function allowlistMint(uint256 _quantity) external payable;
 
     function publicSaleMint(uint256 _quantity) external payable;

@@ -75,6 +75,8 @@ interface IBaseLaunchpeg is IERC721Upgradeable, IERC721MetadataUpgradeable {
         uint32 _callbackGasLimit
     ) external;
 
+    function setPublicSaleStartTime(uint256 _publicSaleStartTime) external;
+
     function setPublicSaleEndTime(uint256 _publicSaleEndTime) external;
 
     function devMint(uint256 quantity) external;

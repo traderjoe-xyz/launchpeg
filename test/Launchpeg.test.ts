@@ -242,6 +242,27 @@ describe('Launchpeg', () => {
       ).to.be.revertedWith('Launchpeg__InvalidRevealDates()')
     })
 
+    it('Reverts when setting auction sale start time before phases are initialized', async () => {
+      const newAuctionSaleStartTime = config.auctionStartTime.sub(duration.minutes(30))
+      await expect(launchpeg.setAuctionSaleStartTime(newAuctionSaleStartTime)).to.be.revertedWith(
+        'Launchpeg__NotInitialized()'
+      )
+    })
+
+    it('Reverts when setting allowlist start time before phases are initialized', async () => {
+      const newAllowlistStartTime = config.allowlistStartTime.sub(duration.minutes(30))
+      await expect(launchpeg.setAllowlistStartTime(newAllowlistStartTime)).to.be.revertedWith(
+        'Launchpeg__NotInitialized()'
+      )
+    })
+
+    it('Reverts when setting public sale start time before phases are initialized', async () => {
+      const newPublicSaleStartTime = config.publicSaleStartTime.sub(duration.minutes(30))
+      await expect(launchpeg.setPublicSaleStartTime(newPublicSaleStartTime)).to.be.revertedWith(
+        'Launchpeg__NotInitialized()'
+      )
+    })
+
     it('Reverts when setting public sale end time before phases are initialized', async () => {
       const newPublicSaleEndTime = config.publicSaleEndTime.sub(duration.minutes(30))
       await expect(launchpeg.setPublicSaleEndTime(newPublicSaleEndTime)).to.be.revertedWith(
@@ -361,6 +382,60 @@ describe('Launchpeg', () => {
       expect(await launchpeg.balanceOf(bob.address)).to.eq(1)
     })
 
+    it('Owner can set auction sale start time', async () => {
+      let invalidAuctionSaleStartTime = BigNumber.from(0)
+      const newAuctionSaleStartTime = config.auctionStartTime.add(duration.minutes(30))
+      await initializePhasesLaunchpeg(launchpeg, config, Phase.DutchAuction)
+      await expect(launchpeg.connect(projectOwner).setAuctionSaleStartTime(newAuctionSaleStartTime)).to.be.revertedWith(
+        'Ownable: caller is not the owner'
+      )
+      await expect(launchpeg.setAuctionSaleStartTime(invalidAuctionSaleStartTime)).to.be.revertedWith(
+        'Launchpeg__InvalidStartTime()'
+      )
+      invalidAuctionSaleStartTime = config.allowlistStartTime.add(duration.minutes(30))
+      await expect(launchpeg.setAuctionSaleStartTime(invalidAuctionSaleStartTime)).to.be.revertedWith(
+        'Launchpeg__AllowlistBeforeAuction()'
+      )
+      await launchpeg.setAuctionSaleStartTime(newAuctionSaleStartTime)
+      expect(await launchpeg.auctionSaleStartTime()).to.eq(newAuctionSaleStartTime)
+    })
+
+    it('Owner can set allowlist start time', async () => {
+      let invalidAllowlistStartTime = config.auctionStartTime.sub(duration.minutes(30))
+      const newAllowlistStartTime = config.allowlistStartTime.sub(duration.minutes(30))
+      await initializePhasesLaunchpeg(launchpeg, config, Phase.DutchAuction)
+      await expect(launchpeg.connect(projectOwner).setAllowlistStartTime(newAllowlistStartTime)).to.be.revertedWith(
+        'Ownable: caller is not the owner'
+      )
+      await expect(launchpeg.setAllowlistStartTime(invalidAllowlistStartTime)).to.be.revertedWith(
+        'Launchpeg__AllowlistBeforeAuction()'
+      )
+      invalidAllowlistStartTime = config.publicSaleStartTime.add(duration.minutes(30))
+      await expect(launchpeg.setAllowlistStartTime(invalidAllowlistStartTime)).to.be.revertedWith(
+        'Launchpeg__PublicSaleBeforeAllowlist()'
+      )
+      await launchpeg.setAllowlistStartTime(newAllowlistStartTime)
+      expect(await launchpeg.allowlistStartTime()).to.eq(newAllowlistStartTime)
+    })
+
+    it('Owner can set public sale start time', async () => {
+      let invalidPublicSaleStartTime = config.allowlistStartTime.sub(duration.minutes(30))
+      const newPublicSaleStartTime = config.publicSaleStartTime.sub(duration.minutes(30))
+      await initializePhasesLaunchpeg(launchpeg, config, Phase.DutchAuction)
+      await expect(launchpeg.connect(projectOwner).setPublicSaleStartTime(newPublicSaleStartTime)).to.be.revertedWith(
+        'Ownable: caller is not the owner'
+      )
+      await expect(launchpeg.setPublicSaleStartTime(invalidPublicSaleStartTime)).to.be.revertedWith(
+        'Launchpeg__PublicSaleBeforeAllowlist()'
+      )
+      invalidPublicSaleStartTime = config.publicSaleEndTime.add(duration.minutes(30))
+      await expect(launchpeg.setPublicSaleStartTime(invalidPublicSaleStartTime)).to.be.revertedWith(
+        'Launchpeg__PublicSaleEndBeforePublicSaleStart()'
+      )
+      await launchpeg.setPublicSaleStartTime(newPublicSaleStartTime)
+      expect(await launchpeg.publicSaleStartTime()).to.eq(newPublicSaleStartTime)
+    })
+
     it('Owner can set public sale end time', async () => {
       const invalidPublicSaleEndTime = config.publicSaleStartTime.sub(duration.minutes(30))
       const newPublicSaleEndTime = config.publicSaleEndTime.sub(duration.minutes(30))
@@ -442,6 +517,13 @@ describe('Launchpeg', () => {
       expect(await launchpeg.getAllowlistPrice()).to.eq(ethers.utils.parseUnits('0.9', 18))
     })
 
+    it('Owner can set public sale start time', async () => {
+      const newPublicSaleStartTime = config.publicSaleStartTime.sub(duration.minutes(30))
+      await initializePhasesLaunchpeg(launchpeg, config, Phase.Allowlist)
+      await launchpeg.setPublicSaleStartTime(newPublicSaleStartTime)
+      expect(await launchpeg.publicSaleStartTime()).to.eq(newPublicSaleStartTime)
+    })
+
     it('Owner can set public sale end time', async () => {
       const newPublicSaleEndTime = config.publicSaleEndTime.sub(duration.minutes(30))
       await initializePhasesLaunchpeg(launchpeg, config, Phase.Allowlist)
@@ -492,6 +574,34 @@ describe('Launchpeg', () => {
       await expect(launchpeg.connect(alice).publicSaleMint(2)).to.be.revertedWith('Launchpeg__NotEnoughAVAX(0)')
     })
 
+    it('Mint reverts when maxSupply is reached', async () => {
+      config.collectionSize = 10
+      config.amountForAuction = 0
+      config.amountForDevs = 0
+      config.amountForAllowlist = 0
+      config.maxBatchSize = 10
+      config.batchRevealSize = 10
+      await deployLaunchpeg()
+      await initializePhasesLaunchpeg(launchpeg, config, Phase.PublicSale)
+
+      let quantity = 5
+      const price = config.flatPublicSalePrice
+      await launchpeg.connect(bob).publicSaleMint(quantity, { value: price.mul(quantity) })
+
+      quantity = 6
+      await expect(launchpeg.connect(alice).publicSaleMint(quantity)).to.be.revertedWith(
+        'Launchpeg__MaxSupplyReached()'
+      )
+
+      quantity = 5
+      await launchpeg.connect(bob).publicSaleMint(quantity, { value: price.mul(quantity) })
+
+      quantity = 1
+      await expect(launchpeg.connect(alice).publicSaleMint(quantity)).to.be.revertedWith(
+        'Launchpeg__WrongPhase()'
+      )
+    })
+
     it('Mint reverts when the user already minted max amount', async () => {
       await initializePhasesLaunchpeg(launchpeg, config, Phase.PublicSale)
 
@@ -539,19 +649,19 @@ describe('Launchpeg', () => {
       )
     })
 
-    it('Reverts when setting public sale end time', async () => {
+    it('Owner can set public sale end time', async () => {
       const newPublicSaleEndTime = config.publicSaleEndTime.sub(duration.minutes(30))
       await initializePhasesLaunchpeg(launchpeg, config, Phase.PublicSale)
-      await expect(launchpeg.setPublicSaleEndTime(newPublicSaleEndTime)).to.be.revertedWith(
-        'Launchpeg__WrongPhase()'
-      )
+      await launchpeg.setPublicSaleEndTime(newPublicSaleEndTime)
+      expect(await launchpeg.publicSaleEndTime()).to.eq(newPublicSaleEndTime)
     })
   })
 
   describe('Project owner mint', () => {
     it('Mint up to max limit', async () => {
       // mint amount that is not a multiple of max batch size
-      await launchpeg.connect(projectOwner).devMint(config.amountForDevs - 1)
+      await launchpeg.connect(projectOwner).devMint(config.maxBatchSize)
+      await launchpeg.connect(projectOwner).devMint(config.amountForDevs - config.maxBatchSize - 1)
       await launchpeg.connect(projectOwner).devMint(1)
       await expect(launchpeg.connect(projectOwner).devMint(1)).to.be.revertedWith('Launchpeg__MaxSupplyForDevReached()')
       expect(await launchpeg.balanceOf(projectOwner.address)).to.eq(config.amountForDevs)

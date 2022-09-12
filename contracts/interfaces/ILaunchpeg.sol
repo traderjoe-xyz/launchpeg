@@ -56,6 +56,10 @@ interface ILaunchpeg is IBaseLaunchpeg {
         uint256 _publicSaleDiscountPercent
     ) external;
 
+    function setAuctionSaleStartTime(uint256 _auctionSaleStartTime) external;
+
+    function setAllowlistStartTime(uint256 _allowlistStartTime) external;
+
     function auctionMint(uint256 _quantity) external payable;
 
     function allowlistMint(uint256 _quantity) external payable;

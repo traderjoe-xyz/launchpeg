@@ -132,6 +132,22 @@ abstract contract BaseLaunchpeg is
         uint32 _callbackGasLimit
     );
 
+    /// @dev Emitted on setAllowlistStartTime()
+    /// @param oldAllowlistStartTime old allowlist start time
+    /// @param newAllowlistStartTime new allowlist start time
+    event AllowlistStartTimeSet(
+        uint256 oldAllowlistStartTime,
+        uint256 newAllowlistStartTime
+    );
+
+    /// @dev Emitted on setPublicSaleStartTime()
+    /// @param oldPublicSaleStartTime old public sale start time
+    /// @param newPublicSaleStartTime new public sale start time
+    event PublicSaleStartTimeSet(
+        uint256 oldPublicSaleStartTime,
+        uint256 newPublicSaleStartTime
+    );
+
     /// @dev Emitted on setPublicSaleEndTime()
     /// @param oldPublicSaleEndTime old public sale end time
     /// @param newPublicSaleEndTime new public sale end time
@@ -379,8 +395,38 @@ abstract contract BaseLaunchpeg is
         );
     }
 
+    /// @notice Set the public sale start time. Can only be set after phases
+    /// have been initialized.
+    /// @dev Only callable by owner
+    /// @param _publicSaleStartTime new public sale start time
+    function setPublicSaleStartTime(uint256 _publicSaleStartTime)
+        external
+        override
+        onlyOwner
+    {
+        _setPublicSaleStartTime(_publicSaleStartTime);
+    }
+
+    /// @notice Set the public sale start time. Can only be set after phases
+    /// have been initialized.
+    /// @param _publicSaleStartTime new public sale start time
+    function _setPublicSaleStartTime(uint256 _publicSaleStartTime) internal {
+        if (publicSaleStartTime == 0) {
+            revert Launchpeg__NotInitialized();
+        }
+        if (_publicSaleStartTime < allowlistStartTime) {
+            revert Launchpeg__PublicSaleBeforeAllowlist();
+        }
+        if (publicSaleEndTime < _publicSaleStartTime) {
+            revert Launchpeg__PublicSaleEndBeforePublicSaleStart();
+        }
+        uint256 oldPublicSaleStartTime = publicSaleStartTime;
+        publicSaleStartTime = _publicSaleStartTime;
+        emit PublicSaleStartTimeSet(oldPublicSaleStartTime, _publicSaleStartTime);
+    }
+
     /// @notice Set the public sale end time. Can only be set after phases
-    /// have been initialized. Cannot be set once public sale has started.
+    /// have been initialized.
     /// @dev Only callable by owner
     /// @param _publicSaleEndTime new public sale end time
     function setPublicSaleEndTime(uint256 _publicSaleEndTime)
@@ -392,14 +438,11 @@ abstract contract BaseLaunchpeg is
     }
 
     /// @notice Set the public sale end time. Can only be set after phases
-    /// have been initialized. Cannot be set once public sale has started.
+    /// have been initialized.
     /// @param _publicSaleEndTime new public sale end time
     function _setPublicSaleEndTime(uint256 _publicSaleEndTime) internal {
         if (publicSaleEndTime == 0) {
             revert Launchpeg__NotInitialized();
-        }
-        if (block.timestamp >= publicSaleStartTime) {
-            revert Launchpeg__WrongPhase();
         }
         if (_publicSaleEndTime < publicSaleStartTime) {
             revert Launchpeg__PublicSaleEndBeforePublicSaleStart();

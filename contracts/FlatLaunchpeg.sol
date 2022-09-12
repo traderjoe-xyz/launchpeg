@@ -137,6 +137,36 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
         );
     }
 
+    /// @notice Set the allowlist start time. Can only be set after phases
+    /// have been initialized.
+    /// @dev Only callable by owner
+    /// @param _allowlistStartTime new allowlist start time
+    function setAllowlistStartTime(uint256 _allowlistStartTime)
+        external
+        override
+        onlyOwner
+    {
+        _setAllowlistStartTime(_allowlistStartTime);
+    }
+
+    /// @notice Set the allowlist start time. Can only be set after phases
+    /// have been initialized.
+    /// @param _allowlistStartTime new allowlist start time
+    function _setAllowlistStartTime(uint256 _allowlistStartTime) internal {
+        if (allowlistStartTime == 0) {
+            revert Launchpeg__NotInitialized();
+        }
+        if (_allowlistStartTime < block.timestamp) {
+            revert Launchpeg__InvalidStartTime();
+        }
+        if (publicSaleStartTime < _allowlistStartTime) {
+            revert Launchpeg__PublicSaleBeforeAllowlist();
+        }
+        uint256 oldAllowlistStartTime = allowlistStartTime;
+        allowlistStartTime = _allowlistStartTime;
+        emit AllowlistStartTimeSet(oldAllowlistStartTime, _allowlistStartTime);
+    }
+
     /// @notice Mint NFTs during the allowlist mint
     /// @param _quantity Quantity of NFTs to mint
     function allowlistMint(uint256 _quantity)
@@ -201,6 +231,10 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
             block.timestamp < allowlistStartTime
         ) {
             return Phase.NotStarted;
+        } else if (
+            totalSupply() >= collectionSize
+        ) {
+            return Phase.Ended;
         } else if (
             block.timestamp >= allowlistStartTime &&
             block.timestamp < publicSaleStartTime
