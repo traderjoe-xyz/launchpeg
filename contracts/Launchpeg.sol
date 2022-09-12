@@ -253,7 +253,7 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
     /// @notice Set the auction sale start time. Can only be set after phases
     /// have been initialized.
     /// @param _auctionSaleStartTime new auction sale start time
-    function _setAuctionSaleStartTime(uint256 _auctionSaleStartTime) internal {
+    function _setAuctionSaleStartTime(uint256 _auctionSaleStartTime) private {
         if (auctionSaleStartTime == 0) {
             revert Launchpeg__NotInitialized();
         }
@@ -283,7 +283,7 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
     /// @notice Set the allowlist start time. Can only be set after phases
     /// have been initialized.
     /// @param _allowlistStartTime new allowlist start time
-    function _setAllowlistStartTime(uint256 _allowlistStartTime) internal {
+    function _setAllowlistStartTime(uint256 _allowlistStartTime) private {
         if (allowlistStartTime == 0) {
             revert Launchpeg__NotInitialized();
         }

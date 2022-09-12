@@ -152,7 +152,7 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
     /// @notice Set the allowlist start time. Can only be set after phases
     /// have been initialized.
     /// @param _allowlistStartTime new allowlist start time
-    function _setAllowlistStartTime(uint256 _allowlistStartTime) internal {
+    function _setAllowlistStartTime(uint256 _allowlistStartTime) private {
         if (allowlistStartTime == 0) {
             revert Launchpeg__NotInitialized();
         }

@@ -410,7 +410,7 @@ abstract contract BaseLaunchpeg is
     /// @notice Set the public sale start time. Can only be set after phases
     /// have been initialized.
     /// @param _publicSaleStartTime new public sale start time
-    function _setPublicSaleStartTime(uint256 _publicSaleStartTime) internal {
+    function _setPublicSaleStartTime(uint256 _publicSaleStartTime) private {
         if (publicSaleStartTime == 0) {
             revert Launchpeg__NotInitialized();
         }
@@ -440,7 +440,7 @@ abstract contract BaseLaunchpeg is
     /// @notice Set the public sale end time. Can only be set after phases
     /// have been initialized.
     /// @param _publicSaleEndTime new public sale end time
-    function _setPublicSaleEndTime(uint256 _publicSaleEndTime) internal {
+    function _setPublicSaleEndTime(uint256 _publicSaleEndTime) private {
         if (publicSaleEndTime == 0) {
             revert Launchpeg__NotInitialized();
         }
