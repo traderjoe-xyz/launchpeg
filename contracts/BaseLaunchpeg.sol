@@ -133,28 +133,16 @@ abstract contract BaseLaunchpeg is
     );
 
     /// @dev Emitted on setAllowlistStartTime()
-    /// @param oldAllowlistStartTime old allowlist start time
-    /// @param newAllowlistStartTime new allowlist start time
-    event AllowlistStartTimeSet(
-        uint256 oldAllowlistStartTime,
-        uint256 newAllowlistStartTime
-    );
+    /// @param allowlistStartTime New allowlist start time
+    event AllowlistStartTimeSet(uint256 allowlistStartTime);
 
     /// @dev Emitted on setPublicSaleStartTime()
-    /// @param oldPublicSaleStartTime old public sale start time
-    /// @param newPublicSaleStartTime new public sale start time
-    event PublicSaleStartTimeSet(
-        uint256 oldPublicSaleStartTime,
-        uint256 newPublicSaleStartTime
-    );
+    /// @param publicSaleStartTime New public sale start time
+    event PublicSaleStartTimeSet(uint256 publicSaleStartTime);
 
     /// @dev Emitted on setPublicSaleEndTime()
-    /// @param oldPublicSaleEndTime old public sale end time
-    /// @param newPublicSaleEndTime new public sale end time
-    event PublicSaleEndTimeSet(
-        uint256 oldPublicSaleEndTime,
-        uint256 newPublicSaleEndTime
-    );
+    /// @param publicSaleEndTime New public sale end time
+    event PublicSaleEndTimeSet(uint256 publicSaleEndTime);
 
     modifier isEOA() {
         if (tx.origin != msg.sender) {
@@ -398,7 +386,7 @@ abstract contract BaseLaunchpeg is
     /// @notice Set the public sale start time. Can only be set after phases
     /// have been initialized.
     /// @dev Only callable by owner
-    /// @param _publicSaleStartTime new public sale start time
+    /// @param _publicSaleStartTime New public sale start time
     function setPublicSaleStartTime(uint256 _publicSaleStartTime)
         external
         override
@@ -409,7 +397,7 @@ abstract contract BaseLaunchpeg is
 
     /// @notice Set the public sale start time. Can only be set after phases
     /// have been initialized.
-    /// @param _publicSaleStartTime new public sale start time
+    /// @param _publicSaleStartTime New public sale start time
     function _setPublicSaleStartTime(uint256 _publicSaleStartTime) private {
         if (publicSaleStartTime == 0) {
             revert Launchpeg__NotInitialized();
@@ -420,15 +408,14 @@ abstract contract BaseLaunchpeg is
         if (publicSaleEndTime < _publicSaleStartTime) {
             revert Launchpeg__PublicSaleEndBeforePublicSaleStart();
         }
-        uint256 oldPublicSaleStartTime = publicSaleStartTime;
         publicSaleStartTime = _publicSaleStartTime;
-        emit PublicSaleStartTimeSet(oldPublicSaleStartTime, _publicSaleStartTime);
+        emit PublicSaleStartTimeSet(_publicSaleStartTime);
     }
 
     /// @notice Set the public sale end time. Can only be set after phases
     /// have been initialized.
     /// @dev Only callable by owner
-    /// @param _publicSaleEndTime new public sale end time
+    /// @param _publicSaleEndTime New public sale end time
     function setPublicSaleEndTime(uint256 _publicSaleEndTime)
         external
         override
@@ -439,7 +426,7 @@ abstract contract BaseLaunchpeg is
 
     /// @notice Set the public sale end time. Can only be set after phases
     /// have been initialized.
-    /// @param _publicSaleEndTime new public sale end time
+    /// @param _publicSaleEndTime New public sale end time
     function _setPublicSaleEndTime(uint256 _publicSaleEndTime) private {
         if (publicSaleEndTime == 0) {
             revert Launchpeg__NotInitialized();
@@ -447,9 +434,8 @@ abstract contract BaseLaunchpeg is
         if (_publicSaleEndTime < publicSaleStartTime) {
             revert Launchpeg__PublicSaleEndBeforePublicSaleStart();
         }
-        uint256 oldPublicSaleEndTime = publicSaleEndTime;
         publicSaleEndTime = _publicSaleEndTime;
-        emit PublicSaleEndTimeSet(oldPublicSaleEndTime, _publicSaleEndTime);
+        emit PublicSaleEndTimeSet(_publicSaleEndTime);
     }
 
     /// @notice Mint NFTs to the project owner

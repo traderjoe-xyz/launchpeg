@@ -140,7 +140,7 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
     /// @notice Set the allowlist start time. Can only be set after phases
     /// have been initialized.
     /// @dev Only callable by owner
-    /// @param _allowlistStartTime new allowlist start time
+    /// @param _allowlistStartTime New allowlist start time
     function setAllowlistStartTime(uint256 _allowlistStartTime)
         external
         override
@@ -151,7 +151,7 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
 
     /// @notice Set the allowlist start time. Can only be set after phases
     /// have been initialized.
-    /// @param _allowlistStartTime new allowlist start time
+    /// @param _allowlistStartTime New allowlist start time
     function _setAllowlistStartTime(uint256 _allowlistStartTime) private {
         if (allowlistStartTime == 0) {
             revert Launchpeg__NotInitialized();
@@ -162,9 +162,8 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
         if (publicSaleStartTime < _allowlistStartTime) {
             revert Launchpeg__PublicSaleBeforeAllowlist();
         }
-        uint256 oldAllowlistStartTime = allowlistStartTime;
         allowlistStartTime = _allowlistStartTime;
-        emit AllowlistStartTimeSet(oldAllowlistStartTime, _allowlistStartTime);
+        emit AllowlistStartTimeSet(_allowlistStartTime);
     }
 
     /// @notice Mint NFTs during the allowlist mint

@@ -75,12 +75,8 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
     );
 
     /// @dev Emitted on setAuctionSaleStartTime()
-    /// @param oldAuctionSaleStartTime old auction sale start time
-    /// @param newAuctionSaleStartTime new auction sale start time
-    event AuctionSaleStartTimeSet(
-        uint256 oldAuctionSaleStartTime,
-        uint256 newAuctionSaleStartTime
-    );
+    /// @param auctionSaleStartTime New auction sale start time
+    event AuctionSaleStartTimeSet(uint256 auctionSaleStartTime);
 
     /// @dev Emitted on auctionMint(), allowlistMint(), publicSaleMint()
     /// @param sender The address that minted
@@ -241,7 +237,7 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
     /// @notice Set the auction sale start time. Can only be set after phases
     /// have been initialized.
     /// @dev Only callable by owner
-    /// @param _auctionSaleStartTime new auction sale start time
+    /// @param _auctionSaleStartTime New auction sale start time
     function setAuctionSaleStartTime(uint256 _auctionSaleStartTime)
         external
         override
@@ -252,7 +248,7 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
 
     /// @notice Set the auction sale start time. Can only be set after phases
     /// have been initialized.
-    /// @param _auctionSaleStartTime new auction sale start time
+    /// @param _auctionSaleStartTime New auction sale start time
     function _setAuctionSaleStartTime(uint256 _auctionSaleStartTime) private {
         if (auctionSaleStartTime == 0) {
             revert Launchpeg__NotInitialized();
@@ -263,15 +259,14 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
         if (allowlistStartTime <= _auctionSaleStartTime) {
             revert Launchpeg__AllowlistBeforeAuction();
         }
-        uint256 oldAuctionSaleStartTime = auctionSaleStartTime;
         auctionSaleStartTime = _auctionSaleStartTime;
-        emit AuctionSaleStartTimeSet(oldAuctionSaleStartTime, _auctionSaleStartTime);
+        emit AuctionSaleStartTimeSet(_auctionSaleStartTime);
     }
 
     /// @notice Set the allowlist start time. Can only be set after phases
     /// have been initialized.
     /// @dev Only callable by owner
-    /// @param _allowlistStartTime new allowlist start time
+    /// @param _allowlistStartTime New allowlist start time
     function setAllowlistStartTime(uint256 _allowlistStartTime)
         external
         override
@@ -282,7 +277,7 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
 
     /// @notice Set the allowlist start time. Can only be set after phases
     /// have been initialized.
-    /// @param _allowlistStartTime new allowlist start time
+    /// @param _allowlistStartTime New allowlist start time
     function _setAllowlistStartTime(uint256 _allowlistStartTime) private {
         if (allowlistStartTime == 0) {
             revert Launchpeg__NotInitialized();
@@ -293,9 +288,8 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
         if (publicSaleStartTime < _allowlistStartTime) {
             revert Launchpeg__PublicSaleBeforeAllowlist();
         }
-        uint256 oldAllowlistStartTime = allowlistStartTime;
         allowlistStartTime = _allowlistStartTime;
-        emit AllowlistStartTimeSet(oldAllowlistStartTime, _allowlistStartTime);
+        emit AllowlistStartTimeSet(_allowlistStartTime);
     }
 
     /// @notice Mint NFTs during the dutch auction
