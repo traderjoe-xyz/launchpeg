@@ -168,6 +168,8 @@ abstract contract BaseLaunchpeg is
     /// @param _amountForDevs Amount of NFTs reserved for `projectOwner` (e.g 200)
     /// @param _amountForAllowlist Amount of NFTs available for the allowlist mint (e.g 1000)
     /// @param _batchRevealSize Size of the batch reveal
+    /// @param _revealStartTime Batch reveal start time
+    /// @param _revealInterval Batch reveal interval
     function initializeBaseLaunchpeg(
         string memory _name,
         string memory _symbol,
@@ -186,7 +188,12 @@ abstract contract BaseLaunchpeg is
         __ERC2981_init();
 
         __ERC721A_init(_name, _symbol);
-        initializeBatchReveal(_batchRevealSize, _collectionSize);
+        initializeBatchReveal(
+            _batchRevealSize,
+            _collectionSize,
+            _revealStartTime,
+            _revealInterval
+        );
 
         if (_projectOwner == address(0)) {
             revert Launchpeg__InvalidProjectOwner();
@@ -199,14 +206,6 @@ abstract contract BaseLaunchpeg is
         if (_maxBatchSize > _collectionSize) {
             revert Launchpeg__InvalidMaxBatchSize();
         }
-        // We assume that if the reveal is more than 100 days in the future, that's a mistake
-        // Same if the reveal interval is longer than 10 days
-        if (
-            _revealStartTime > block.timestamp + 8_640_000 ||
-            _revealInterval > 864_000
-        ) {
-            revert Launchpeg__InvalidRevealDates();
-        }
 
         projectOwner = _projectOwner;
         // Default royalty is 5%
@@ -217,9 +216,6 @@ abstract contract BaseLaunchpeg is
         maxPerAddressDuringMint = _maxBatchSize;
         amountForDevs = _amountForDevs;
         amountForAllowlist = _amountForAllowlist;
-
-        revealStartTime = _revealStartTime;
-        revealInterval = _revealInterval;
     }
 
     /// @notice Initialize the sales fee percent taken by Joepegs and address that collects the fees
@@ -438,6 +434,45 @@ abstract contract BaseLaunchpeg is
         emit PublicSaleEndTimeSet(_publicSaleEndTime);
     }
 
+    /// @notice Set the reveal batch size. Can only be set after
+    /// batch reveal has been initialized and before a batch has
+    /// been revealed.
+    /// @dev Only callable by owner
+    /// @param _revealBatchSize New reveal batch size
+    function setRevealBatchSize(uint256 _revealBatchSize)
+        external
+        override
+        onlyOwner
+    {
+        _setRevealBatchSize(_revealBatchSize);
+    }
+
+    /// @notice Set the batch reveal start time. Can only be set after
+    /// batch reveal has been initialized and before a batch has
+    /// been revealed.
+    /// @dev Only callable by owner
+    /// @param _revealStartTime New batch reveal start time
+    function setRevealStartTime(uint256 _revealStartTime)
+        external
+        override
+        onlyOwner
+    {
+        _setRevealStartTime(_revealStartTime);
+    }
+
+    /// @notice Set the batch reveal interval. Can only be set after
+    /// batch reveal has been initialized and before a batch has
+    /// been revealed.
+    /// @dev Only callable by owner
+    /// @param _revealInterval New batch reveal interval
+    function setRevealInterval(uint256 _revealInterval)
+        external
+        override
+        onlyOwner
+    {
+        _setRevealInterval(_revealInterval);
+    }
+
     /// @notice Mint NFTs to the project owner
     /// @dev Can only mint up to `amountForDevs`
     /// @param _quantity Quantity of NFTs to mint
@@ -530,7 +565,9 @@ abstract contract BaseLaunchpeg is
         override(ERC721AUpgradeable, IERC721MetadataUpgradeable)
         returns (string memory)
     {
-        if (_id >= lastTokenRevealed) {
+        if (!isBatchReveal()) {
+            return string(abi.encodePacked(baseURI, _id.toString()));
+        } else if (_id >= lastTokenRevealed) {
             return unrevealedURI;
         } else {
             return

@@ -79,6 +79,12 @@ interface IBaseLaunchpeg is IERC721Upgradeable, IERC721MetadataUpgradeable {
 
     function setPublicSaleEndTime(uint256 _publicSaleEndTime) external;
 
+    function setRevealBatchSize(uint256 _revealBatchSize) external;
+
+    function setRevealStartTime(uint256 _revealStartTime) external;
+
+    function setRevealInterval(uint256 _revealInterval) external;
+
     function devMint(uint256 quantity) external;
 
     function withdrawAVAX(address to) external;
