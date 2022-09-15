@@ -189,7 +189,6 @@ abstract contract BatchReveal is
         if (_revealStartTime > block.timestamp + 8_640_000) {
             revert Launchpeg__InvalidRevealDates();
         }
-        // TODO: can reveal start time be before current block time?
         revealStartTime = _revealStartTime;
         emit RevealStartTimeSet(_revealStartTime);
     }
@@ -197,7 +196,7 @@ abstract contract BatchReveal is
     /// @notice Set the batch reveal interval. Can only be set after
     /// batch reveal has been initialized and before a batch has
     /// been revealed.
-    /// @param _revealInterval New batch reveal batch size
+    /// @param _revealInterval New batch reveal interval
     function _setRevealInterval(uint256 _revealInterval)
         internal
         initialized
@@ -463,6 +462,8 @@ abstract contract BatchReveal is
     }
 
     /// @dev Determines if batch reveal is needed.
+    /// We assume batch reveal is needed if the configuration has
+    /// not been initialized or if revealBatchSize is not 0.
     function isBatchReveal() internal view returns (bool) {
         return !isInitialized() || revealBatchSize != 0;
     }
