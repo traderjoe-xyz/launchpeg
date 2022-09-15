@@ -199,7 +199,10 @@ abstract contract BaseLaunchpeg is
             revert Launchpeg__InvalidProjectOwner();
         }
 
-        if (_amountForDevs + _amountForAllowlist > _collectionSize) {
+        if (
+            _collectionSize == 0 ||
+            _amountForDevs + _amountForAllowlist > _collectionSize
+        ) {
             revert Launchpeg__LargerCollectionSizeNeeded();
         }
 
@@ -565,7 +568,7 @@ abstract contract BaseLaunchpeg is
         override(ERC721AUpgradeable, IERC721MetadataUpgradeable)
         returns (string memory)
     {
-        if (!isBatchReveal()) {
+        if (isBatchRevealInitialized() && !isBatchRevealEnabled()) {
             return string(abi.encodePacked(baseURI, _id.toString()));
         } else if (_id >= lastTokenRevealed) {
             return unrevealedURI;

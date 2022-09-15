@@ -101,7 +101,7 @@ abstract contract BatchReveal is
     event RevealIntervalSet(uint256 revealInterval);
 
     modifier initialized() {
-        if (!isInitialized()) {
+        if (!isBatchRevealInitialized()) {
             revert Launchpeg__BatchRevealNotInitialized();
         }
         _;
@@ -110,6 +110,13 @@ abstract contract BatchReveal is
     modifier revealNotStarted() {
         if (lastTokenRevealed != 0) {
             revert Launchpeg__BatchRevealStarted();
+        }
+        _;
+    }
+
+    modifier batchRevealEnabled() {
+        if (!isBatchRevealEnabled()) {
+            revert Launchpeg__RevealNextBatchNotAvailable();
         }
         _;
     }
@@ -125,9 +132,6 @@ abstract contract BatchReveal is
         uint256 _revealStartTime,
         uint256 _revealInterval
     ) internal onlyInitializing {
-        if (_collectionSize == 0) {
-            revert Launchpeg__LargerCollectionSizeNeeded();
-        }
         if (
             (_revealBatchSize != 0 && (_collectionSize % _revealBatchSize != 0)) ||
             _revealBatchSize > _collectionSize
@@ -186,6 +190,7 @@ abstract contract BatchReveal is
         initialized
         revealNotStarted
     {
+        // probably a mistake if the reveal is more than 100 days in the future
         if (_revealStartTime > block.timestamp + 8_640_000) {
             revert Launchpeg__InvalidRevealDates();
         }
@@ -202,6 +207,7 @@ abstract contract BatchReveal is
         initialized
         revealNotStarted
     {
+        // probably a mistake if reveal interval is longer than 10 days
         if (_revealInterval > 864_000) {
             revert Launchpeg__InvalidRevealDates();
         }
@@ -368,11 +374,9 @@ abstract contract BatchReveal is
     function _hasBatchToReveal(uint256 _totalSupply)
         internal
         view
+        batchRevealEnabled
         returns (bool, uint256)
     {
-        if (!isBatchReveal()) {
-            revert Launchpeg__RevealNextBatchNotAvailable();
-        }
         uint256 batchNumber;
         unchecked {
             batchNumber = lastTokenRevealed / revealBatchSize;
@@ -426,12 +430,9 @@ abstract contract BatchReveal is
     function fulfillRandomWords(
         uint256, /* requestId */
         uint256[] memory _randomWords
-    ) internal override {
+    ) internal override batchRevealEnabled {
         if (hasBeenForceRevealed) {
             revert Launchpeg__HasBeenForceRevealed();
-        }
-        if (!isBatchReveal()) {
-            revert Launchpeg__RevealNextBatchNotAvailable();
         }
 
         uint256 _batchToReveal = nextBatchToReveal++;
@@ -446,10 +447,7 @@ abstract contract BatchReveal is
     }
 
     /// @dev Force reveal, should be restricted to owner
-    function _forceReveal() internal {
-        if (!isBatchReveal()) {
-            revert Launchpeg__RevealNextBatchNotAvailable();
-        }
+    function _forceReveal() internal batchRevealEnabled {
         uint256 batchNumber;
         unchecked {
             batchNumber = lastTokenRevealed / revealBatchSize;
@@ -461,15 +459,14 @@ abstract contract BatchReveal is
         emit Reveal(batchNumber, batchToSeed[batchNumber]);
     }
 
-    /// @dev Determines if batch reveal is needed.
-    /// We assume batch reveal is needed if the configuration has
-    /// not been initialized or if revealBatchSize is not 0.
-    function isBatchReveal() internal view returns (bool) {
-        return !isInitialized() || revealBatchSize != 0;
+    /// @dev Determines if batch reveal is enabled.
+    /// Batch reveal is enabled if revealBatchSize is not 0.
+    function isBatchRevealEnabled() internal view returns (bool) {
+        return revealBatchSize != 0;
     }
 
-    /// @dev Determines if the batch reveal configuration has been initialized.
-    function isInitialized() private view returns (bool) {
+    /// @dev Determines if batch reveal is initialized.
+    function isBatchRevealInitialized() internal view returns (bool) {
         return collectionSize != 0;
     }
 }
