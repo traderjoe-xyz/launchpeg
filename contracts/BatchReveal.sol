@@ -100,13 +100,6 @@ abstract contract BatchReveal is
     /// @param revealInterval New reveal interval
     event RevealIntervalSet(uint256 revealInterval);
 
-    modifier initialized() {
-        if (!isBatchRevealInitialized()) {
-            revert Launchpeg__BatchRevealNotInitialized();
-        }
-        _;
-    }
-
     modifier revealNotStarted() {
         if (lastTokenRevealed != 0) {
             revert Launchpeg__BatchRevealStarted();
@@ -163,7 +156,6 @@ abstract contract BatchReveal is
     /// @param _revealBatchSize New reveal batch size
     function _setRevealBatchSize(uint256 _revealBatchSize)
         internal
-        initialized
         revealNotStarted
     {
         if (_revealBatchSize == 0) {
@@ -187,7 +179,6 @@ abstract contract BatchReveal is
     /// @param _revealStartTime New batch reveal start time
     function _setRevealStartTime(uint256 _revealStartTime)
         internal
-        initialized
         revealNotStarted
     {
         // probably a mistake if the reveal is more than 100 days in the future
@@ -204,7 +195,6 @@ abstract contract BatchReveal is
     /// @param _revealInterval New batch reveal interval
     function _setRevealInterval(uint256 _revealInterval)
         internal
-        initialized
         revealNotStarted
     {
         // probably a mistake if reveal interval is longer than 10 days
@@ -398,7 +388,11 @@ abstract contract BatchReveal is
     /// @dev If using VRF, the reveal happens on the coordinator callback call
     /// @param _totalSupply Number of token already minted
     /// @return isRevealed Returns false if it is not possible to reveal the next batch
-    function _revealNextBatch(uint256 _totalSupply) internal returns (bool) {
+    function _revealNextBatch(uint256 _totalSupply)
+        internal
+        batchRevealEnabled
+        returns (bool)
+    {
         uint256 batchNumber;
         bool canReveal;
         (canReveal, batchNumber) = _hasBatchToReveal(_totalSupply);

@@ -63,6 +63,12 @@ describe('FlatLaunchpeg', () => {
   })
 
   describe('Initialization', () => {
+    it('Collection size cannot be 0', async () => {
+      config.collectionSize = 0
+      config.batchRevealSize = 0
+      await expect(deployFlatLaunchpeg()).to.be.revertedWith('Launchpeg__LargerCollectionSizeNeeded()')
+    })
+
     it('Phases can be updated', async () => {
       await initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.NotStarted)
 
@@ -242,6 +248,48 @@ describe('FlatLaunchpeg', () => {
       )
       await flatLaunchpeg.setPublicSaleEndTime(newPublicSaleEndTime)
       expect(await flatLaunchpeg.publicSaleEndTime()).to.eq(newPublicSaleEndTime)
+    })
+
+    it('Owner can set reveal batch size', async () => {
+      const invalidRevealBatchSize = 101
+      const newRevealBatchSize = 100
+      await initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.Allowlist)
+      await expect(flatLaunchpeg.connect(projectOwner).setRevealBatchSize(newRevealBatchSize)).to.be.revertedWith(
+        'Ownable: caller is not the owner'
+      )
+      await expect(flatLaunchpeg.setRevealBatchSize(invalidRevealBatchSize)).to.be.revertedWith(
+        'Launchpeg__InvalidBatchRevealSize()'
+      )
+      await flatLaunchpeg.setRevealBatchSize(newRevealBatchSize)
+      expect(await flatLaunchpeg.revealBatchSize()).to.eq(newRevealBatchSize)
+    })
+
+    it('Owner can set reveal start time', async () => {
+      const invalidRevealStartTime = config.batchRevealStart.add(duration.minutes(8_640_000))
+      const newRevealStartTime = config.batchRevealStart.add(duration.minutes(30))
+      await initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.Allowlist)
+      await expect(flatLaunchpeg.connect(projectOwner).setRevealStartTime(newRevealStartTime)).to.be.revertedWith(
+        'Ownable: caller is not the owner'
+      )
+      await expect(flatLaunchpeg.setRevealStartTime(invalidRevealStartTime)).to.be.revertedWith(
+        'Launchpeg__InvalidRevealDates()'
+      )
+      await flatLaunchpeg.setRevealStartTime(newRevealStartTime)
+      expect(await flatLaunchpeg.revealStartTime()).to.eq(newRevealStartTime)
+    })
+
+    it('Owner can set reveal interval', async () => {
+      const invalidRevealInterval = 864_001
+      const newRevealInterval = config.batchRevealInterval.add(10)
+      await initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.Allowlist)
+      await expect(flatLaunchpeg.connect(projectOwner).setRevealInterval(newRevealInterval)).to.be.revertedWith(
+        'Ownable: caller is not the owner'
+      )
+      await expect(flatLaunchpeg.setRevealInterval(invalidRevealInterval)).to.be.revertedWith(
+        'Launchpeg__InvalidRevealDates()'
+      )
+      await flatLaunchpeg.setRevealInterval(newRevealInterval)
+      expect(await flatLaunchpeg.revealInterval()).to.eq(newRevealInterval)
     })
   })
 
