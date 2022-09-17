@@ -8,6 +8,7 @@ import "@openzeppelin/contracts/proxy/Clones.sol";
 import "./interfaces/ILaunchpegFactory.sol";
 import "./interfaces/ILaunchpeg.sol";
 import "./interfaces/IFlatLaunchpeg.sol";
+import "./interfaces/IPendingOwnableUpgradeable.sol";
 import "./LaunchpegErrors.sol";
 
 /// @title Launchpeg Factory
@@ -168,7 +169,7 @@ contract LaunchpegFactory is
             joeFeeCollector
         );
 
-        OwnableUpgradeable(launchpeg).transferOwnership(msg.sender);
+        IPendingOwnableUpgradeable(launchpeg).setPendingOwner(msg.sender);
 
         emit LaunchpegCreated(
             launchpeg,
@@ -237,7 +238,7 @@ contract LaunchpegFactory is
             joeFeeCollector
         );
 
-        OwnableUpgradeable(flatLaunchpeg).transferOwnership(msg.sender);
+        IPendingOwnableUpgradeable(flatLaunchpeg).setPendingOwner(msg.sender);
 
         emit FlatLaunchpegCreated(
             flatLaunchpeg,

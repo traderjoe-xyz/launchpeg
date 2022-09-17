@@ -18,7 +18,8 @@ abstract contract SafePausableUpgradeable is
     bytes32 public constant override PAUSER_ROLE = keccak256("PAUSER_ROLE");
     bytes32 public constant override UNPAUSER_ROLE = keccak256("UNPAUSER_ROLE");
 
-    bytes32 public constant override PAUSER_ADMIN_ROLE = keccak256("PAUSER_ADMIN_ROLE");
+    bytes32 public constant override PAUSER_ADMIN_ROLE =
+        keccak256("PAUSER_ADMIN_ROLE");
     bytes32 public constant override UNPAUSER_ADMIN_ROLE =
         keccak256("UNPAUSER_ADMIN_ROLE");
 

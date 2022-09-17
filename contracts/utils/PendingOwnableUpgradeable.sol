@@ -6,11 +6,7 @@ import "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeabl
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 import "../interfaces/IPendingOwnableUpgradeable.sol";
-
-error PendingOwnableUpgradeable__NotOwner();
-error PendingOwnableUpgradeable__NotPendingOwner();
-error PendingOwnableUpgradeable__PendingOwnerAlreadySet();
-error PendingOwnableUpgradeable__NoPendingOwner();
+import "../LaunchpegErrors.sol";
 
 /**
  * @title Pending Ownable

@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/common/ERC2981Upgradeable.sol";
 import "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
@@ -10,6 +9,7 @@ import "erc721a-upgradeable/contracts/ERC721AUpgradeable.sol";
 
 import "./BatchReveal.sol";
 import "./LaunchpegErrors.sol";
+import "./utils/SafeAccessControlEnumerableUpgradeable.sol";
 import "./interfaces/IBaseLaunchpeg.sol";
 
 /// @title BaseLaunchpeg
@@ -19,16 +19,20 @@ abstract contract BaseLaunchpeg is
     IBaseLaunchpeg,
     ERC721AUpgradeable,
     BatchReveal,
-    OwnableUpgradeable,
+    SafeAccessControlEnumerableUpgradeable,
     ReentrancyGuardUpgradeable,
     ERC2981Upgradeable
 {
     using StringsUpgradeable for uint256;
 
+    /// @notice Role granted to project owners
+    bytes32 public constant override PROJECT_OWNER_ROLE =
+        keccak256("PROJECT_OWNER_ROLE");
+
     /// @notice The collection size (e.g 10000)
     uint256 public override collectionSize;
 
-    /// @notice Amount of NFTs reserved for `projectOwner` (e.g 200)
+    /// @notice Amount of NFTs reserved for the project owner (e.g 200)
     /// @dev It can be minted any time via `devMint`
     uint256 public override amountForDevs;
 
@@ -50,10 +54,6 @@ abstract contract BaseLaunchpeg is
 
     /// @notice Percentage base point
     uint256 public constant BASIS_POINT_PRECISION = 10_000;
-
-    /// @notice The project owner
-    /// @dev We may own the contract during the launch; this address is allowed to call `devMint`
-    address public override projectOwner;
 
     /// @notice Token URI after collection reveal
     string public override baseURI;
@@ -99,10 +99,6 @@ abstract contract BaseLaunchpeg is
     /// @param amount Amount of AVAX transfered to `sender`
     /// @param fee Amount of AVAX paid to the fee collector
     event AvaxWithdraw(address indexed sender, uint256 amount, uint256 fee);
-
-    /// @dev Emitted on setProjectOwner()
-    /// @param owner The new project owner
-    event ProjectOwnerUpdated(address indexed owner);
 
     /// @dev Emitted on setBaseURI()
     /// @param baseURI The new base URI
@@ -151,13 +147,6 @@ abstract contract BaseLaunchpeg is
         _;
     }
 
-    modifier onlyProjectOwner() {
-        if (projectOwner != msg.sender) {
-            revert Launchpeg__Unauthorized();
-        }
-        _;
-    }
-
     /// @dev BaseLaunchpeg initialization
     /// @param _name ERC721 name
     /// @param _symbol ERC721 symbol
@@ -183,7 +172,7 @@ abstract contract BaseLaunchpeg is
         uint256 _revealStartTime,
         uint256 _revealInterval
     ) internal onlyInitializing {
-        __Ownable_init();
+        __SafeAccessControlEnumerable_init();
         __ReentrancyGuard_init();
         __ERC2981_init();
 
@@ -210,7 +199,7 @@ abstract contract BaseLaunchpeg is
             revert Launchpeg__InvalidMaxBatchSize();
         }
 
-        projectOwner = _projectOwner;
+        grantRole(PROJECT_OWNER_ROLE, _projectOwner);
         // Default royalty is 5%
         _setDefaultRoyalty(_royaltyReceiver, 500);
 
@@ -296,22 +285,6 @@ abstract contract BaseLaunchpeg is
     {
         unrevealedURI = _unrevealedURI;
         emit UnrevealedURISet(unrevealedURI);
-    }
-
-    /// @notice Set the project owner
-    /// @dev The project owner can call `devMint` any time
-    /// @param _projectOwner The project owner
-    function setProjectOwner(address _projectOwner)
-        external
-        override
-        onlyOwner
-    {
-        if (_projectOwner == address(0)) {
-            revert Launchpeg__InvalidProjectOwner();
-        }
-
-        projectOwner = _projectOwner;
-        emit ProjectOwnerUpdated(projectOwner);
     }
 
     /// @notice Set VRF configuration
@@ -479,7 +452,11 @@ abstract contract BaseLaunchpeg is
     /// @notice Mint NFTs to the project owner
     /// @dev Can only mint up to `amountForDevs`
     /// @param _quantity Quantity of NFTs to mint
-    function devMint(uint256 _quantity) external override onlyProjectOwner {
+    function devMint(uint256 _quantity)
+        external
+        override
+        onlyOwnerOrRole(PROJECT_OWNER_ROLE)
+    {
         if (totalSupply() + _quantity > collectionSize) {
             revert Launchpeg__MaxSupplyReached();
         }
@@ -606,13 +583,21 @@ abstract contract BaseLaunchpeg is
         public
         view
         virtual
-        override(ERC721AUpgradeable, ERC2981Upgradeable, IERC165Upgradeable)
+        override(
+            ERC721AUpgradeable,
+            ERC2981Upgradeable,
+            IERC165Upgradeable,
+            SafeAccessControlEnumerableUpgradeable
+        )
         returns (bool)
     {
         return
             ERC721AUpgradeable.supportsInterface(_interfaceId) ||
             ERC2981Upgradeable.supportsInterface(_interfaceId) ||
             ERC165Upgradeable.supportsInterface(_interfaceId) ||
+            SafeAccessControlEnumerableUpgradeable.supportsInterface(
+                _interfaceId
+            ) ||
             super.supportsInterface(_interfaceId);
     }
 
