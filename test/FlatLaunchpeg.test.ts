@@ -222,9 +222,9 @@ describe('FlatLaunchpeg', () => {
       let invalidPublicSaleStartTime = config.allowlistStartTime.sub(duration.minutes(30))
       const newPublicSaleStartTime = config.publicSaleStartTime.sub(duration.minutes(30))
       await initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.Allowlist)
-      await expect(flatLaunchpeg.connect(projectOwner).setPublicSaleStartTime(newPublicSaleStartTime)).to.be.revertedWith(
-        'Ownable: caller is not the owner'
-      )
+      await expect(
+        flatLaunchpeg.connect(projectOwner).setPublicSaleStartTime(newPublicSaleStartTime)
+      ).to.be.revertedWith('Ownable: caller is not the owner')
       await expect(flatLaunchpeg.setPublicSaleStartTime(invalidPublicSaleStartTime)).to.be.revertedWith(
         'Launchpeg__PublicSaleBeforeAllowlist()'
       )
@@ -353,9 +353,7 @@ describe('FlatLaunchpeg', () => {
       await flatLaunchpeg.connect(bob).publicSaleMint(quantity, { value: price.mul(quantity) })
 
       quantity = 1
-      await expect(flatLaunchpeg.connect(alice).publicSaleMint(quantity)).to.be.revertedWith(
-        'Launchpeg__WrongPhase()'
-      )
+      await expect(flatLaunchpeg.connect(alice).publicSaleMint(quantity)).to.be.revertedWith('Launchpeg__WrongPhase()')
     })
 
     it('Mint reverts when address minted maxBatchSize', async () => {

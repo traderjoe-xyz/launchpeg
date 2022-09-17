@@ -230,9 +230,7 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
             block.timestamp < allowlistStartTime
         ) {
             return Phase.NotStarted;
-        } else if (
-            totalSupply() >= collectionSize
-        ) {
+        } else if (totalSupply() >= collectionSize) {
             return Phase.Ended;
         } else if (
             block.timestamp >= allowlistStartTime &&

@@ -645,9 +645,7 @@ describe('Launchpeg', () => {
       await launchpeg.connect(bob).publicSaleMint(quantity, { value: price.mul(quantity) })
 
       quantity = 1
-      await expect(launchpeg.connect(alice).publicSaleMint(quantity)).to.be.revertedWith(
-        'Launchpeg__WrongPhase()'
-      )
+      await expect(launchpeg.connect(alice).publicSaleMint(quantity)).to.be.revertedWith('Launchpeg__WrongPhase()')
     })
 
     it('Mint reverts when the user already minted max amount', async () => {
