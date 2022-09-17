@@ -100,6 +100,13 @@ abstract contract BatchReveal is
     /// @param revealInterval New reveal interval
     event RevealIntervalSet(uint256 revealInterval);
 
+    modifier batchRevealInitialized() {
+        if (!isBatchRevealInitialized()) {
+            revert Launchpeg__BatchRevealNotInitialized();
+        }
+        _;
+    }
+
     modifier revealNotStarted() {
         if (lastTokenRevealed != 0) {
             revert Launchpeg__BatchRevealStarted();
@@ -139,6 +146,7 @@ abstract contract BatchReveal is
     /// @param _revealBatchSize New reveal batch size
     function _setRevealBatchSize(uint256 _revealBatchSize)
         internal
+        batchRevealInitialized
         revealNotStarted
     {
         if (_revealBatchSize == 0) {
@@ -162,6 +170,7 @@ abstract contract BatchReveal is
     /// @param _revealStartTime New batch reveal start time in seconds
     function _setRevealStartTime(uint256 _revealStartTime)
         internal
+        batchRevealInitialized
         revealNotStarted
     {
         // probably a mistake if the reveal is more than 100 days in the future
@@ -178,6 +187,7 @@ abstract contract BatchReveal is
     /// @param _revealInterval New batch reveal interval in seconds
     function _setRevealInterval(uint256 _revealInterval)
         internal
+        batchRevealInitialized
         revealNotStarted
     {
         // probably a mistake if reveal interval is longer than 10 days
@@ -441,6 +451,9 @@ abstract contract BatchReveal is
     }
 
     /// @dev Determines if batch reveal is initialized.
+    /// Since the collection size is only set on intializeBatchReveal()
+    /// and the collection size cannot be 0, we assume a 0 value means
+    /// the batch reveal configuration has not been initialized.
     function isBatchRevealInitialized() internal view returns (bool) {
         return collectionSize != 0;
     }

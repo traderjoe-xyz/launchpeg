@@ -204,6 +204,18 @@ describe('Launchpeg', () => {
       )
     })
 
+    it('Should not allow batch reveal config to be set prior to batch reveal initialization', async () => {
+      await expect(launchpeg.setRevealBatchSize(config.batchRevealSize)).to.be.revertedWith(
+        'Launchpeg__BatchRevealNotInitialized'
+      )
+      await expect(launchpeg.setRevealStartTime(config.batchRevealStart)).to.be.revertedWith(
+        'Launchpeg__BatchRevealNotInitialized'
+      )
+      await expect(launchpeg.setRevealInterval(config.batchRevealInterval)).to.be.revertedWith(
+        'Launchpeg__BatchRevealNotInitialized'
+      )
+    })
+
     it('Should allow 0 batch reveal size', async () => {
       config.batchRevealSize = 0
       await initializePhasesLaunchpeg(launchpeg, config, Phase.NotStarted)
