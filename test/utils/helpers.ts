@@ -66,7 +66,7 @@ export enum Phase {
   Allowlist,
   PublicSale,
   Reveal,
-  Ended
+  Ended,
 }
 
 export const initializePhasesLaunchpeg = async (launchpeg: Contract, config: LaunchpegConfig, currentPhase: Phase) => {

@@ -442,9 +442,7 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
             block.timestamp < auctionSaleStartTime
         ) {
             return Phase.NotStarted;
-        } else if (
-            totalSupply() >= collectionSize
-        ) {
+        } else if (totalSupply() >= collectionSize) {
             return Phase.Ended;
         } else if (
             block.timestamp >= auctionSaleStartTime &&
