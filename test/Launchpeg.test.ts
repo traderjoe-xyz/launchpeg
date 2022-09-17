@@ -442,7 +442,7 @@ describe('Launchpeg', () => {
       const newRevealBatchSize = 100
       await initializePhasesLaunchpeg(launchpeg, config, Phase.DutchAuction)
       await expect(launchpeg.connect(projectOwner).setRevealBatchSize(newRevealBatchSize)).to.be.revertedWith(
-        'Ownable: caller is not the owner'
+        'PendingOwnableUpgradeable__NotOwner()'
       )
       await expect(launchpeg.setRevealBatchSize(invalidRevealBatchSize)).to.be.revertedWith(
         'Launchpeg__InvalidBatchRevealSize()'
@@ -456,7 +456,7 @@ describe('Launchpeg', () => {
       const newRevealStartTime = config.batchRevealStart.add(duration.minutes(30))
       await initializePhasesLaunchpeg(launchpeg, config, Phase.DutchAuction)
       await expect(launchpeg.connect(projectOwner).setRevealStartTime(newRevealStartTime)).to.be.revertedWith(
-        'Ownable: caller is not the owner'
+        'PendingOwnableUpgradeable__NotOwner()'
       )
       await expect(launchpeg.setRevealStartTime(invalidRevealStartTime)).to.be.revertedWith(
         'Launchpeg__InvalidRevealDates()'
@@ -470,7 +470,7 @@ describe('Launchpeg', () => {
       const newRevealInterval = config.batchRevealInterval.add(10)
       await initializePhasesLaunchpeg(launchpeg, config, Phase.DutchAuction)
       await expect(launchpeg.connect(projectOwner).setRevealInterval(newRevealInterval)).to.be.revertedWith(
-        'Ownable: caller is not the owner'
+        'PendingOwnableUpgradeable__NotOwner()'
       )
       await expect(launchpeg.setRevealInterval(invalidRevealInterval)).to.be.revertedWith(
         'Launchpeg__InvalidRevealDates()'
