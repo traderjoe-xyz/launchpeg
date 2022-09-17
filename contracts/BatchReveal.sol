@@ -114,39 +114,22 @@ abstract contract BatchReveal is
         _;
     }
 
-    /// @dev BatchReveal initialization
-    /// @param _revealBatchSize Size of the batch reveal. Set to 0 to disable batch reveal.
-    /// @param _collectionSize Needs to be sent by child contract
-    /// @param _revealStartTime Batch reveal start time
-    /// @param _revealInterval Batch reveal interval
+    /// @dev Initialize batch reveal configuration.
+    /// @param _collectionSize NFT collection size. Needs to be sent by child contract.
+    /// @param _revealBatchSize Reveal batch size. Set to 0 to disable batch reveal.
+    /// @param _revealStartTime Batch reveal start time in seconds
+    /// @param _revealInterval Batch reveal interval in seconds
     function initializeBatchReveal(
-        uint256 _revealBatchSize,
         uint256 _collectionSize,
+        uint256 _revealBatchSize,
         uint256 _revealStartTime,
         uint256 _revealInterval
-    ) internal onlyInitializing {
-        if (
-            (_revealBatchSize != 0 && (_collectionSize % _revealBatchSize != 0)) ||
-            _revealBatchSize > _collectionSize
-        ) {
-            revert Launchpeg__InvalidBatchRevealSize();
-        }
-        // We assume that if the reveal is more than 100 days in the future, that's a mistake
-        // Same if the reveal interval is longer than 10 days
-        if (
-            _revealStartTime > block.timestamp + 8_640_000 ||
-            _revealInterval > 864_000
-        ) {
-            revert Launchpeg__InvalidRevealDates();
-        }
-        revealBatchSize = _revealBatchSize;
+    ) internal {
         collectionSize = _collectionSize;
         intCollectionSize = int128(int256(_collectionSize));
-        if (_revealBatchSize != 0) {
-            _rangeLength = (_collectionSize / _revealBatchSize) * 2;
-        }
-        revealStartTime = _revealStartTime;
-        revealInterval = _revealInterval;
+        _setRevealBatchSize(_revealBatchSize);
+        _setRevealStartTime(_revealStartTime);
+        _setRevealInterval(_revealInterval);
     }
 
     /// @notice Set the reveal batch size. Can only be set after
@@ -176,7 +159,7 @@ abstract contract BatchReveal is
     /// @notice Set the batch reveal start time. Can only be set after
     /// batch reveal has been initialized and before a batch has
     /// been revealed.
-    /// @param _revealStartTime New batch reveal start time
+    /// @param _revealStartTime New batch reveal start time in seconds
     function _setRevealStartTime(uint256 _revealStartTime)
         internal
         revealNotStarted
@@ -192,7 +175,7 @@ abstract contract BatchReveal is
     /// @notice Set the batch reveal interval. Can only be set after
     /// batch reveal has been initialized and before a batch has
     /// been revealed.
-    /// @param _revealInterval New batch reveal interval
+    /// @param _revealInterval New batch reveal interval in seconds
     function _setRevealInterval(uint256 _revealInterval)
         internal
         revealNotStarted
@@ -364,9 +347,11 @@ abstract contract BatchReveal is
     function _hasBatchToReveal(uint256 _totalSupply)
         internal
         view
-        batchRevealEnabled
         returns (bool, uint256)
     {
+        if (!isBatchRevealEnabled()) {
+            return (false, 0);
+        }
         uint256 batchNumber;
         unchecked {
             batchNumber = lastTokenRevealed / revealBatchSize;
@@ -388,11 +373,7 @@ abstract contract BatchReveal is
     /// @dev If using VRF, the reveal happens on the coordinator callback call
     /// @param _totalSupply Number of token already minted
     /// @return isRevealed Returns false if it is not possible to reveal the next batch
-    function _revealNextBatch(uint256 _totalSupply)
-        internal
-        batchRevealEnabled
-        returns (bool)
-    {
+    function _revealNextBatch(uint256 _totalSupply) internal returns (bool) {
         uint256 batchNumber;
         bool canReveal;
         (canReveal, batchNumber) = _hasBatchToReveal(_totalSupply);

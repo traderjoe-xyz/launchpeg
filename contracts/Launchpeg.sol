@@ -62,6 +62,9 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
     /// @param publicSaleStartTime Public sale start time in seconds
     /// @param publicSaleEndTime Public sale end time in seconds
     /// @param publicSaleDiscountPercent Discount applied to the last auction price during the public sale
+    /// @param revealBatchSize Size of the batch reveal
+    /// @param revealStartTime Start of the token URIs reveal in seconds
+    /// @param revealInterval Interval between two batch reveals in seconds
     event Initialized(
         uint256 auctionSaleStartTime,
         uint256 auctionStartPrice,
@@ -71,7 +74,10 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
         uint256 allowlistDiscountPercent,
         uint256 publicSaleStartTime,
         uint256 publicSaleEndTime,
-        uint256 publicSaleDiscountPercent
+        uint256 publicSaleDiscountPercent,
+        uint256 revealBatchSize,
+        uint256 revealStartTime,
+        uint256 revealInterval
     );
 
     /// @dev Emitted on setAuctionSaleStartTime()
@@ -110,9 +116,6 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
     /// @param _amountForAuction Amount of NFTs available for the auction (e.g 8000)
     /// @param _amountForAllowlist Amount of NFTs available for the allowlist mint (e.g 1000)
     /// @param _amountForDevs Amount of NFTs reserved for `projectOwner` (e.g 200)
-    /// @param _batchRevealSize Size of the batch reveal
-    /// @param _revealStartTime Start of the token URIs reveal in seconds
-    /// @param _revealInterval Interval between two batch reveals in seconds
     function initialize(
         string memory _name,
         string memory _symbol,
@@ -122,10 +125,7 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
         uint256 _collectionSize,
         uint256 _amountForAuction,
         uint256 _amountForAllowlist,
-        uint256 _amountForDevs,
-        uint256 _batchRevealSize,
-        uint256 _revealStartTime,
-        uint256 _revealInterval
+        uint256 _amountForDevs
     ) external override initializer {
         initializeBaseLaunchpeg(
             _name,
@@ -135,10 +135,7 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
             _maxBatchSize,
             _collectionSize,
             _amountForDevs,
-            _amountForAllowlist,
-            _batchRevealSize,
-            _revealStartTime,
-            _revealInterval
+            _amountForAllowlist
         );
         if (
             _amountForAuction + _amountForAllowlist + _amountForDevs >
@@ -161,6 +158,9 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
     /// @param _publicSaleStartTime Public sale start time in seconds
     /// @param _publicSaleEndTime Public sale end time in seconds
     /// @param _publicSaleDiscountPercent Discount applied to the last auction price during the public sale
+    /// @param _revealBatchSize Size of the batch reveal
+    /// @param _revealStartTime Start of the token URIs reveal in seconds
+    /// @param _revealInterval Interval between two batch reveals in seconds
     function initializePhases(
         uint256 _auctionSaleStartTime,
         uint256 _auctionStartPrice,
@@ -170,7 +170,10 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
         uint256 _allowlistDiscountPercent,
         uint256 _publicSaleStartTime,
         uint256 _publicSaleEndTime,
-        uint256 _publicSaleDiscountPercent
+        uint256 _publicSaleDiscountPercent,
+        uint256 _revealBatchSize,
+        uint256 _revealStartTime,
+        uint256 _revealInterval
     ) external override onlyOwner atPhase(Phase.NotStarted) {
         if (_auctionSaleStartTime < block.timestamp) {
             revert Launchpeg__InvalidStartTime();
@@ -221,6 +224,13 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
         publicSaleEndTime = _publicSaleEndTime;
         publicSaleDiscountPercent = _publicSaleDiscountPercent;
 
+        initializeBatchReveal(
+            collectionSize,
+            _revealBatchSize,
+            _revealStartTime,
+            _revealInterval
+        );
+
         emit Initialized(
             auctionSaleStartTime,
             auctionStartPrice,
@@ -230,7 +240,10 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
             allowlistDiscountPercent,
             publicSaleStartTime,
             publicSaleEndTime,
-            publicSaleDiscountPercent
+            publicSaleDiscountPercent,
+            _revealBatchSize,
+            _revealStartTime,
+            _revealInterval
         );
     }
 
@@ -442,9 +455,7 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
             block.timestamp < auctionSaleStartTime
         ) {
             return Phase.NotStarted;
-        } else if (
-            totalSupply() >= collectionSize
-        ) {
+        } else if (totalSupply() >= collectionSize) {
             return Phase.Ended;
         } else if (
             block.timestamp >= auctionSaleStartTime &&

@@ -22,12 +22,18 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
     /// @param publicSaleEndTime Public sale end time in seconds
     /// @param allowlistPrice Price of the allowlist sale in Avax
     /// @param salePrice Price of the public sale in Avax
+    /// @param revealBatchSize Size of the batch reveal
+    /// @param revealStartTime Start of the token URIs reveal in seconds
+    /// @param revealInterval Interval between two batch reveals in seconds
     event Initialized(
         uint256 allowlistStartTime,
         uint256 publicSaleStartTime,
         uint256 publicSaleEndTime,
         uint256 allowlistPrice,
-        uint256 salePrice
+        uint256 salePrice,
+        uint256 revealBatchSize,
+        uint256 revealStartTime,
+        uint256 revealInterval
     );
 
     /// @dev Emitted on allowlistMint(), publicSaleMint()
@@ -41,10 +47,6 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
         uint256 price,
         uint256 tokenId
     );
-
-    /// @dev Emitted on setPublicSaleActive()
-    /// @param isActive True if the public sale is open, false otherwise
-    event PublicSaleStateChanged(bool isActive);
 
     modifier atPhase(Phase _phase) {
         if (currentPhase() != _phase) {
@@ -63,9 +65,6 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
     /// @param _collectionSize The collection size (e.g 10000)
     /// @param _amountForDevs Amount of NFTs reserved for `projectOwner` (e.g 200)
     /// @param _amountForAllowlist Amount of NFTs available for the allowlist mint (e.g 1000)
-    /// @param _batchRevealSize Size of the batch reveal
-    /// @param _revealStartTime Start of the token URIs reveal in seconds
-    /// @param _revealInterval Interval between two batch reveals in seconds
     function initialize(
         string memory _name,
         string memory _symbol,
@@ -74,10 +73,7 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
         uint256 _maxBatchSize,
         uint256 _collectionSize,
         uint256 _amountForDevs,
-        uint256 _amountForAllowlist,
-        uint256 _batchRevealSize,
-        uint256 _revealStartTime,
-        uint256 _revealInterval
+        uint256 _amountForAllowlist
     ) external override initializer {
         initializeBaseLaunchpeg(
             _name,
@@ -87,10 +83,7 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
             _maxBatchSize,
             _collectionSize,
             _amountForDevs,
-            _amountForAllowlist,
-            _batchRevealSize,
-            _revealStartTime,
-            _revealInterval
+            _amountForAllowlist
         );
     }
 
@@ -101,12 +94,18 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
     /// @param _publicSaleEndTime Public sale end time in seconds
     /// @param _allowlistPrice Price of the allowlist sale in Avax
     /// @param _salePrice Price of the public sale in Avax
+    /// @param _revealBatchSize Size of the batch reveal
+    /// @param _revealStartTime Start of the token URIs reveal in seconds
+    /// @param _revealInterval Interval between two batch reveals in seconds
     function initializePhases(
         uint256 _allowlistStartTime,
         uint256 _publicSaleStartTime,
         uint256 _publicSaleEndTime,
         uint256 _allowlistPrice,
-        uint256 _salePrice
+        uint256 _salePrice,
+        uint256 _revealBatchSize,
+        uint256 _revealStartTime,
+        uint256 _revealInterval
     ) external override onlyOwner atPhase(Phase.NotStarted) {
         if (_allowlistStartTime < block.timestamp) {
             revert Launchpeg__InvalidStartTime();
@@ -128,12 +127,22 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
         publicSaleStartTime = _publicSaleStartTime;
         publicSaleEndTime = _publicSaleEndTime;
 
+        initializeBatchReveal(
+            collectionSize,
+            _revealBatchSize,
+            _revealStartTime,
+            _revealInterval
+        );
+
         emit Initialized(
             allowlistStartTime,
             publicSaleStartTime,
             publicSaleEndTime,
             allowlistPrice,
-            salePrice
+            salePrice,
+            _revealBatchSize,
+            _revealStartTime,
+            _revealInterval
         );
     }
 
@@ -230,9 +239,7 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
             block.timestamp < allowlistStartTime
         ) {
             return Phase.NotStarted;
-        } else if (
-            totalSupply() >= collectionSize
-        ) {
+        } else if (totalSupply() >= collectionSize) {
             return Phase.Ended;
         } else if (
             block.timestamp >= allowlistStartTime &&
