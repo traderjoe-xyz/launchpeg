@@ -156,9 +156,6 @@ abstract contract BaseLaunchpeg is
     /// @param _collectionSize The collection size (e.g 10000)
     /// @param _amountForDevs Amount of NFTs reserved for `projectOwner` (e.g 200)
     /// @param _amountForAllowlist Amount of NFTs available for the allowlist mint (e.g 1000)
-    /// @param _batchRevealSize Size of the batch reveal
-    /// @param _revealStartTime Batch reveal start time
-    /// @param _revealInterval Batch reveal interval
     function initializeBaseLaunchpeg(
         string memory _name,
         string memory _symbol,
@@ -167,22 +164,12 @@ abstract contract BaseLaunchpeg is
         uint256 _maxBatchSize,
         uint256 _collectionSize,
         uint256 _amountForDevs,
-        uint256 _amountForAllowlist,
-        uint256 _batchRevealSize,
-        uint256 _revealStartTime,
-        uint256 _revealInterval
+        uint256 _amountForAllowlist
     ) internal onlyInitializing {
         __SafeAccessControlEnumerable_init();
         __ReentrancyGuard_init();
         __ERC2981_init();
-
         __ERC721A_init(_name, _symbol);
-        initializeBatchReveal(
-            _batchRevealSize,
-            _collectionSize,
-            _revealStartTime,
-            _revealInterval
-        );
 
         if (_projectOwner == address(0)) {
             revert Launchpeg__InvalidProjectOwner();
@@ -427,7 +414,7 @@ abstract contract BaseLaunchpeg is
     /// batch reveal has been initialized and before a batch has
     /// been revealed.
     /// @dev Only callable by owner
-    /// @param _revealStartTime New batch reveal start time
+    /// @param _revealStartTime New batch reveal start time in seconds
     function setRevealStartTime(uint256 _revealStartTime)
         external
         override
@@ -440,7 +427,7 @@ abstract contract BaseLaunchpeg is
     /// batch reveal has been initialized and before a batch has
     /// been revealed.
     /// @dev Only callable by owner
-    /// @param _revealInterval New batch reveal interval
+    /// @param _revealInterval New batch reveal interval in seconds
     function setRevealInterval(uint256 _revealInterval)
         external
         override

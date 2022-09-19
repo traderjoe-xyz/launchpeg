@@ -50,10 +50,7 @@ describe('FlatLaunchpeg', () => {
       config.maxBatchSize,
       config.collectionSize,
       config.amountForDevs,
-      config.amountForAllowlist,
-      config.batchRevealSize,
-      config.batchRevealStart,
-      config.batchRevealInterval
+      config.amountForAllowlist
     )
   }
 
@@ -63,7 +60,7 @@ describe('FlatLaunchpeg', () => {
   })
 
   describe('Initialization', () => {
-    it('Collection size cannot be 0', async () => {
+    it('Should not allow collection size to be 0', async () => {
       config.collectionSize = 0
       config.batchRevealSize = 0
       await expect(deployFlatLaunchpeg()).to.be.revertedWith('Launchpeg__LargerCollectionSizeNeeded()')
@@ -104,6 +101,33 @@ describe('FlatLaunchpeg', () => {
       config.flatAllowlistSalePrice = config.flatAllowlistSalePrice.mul(10)
       await expect(initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.NotStarted)).to.be.revertedWith(
         'Launchpeg__InvalidAllowlistPrice()'
+      )
+    })
+
+    it('Should allow 0 batch reveal size', async () => {
+      config.batchRevealSize = 0
+      await initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.NotStarted)
+      expect(await flatLaunchpeg.revealBatchSize()).to.eq(0)
+    })
+
+    it('Should not allow invalid reveal batch size', async () => {
+      config.batchRevealSize = config.batchRevealSize + 1
+      await expect(initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.NotStarted)).to.be.revertedWith(
+        'Launchpeg__InvalidBatchRevealSize()'
+      )
+    })
+
+    it('Should not allow invalid reveal start time', async () => {
+      config.batchRevealStart = config.batchRevealStart.add(8_640_000)
+      await expect(initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.NotStarted)).to.be.revertedWith(
+        'Launchpeg__InvalidRevealDates()'
+      )
+    })
+
+    it('Should not allow invalid reveal interval', async () => {
+      config.batchRevealInterval = config.batchRevealInterval.add(864_000)
+      await expect(initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.NotStarted)).to.be.revertedWith(
+        'Launchpeg__InvalidRevealDates()'
       )
     })
 
@@ -252,7 +276,7 @@ describe('FlatLaunchpeg', () => {
       expect(await flatLaunchpeg.publicSaleEndTime()).to.eq(newPublicSaleEndTime)
     })
 
-    it('Owner can set reveal batch size', async () => {
+    it('Should allow owner to set reveal batch size', async () => {
       const invalidRevealBatchSize = 101
       const newRevealBatchSize = 100
       await initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.Allowlist)
@@ -266,7 +290,7 @@ describe('FlatLaunchpeg', () => {
       expect(await flatLaunchpeg.revealBatchSize()).to.eq(newRevealBatchSize)
     })
 
-    it('Owner can set reveal start time', async () => {
+    it('Should allow owner to set reveal start time', async () => {
       const invalidRevealStartTime = config.batchRevealStart.add(duration.minutes(8_640_000))
       const newRevealStartTime = config.batchRevealStart.add(duration.minutes(30))
       await initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.Allowlist)
@@ -280,7 +304,7 @@ describe('FlatLaunchpeg', () => {
       expect(await flatLaunchpeg.revealStartTime()).to.eq(newRevealStartTime)
     })
 
-    it('Owner can set reveal interval', async () => {
+    it('Should allow owner to set reveal interval', async () => {
       const invalidRevealInterval = 864_001
       const newRevealInterval = config.batchRevealInterval.add(10)
       await initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.Allowlist)

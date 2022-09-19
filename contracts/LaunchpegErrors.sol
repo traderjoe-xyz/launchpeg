@@ -5,6 +5,7 @@ pragma solidity ^0.8.4;
 error LaunchpegFactory__InvalidImplementation();
 
 // Launchpeg
+error Launchpeg__BatchRevealNotInitialized();
 error Launchpeg__BatchRevealStarted();
 error Launchpeg__CanNotMintThisMany();
 error Launchpeg__EndPriceGreaterThanStartPrice();

@@ -79,7 +79,10 @@ export const initializePhasesLaunchpeg = async (launchpeg: Contract, config: Lau
     config.allowlistDiscount,
     config.publicSaleStartTime,
     config.publicSaleEndTime,
-    config.publicSaleDiscount
+    config.publicSaleDiscount,
+    config.batchRevealSize,
+    config.batchRevealStart,
+    config.batchRevealInterval
   )
   await launchpeg.setUnrevealedURI(config.unrevealedTokenURI)
   await launchpeg.setBaseURI(config.baseTokenURI)
@@ -96,7 +99,10 @@ export const initializePhasesFlatLaunchpeg = async (
     config.publicSaleStartTime,
     config.publicSaleEndTime,
     config.flatAllowlistSalePrice,
-    config.flatPublicSalePrice
+    config.flatPublicSalePrice,
+    config.batchRevealSize,
+    config.batchRevealStart,
+    config.batchRevealInterval
   )
   await flatLaunchpeg.setUnrevealedURI(config.unrevealedTokenURI)
   await flatLaunchpeg.setBaseURI(config.baseTokenURI)
