@@ -2,6 +2,7 @@
 pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
 
 import "./chainlink/VRFConsumerBaseV2Upgradeable.sol";
@@ -13,10 +14,11 @@ import "./LaunchpegErrors.sol";
 
 /// @title BatchReveal
 /// @notice Implements a gas efficient way of revealing NFT URIs gradually
-abstract contract BatchReveal is
+contract BatchReveal is
     IBatchReveal,
     VRFConsumerBaseV2Upgradeable,
-    Initializable
+    Initializable,
+    OwnableUpgradeable
 {
     /// @dev Initialized on parent contract creation
     uint256 private collectionSize;
@@ -167,8 +169,10 @@ abstract contract BatchReveal is
     /// been revealed.
     /// @dev Set to 0 to disable batch reveal
     /// @param _revealBatchSize New reveal batch size
-    function _setRevealBatchSize(uint256 _revealBatchSize)
-        internal
+    function setRevealBatchSize(uint256 _revealBatchSize)
+        external
+        override
+        onlyOwner
         revealNotStarted
     {
         if (_revealBatchSize == 0) {
@@ -190,8 +194,10 @@ abstract contract BatchReveal is
     /// batch reveal has been initialized and before a batch has
     /// been revealed.
     /// @param _revealStartTime New batch reveal start time
-    function _setRevealStartTime(uint256 _revealStartTime)
-        internal
+    function setRevealStartTime(uint256 _revealStartTime)
+        external
+        override
+        onlyOwner
         revealNotStarted
     {
         // probably a mistake if the reveal is more than 100 days in the future
@@ -206,8 +212,10 @@ abstract contract BatchReveal is
     /// batch reveal has been initialized and before a batch has
     /// been revealed.
     /// @param _revealInterval New batch reveal interval
-    function _setRevealInterval(uint256 _revealInterval)
-        internal
+    function setRevealInterval(uint256 _revealInterval)
+        external
+        override
+        onlyOwner
         revealNotStarted
     {
         // probably a mistake if reveal interval is longer than 10 days
@@ -223,12 +231,12 @@ abstract contract BatchReveal is
     /// @param _keyHash Keyhash of the gas lane wanted
     /// @param _subscriptionId Chainlink subscription ID
     /// @param _callbackGasLimit Max gas used by the coordinator callback
-    function _setVRF(
+    function setVRF(
         address _vrfCoordinator,
         bytes32 _keyHash,
         uint64 _subscriptionId,
         uint32 _callbackGasLimit
-    ) internal {
+    ) external override onlyOwner {
         if (_vrfCoordinator == address(0)) {
             revert Launchpeg__InvalidCoordinator();
         }

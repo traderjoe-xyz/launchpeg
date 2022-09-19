@@ -12,6 +12,19 @@ interface IBatchReveal {
         uint256 _revealInterval
     ) external;
 
+    function setRevealBatchSize(uint256 _revealBatchSize) external;
+
+    function setRevealStartTime(uint256 _revealStartTime) external;
+
+    function setRevealInterval(uint256 _revealInterval) external;
+
+    function setVRF(
+        address _vrfCoordinator,
+        bytes32 _keyHash,
+        uint64 _subscriptionId,
+        uint32 _callbackGasLimit
+    ) external;
+
     function revealBatchSize() external view returns (uint256);
 
     function batchToSeed(uint256) external view returns (uint256);
