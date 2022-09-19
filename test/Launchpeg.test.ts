@@ -735,6 +735,31 @@ describe('Launchpeg', () => {
       )
     })
 
+    it('Project owner can withdraw money', async () => {
+      await initializePhasesLaunchpeg(launchpeg, config, Phase.DutchAuction)
+
+      await launchpeg.connect(alice).auctionMint(5, { value: config.startPrice.mul(5) })
+      await launchpeg.connect(bob).auctionMint(4, { value: config.startPrice.mul(4) })
+
+      const initialBalance = await projectOwner.getBalance()
+      await launchpeg.connect(projectOwner).withdrawAVAX(projectOwner.address)
+      expect(await projectOwner.getBalance()).to.be.closeTo(
+        initialBalance.add(config.startPrice.mul(9)),
+        ethers.utils.parseEther('0.01')
+      )
+    })
+
+    it("Can't withdraw before start time", async () => {
+      await initializePhasesLaunchpeg(launchpeg, config, Phase.DutchAuction)
+
+      const blockTimestamp = await latest()
+      await launchpeg.setWithdrawAVAXStartTime(blockTimestamp.add(duration.hours(1)))
+
+      await expect(launchpeg.connect(projectOwner).withdrawAVAX(projectOwner.address)).to.be.revertedWith(
+        'Launchpeg__WithdrawAVAXNotAvailable()'
+      )
+    })
+
     it('Invalid fee setup should be blocked', async () => {
       let feePercent = 10001
       let feeCollector = bob

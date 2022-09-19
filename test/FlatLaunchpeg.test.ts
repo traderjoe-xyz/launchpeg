@@ -3,7 +3,7 @@ import { expect } from 'chai'
 import { getDefaultLaunchpegConfig, Phase, LaunchpegConfig, initializePhasesFlatLaunchpeg } from './utils/helpers'
 import { ContractFactory, Contract, BigNumber } from 'ethers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
-import { duration } from './utils/time'
+import { duration, latest } from './utils/time'
 
 describe('FlatLaunchpeg', () => {
   let flatLaunchpegCF: ContractFactory
@@ -431,6 +431,34 @@ describe('FlatLaunchpeg', () => {
       expect(await dev.getBalance()).to.be.closeTo(
         initialDevBalance.add(config.flatPublicSalePrice.mul(9).add(initialContractBalance)),
         ethers.utils.parseEther('0.01')
+      )
+    })
+
+    it('Project owner can withdraw money', async () => {
+      await initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.PublicSale)
+      // For some reason the contract has some balance initially, for this particular test only
+      const initialContractBalance = await ethers.provider.getBalance(flatLaunchpeg.address)
+
+      await flatLaunchpeg.connect(alice).publicSaleMint(5, { value: config.flatPublicSalePrice.mul(5) })
+      await flatLaunchpeg.connect(bob).publicSaleMint(4, { value: config.flatPublicSalePrice.mul(4) })
+
+      const initialBalance = await projectOwner.getBalance()
+
+      await flatLaunchpeg.connect(projectOwner).withdrawAVAX(projectOwner.address)
+      expect(await projectOwner.getBalance()).to.be.closeTo(
+        initialBalance.add(config.flatPublicSalePrice.mul(9).add(initialContractBalance)),
+        ethers.utils.parseEther('0.01')
+      )
+    })
+
+    it("Can't withdraw before start time", async () => {
+      await initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.PublicSale)
+
+      const blockTimestamp = await latest()
+      await flatLaunchpeg.setWithdrawAVAXStartTime(blockTimestamp.add(duration.hours(1)))
+
+      await expect(flatLaunchpeg.connect(projectOwner).withdrawAVAX(projectOwner.address)).to.be.revertedWith(
+        'Launchpeg__WithdrawAVAXNotAvailable()'
       )
     })
 
