@@ -88,24 +88,114 @@ abstract contract BatchReveal is
     /// @param batchSeed The random number drawn
     event Reveal(uint256 batchNumber, uint256 batchSeed);
 
-    /// @dev BatchReveal initialization
-    /// @param _revealBatchSize Size of the batch reveal
-    /// @param _collectionSize Needs to be sent by child contract
+    /// @dev Emitted on setRevealBatchSize()
+    /// @param revealBatchSize New reveal batch size
+    event RevealBatchSizeSet(uint256 revealBatchSize);
+
+    /// @dev Emitted on setRevealStartTime()
+    /// @param revealStartTime New reveal start time
+    event RevealStartTimeSet(uint256 revealStartTime);
+
+    /// @dev Emitted on setRevealInterval()
+    /// @param revealInterval New reveal interval
+    event RevealIntervalSet(uint256 revealInterval);
+
+    modifier batchRevealInitialized() {
+        if (!isBatchRevealInitialized()) {
+            revert Launchpeg__BatchRevealNotInitialized();
+        }
+        _;
+    }
+
+    modifier revealNotStarted() {
+        if (lastTokenRevealed != 0) {
+            revert Launchpeg__BatchRevealStarted();
+        }
+        _;
+    }
+
+    modifier batchRevealEnabled() {
+        if (!isBatchRevealEnabled()) {
+            revert Launchpeg__RevealNextBatchNotAvailable();
+        }
+        _;
+    }
+
+    /// @dev Initialize batch reveal configuration.
+    /// @param _collectionSize NFT collection size. Needs to be sent by child contract.
+    /// @param _revealBatchSize Reveal batch size. Set to 0 to disable batch reveal.
+    /// @param _revealStartTime Batch reveal start time in seconds
+    /// @param _revealInterval Batch reveal interval in seconds
     function initializeBatchReveal(
+        uint256 _collectionSize,
         uint256 _revealBatchSize,
-        uint256 _collectionSize
-    ) internal onlyInitializing {
-        if (
-            _collectionSize % _revealBatchSize != 0 ||
-            _revealBatchSize == 0 ||
-            _revealBatchSize > _collectionSize
-        ) {
-            revert Launchpeg__InvalidBatchRevealSize();
+        uint256 _revealStartTime,
+        uint256 _revealInterval
+    ) internal {
+        collectionSize = _collectionSize;
+        intCollectionSize = int128(int256(_collectionSize));
+        _setRevealBatchSize(_revealBatchSize);
+        _setRevealStartTime(_revealStartTime);
+        _setRevealInterval(_revealInterval);
+    }
+
+    /// @notice Set the reveal batch size. Can only be set after
+    /// batch reveal has been initialized and before a batch has
+    /// been revealed.
+    /// @dev Set to 0 to disable batch reveal
+    /// @param _revealBatchSize New reveal batch size
+    function _setRevealBatchSize(uint256 _revealBatchSize)
+        internal
+        batchRevealInitialized
+        revealNotStarted
+    {
+        if (_revealBatchSize == 0) {
+            _rangeLength = 0;
+        } else {
+            if (
+                collectionSize % _revealBatchSize != 0 ||
+                _revealBatchSize > collectionSize
+            ) {
+                revert Launchpeg__InvalidBatchRevealSize();
+            }
+            _rangeLength = (collectionSize / _revealBatchSize) * 2;
         }
         revealBatchSize = _revealBatchSize;
-        collectionSize = _collectionSize;
-        _rangeLength = (_collectionSize / _revealBatchSize) * 2;
-        intCollectionSize = int128(int256(_collectionSize));
+        emit RevealBatchSizeSet(_revealBatchSize);
+    }
+
+    /// @notice Set the batch reveal start time. Can only be set after
+    /// batch reveal has been initialized and before a batch has
+    /// been revealed.
+    /// @param _revealStartTime New batch reveal start time in seconds
+    function _setRevealStartTime(uint256 _revealStartTime)
+        internal
+        batchRevealInitialized
+        revealNotStarted
+    {
+        // probably a mistake if the reveal is more than 100 days in the future
+        if (_revealStartTime > block.timestamp + 8_640_000) {
+            revert Launchpeg__InvalidRevealDates();
+        }
+        revealStartTime = _revealStartTime;
+        emit RevealStartTimeSet(_revealStartTime);
+    }
+
+    /// @notice Set the batch reveal interval. Can only be set after
+    /// batch reveal has been initialized and before a batch has
+    /// been revealed.
+    /// @param _revealInterval New batch reveal interval in seconds
+    function _setRevealInterval(uint256 _revealInterval)
+        internal
+        batchRevealInitialized
+        revealNotStarted
+    {
+        // probably a mistake if reveal interval is longer than 10 days
+        if (_revealInterval > 864_000) {
+            revert Launchpeg__InvalidRevealDates();
+        }
+        revealInterval = _revealInterval;
+        emit RevealIntervalSet(_revealInterval);
     }
 
     // Forked from openzeppelin
@@ -269,6 +359,9 @@ abstract contract BatchReveal is
         view
         returns (bool, uint256)
     {
+        if (!isBatchRevealEnabled()) {
+            return (false, 0);
+        }
         uint256 batchNumber;
         unchecked {
             batchNumber = lastTokenRevealed / revealBatchSize;
@@ -322,7 +415,7 @@ abstract contract BatchReveal is
     function fulfillRandomWords(
         uint256, /* requestId */
         uint256[] memory _randomWords
-    ) internal override {
+    ) internal override batchRevealEnabled {
         if (hasBeenForceRevealed) {
             revert Launchpeg__HasBeenForceRevealed();
         }
@@ -339,7 +432,7 @@ abstract contract BatchReveal is
     }
 
     /// @dev Force reveal, should be restricted to owner
-    function _forceReveal() internal {
+    function _forceReveal() internal batchRevealEnabled {
         uint256 batchNumber;
         unchecked {
             batchNumber = lastTokenRevealed / revealBatchSize;
@@ -349,5 +442,19 @@ abstract contract BatchReveal is
         _setBatchSeed(batchNumber);
         hasBeenForceRevealed = true;
         emit Reveal(batchNumber, batchToSeed[batchNumber]);
+    }
+
+    /// @dev Determines if batch reveal is enabled.
+    /// Batch reveal is enabled if revealBatchSize is not 0.
+    function isBatchRevealEnabled() internal view returns (bool) {
+        return revealBatchSize != 0;
+    }
+
+    /// @dev Determines if batch reveal is initialized.
+    /// Since the collection size is only set on intializeBatchReveal()
+    /// and the collection size cannot be 0, we assume a 0 value means
+    /// the batch reveal configuration has not been initialized.
+    function isBatchRevealInitialized() internal view returns (bool) {
+        return collectionSize != 0;
     }
 }

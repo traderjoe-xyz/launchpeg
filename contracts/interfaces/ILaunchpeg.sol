@@ -38,10 +38,7 @@ interface ILaunchpeg is IBaseLaunchpeg {
         uint256 _collectionSize,
         uint256 _amountForAuction,
         uint256 _amountForAllowlist,
-        uint256 _amountForDevs,
-        uint256 _batchRevealSize,
-        uint256 _revealStartTime,
-        uint256 _revealInterval
+        uint256 _amountForDevs
     ) external;
 
     function initializePhases(
@@ -53,7 +50,10 @@ interface ILaunchpeg is IBaseLaunchpeg {
         uint256 _allowlistDiscountPercent,
         uint256 _publicSaleStartTime,
         uint256 _publicSaleEndTime,
-        uint256 _publicSaleDiscountPercent
+        uint256 _publicSaleDiscountPercent,
+        uint256 _batchRevealSize,
+        uint256 _revealStartTime,
+        uint256 _revealInterval
     ) external;
 
     function setAuctionSaleStartTime(uint256 _auctionSaleStartTime) external;
