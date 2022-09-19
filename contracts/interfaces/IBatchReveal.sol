@@ -5,6 +5,13 @@ pragma solidity ^0.8.4;
 /// @author Trader Joe
 /// @notice Defines the basic interface of BaseLaunchpeg
 interface IBatchReveal {
+    function initialize(
+        uint256 _revealBatchSize,
+        uint256 _collectionSize,
+        uint256 _revealStartTime,
+        uint256 _revealInterval
+    ) external;
+
     function revealBatchSize() external view returns (uint256);
 
     function batchToSeed(uint256) external view returns (uint256);

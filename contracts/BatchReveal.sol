@@ -131,12 +131,12 @@ abstract contract BatchReveal is
     /// @param _collectionSize Needs to be sent by child contract
     /// @param _revealStartTime Batch reveal start time
     /// @param _revealInterval Batch reveal interval
-    function initializeBatchReveal(
+    function initialize(
         uint256 _revealBatchSize,
         uint256 _collectionSize,
         uint256 _revealStartTime,
         uint256 _revealInterval
-    ) internal onlyInitializing {
+    ) external override onlyInitializing {
         if (
             (_revealBatchSize != 0 &&
                 (_collectionSize % _revealBatchSize != 0)) ||
@@ -366,8 +366,8 @@ abstract contract BatchReveal is
     /// @return uriId Revealed Token URI Id
     function getShuffledTokenId(uint256 _startId)
         external
-        override
         view
+        override
         returns (uint256)
     {
         uint256 batch = _startId / revealBatchSize;
@@ -537,12 +537,12 @@ abstract contract BatchReveal is
 
     /// @dev Determines if batch reveal is enabled.
     /// Batch reveal is enabled if revealBatchSize is not 0.
-    function isBatchRevealEnabled() public override view returns (bool) {
+    function isBatchRevealEnabled() public view override returns (bool) {
         return revealBatchSize != 0;
     }
 
     /// @dev Determines if batch reveal is initialized.
-    function isBatchRevealInitialized() public override view returns (bool) {
+    function isBatchRevealInitialized() public view override returns (bool) {
         return collectionSize != 0;
     }
 }

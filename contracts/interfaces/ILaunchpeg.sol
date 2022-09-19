@@ -34,14 +34,12 @@ interface ILaunchpeg is IBaseLaunchpeg {
         string memory _symbol,
         address _projectOwner,
         address _royaltyReceiver,
+        address _batchReveal,
         uint256 _maxBatchSize,
         uint256 _collectionSize,
         uint256 _amountForAuction,
         uint256 _amountForAllowlist,
-        uint256 _amountForDevs,
-        uint256 _batchRevealSize,
-        uint256 _revealStartTime,
-        uint256 _revealInterval
+        uint256 _amountForDevs
     ) external;
 
     function initializePhases(

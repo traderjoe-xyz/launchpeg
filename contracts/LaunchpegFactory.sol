@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/proxy/Clones.sol";
 
 import "./interfaces/ILaunchpegFactory.sol";
 import "./interfaces/ILaunchpeg.sol";
+import "./interfaces/IBatchReveal.sol";
 import "./interfaces/IFlatLaunchpeg.sol";
 import "./interfaces/IPendingOwnableUpgradeable.sol";
 import "./LaunchpegErrors.sol";
@@ -61,6 +62,8 @@ contract LaunchpegFactory is
     address public override launchpegImplementation;
     /// @notice FlatLaunchpeg contract to be cloned
     address public override flatLaunchpegImplementation;
+    /// @notice BatchReveal contract to be cloned;
+    address public override batchRevealImplementation;
 
     /// @notice Default fee percentage
     /// @dev In basis points e.g 100 for 1%
@@ -154,14 +157,12 @@ contract LaunchpegFactory is
             _symbol,
             _projectOwner,
             _royaltyReceiver,
+            _initializeBatchReveal(_collectionSize, _batchRevealData),
             _maxBatchSize,
             _collectionSize,
             _amountForAuction,
             _amountForAllowlist,
-            _amountForDevs,
-            _batchRevealData.batchRevealSize,
-            _batchRevealData.revealStartTime,
-            _batchRevealData.revealInterval
+            _amountForDevs
         );
 
         IBaseLaunchpeg(launchpeg).initializeJoeFee(
@@ -224,13 +225,11 @@ contract LaunchpegFactory is
             _symbol,
             _projectOwner,
             _royaltyReceiver,
+            _initializeBatchReveal(_collectionSize, _batchRevealData),
             _maxBatchSize,
             _collectionSize,
             _amountForDevs,
-            _amountForAllowlist,
-            _batchRevealData.batchRevealSize,
-            _batchRevealData.revealStartTime,
-            _batchRevealData.revealInterval
+            _amountForAllowlist
         );
 
         IBaseLaunchpeg(flatLaunchpeg).initializeJoeFee(
@@ -314,5 +313,21 @@ contract LaunchpegFactory is
 
         joeFeeCollector = _joeFeeCollector;
         emit SetDefaultJoeFeeCollector(_joeFeeCollector);
+    }
+
+    function _initializeBatchReveal(
+        uint256 _collectionSize,
+        BatchReveal calldata _batchRevealData
+    ) private returns (address) {
+        address batchReveal = Clones.clone(batchRevealImplementation);
+
+        IBatchReveal(batchReveal).initialize(
+            _batchRevealData.batchRevealSize,
+            _collectionSize,
+            _batchRevealData.revealStartTime,
+            _batchRevealData.revealInterval
+        );
+
+        return batchReveal;
     }
 }
