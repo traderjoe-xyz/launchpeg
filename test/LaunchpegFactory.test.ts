@@ -8,9 +8,12 @@ describe('LaunchpegFactory', () => {
   let launchpegCF: ContractFactory
   let flatLaunchpegCF: ContractFactory
   let launchpegFactoryCF: ContractFactory
+  let batchRevealCF: ContractFactory
+
   let launchpeg: Contract
   let flatLaunchpeg: Contract
   let launchpegFactory: Contract
+  let batchReveal: Contract
 
   let config: LaunchpegConfig
 
@@ -25,6 +28,7 @@ describe('LaunchpegFactory', () => {
     launchpegCF = await ethers.getContractFactory('Launchpeg')
     flatLaunchpegCF = await ethers.getContractFactory('FlatLaunchpeg')
     launchpegFactoryCF = await ethers.getContractFactory('LaunchpegFactory')
+    batchRevealCF = await ethers.getContractFactory('BatchReveal')
 
     signers = await ethers.getSigners()
     dev = signers[0]
@@ -45,9 +49,14 @@ describe('LaunchpegFactory', () => {
     })
 
     config = { ...(await getDefaultLaunchpegConfig()) }
+    await deployBatchReveal()
     await deployLaunchpeg()
     await deployFlatLaunchpeg()
   })
+
+  const deployBatchReveal = async () => {
+    batchReveal = await batchRevealCF.deploy()
+  }
 
   const deployLaunchpeg = async () => {
     launchpeg = await launchpegCF.deploy()
@@ -57,14 +66,12 @@ describe('LaunchpegFactory', () => {
       'JOEPEG',
       projectOwner.address,
       royaltyReceiver.address,
+      batchReveal.address,
       config.maxBatchSize,
       config.collectionSize,
       config.amountForAuction,
       config.amountForAllowlist,
-      config.amountForDevs,
-      config.batchRevealSize,
-      config.batchRevealStart,
-      config.batchRevealInterval
+      config.amountForDevs
     )
   }
 
@@ -76,13 +83,11 @@ describe('LaunchpegFactory', () => {
       'JOEPEG',
       projectOwner.address,
       royaltyReceiver.address,
+      batchReveal.address,
       config.maxBatchSize,
       config.collectionSize,
       config.amountForDevs,
-      config.amountForAllowlist,
-      config.batchRevealSize,
-      config.batchRevealStart,
-      config.batchRevealInterval
+      config.amountForAllowlist
     )
   }
 

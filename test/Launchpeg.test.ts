@@ -7,8 +7,10 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
 describe('Launchpeg', () => {
   let launchpegCF: ContractFactory
+  let batchRevealCF: ContractFactory
   let coordinatorMockCF: ContractFactory
   let launchpeg: Contract
+  let batchReveal: Contract
   let coordinatorMock: Contract
 
   let config: LaunchpegConfig
@@ -22,6 +24,7 @@ describe('Launchpeg', () => {
 
   before(async () => {
     launchpegCF = await ethers.getContractFactory('Launchpeg')
+    batchRevealCF = await ethers.getContractFactory('BatchReveal')
     coordinatorMockCF = await ethers.getContractFactory('VRFCoordinatorV2Mock')
 
     signers = await ethers.getSigners()
@@ -43,6 +46,16 @@ describe('Launchpeg', () => {
     })
   })
 
+  const deployBatchReveal = async () => {
+    batchReveal = await batchRevealCF.deploy()
+    await batchReveal.initialize(
+      config.batchRevealSize,
+      config.collectionSize,
+      config.batchRevealStart,
+      config.batchRevealInterval
+    )
+  }
+
   const deployLaunchpeg = async () => {
     launchpeg = await launchpegCF.deploy()
 
@@ -51,23 +64,22 @@ describe('Launchpeg', () => {
       'JOEPEG',
       projectOwner.address,
       royaltyReceiver.address,
+      batchReveal.address,
       config.maxBatchSize,
       config.collectionSize,
       config.amountForAuction,
       config.amountForAllowlist,
-      config.amountForDevs,
-      config.batchRevealSize,
-      config.batchRevealStart,
-      config.batchRevealInterval
+      config.amountForDevs
     )
   }
 
   const setVRF = async () => {
-    await launchpeg.setVRF(coordinatorMock.address, ethers.utils.formatBytes32String('Oxff'), 1, 200_000)
+    await batchReveal.setVRF(coordinatorMock.address, ethers.utils.formatBytes32String('Oxff'), 1, 200_000)
   }
 
   beforeEach(async () => {
     config = { ...(await getDefaultLaunchpegConfig()) }
+    await deployBatchReveal()
     await deployLaunchpeg()
   })
 
@@ -95,14 +107,12 @@ describe('Launchpeg', () => {
           'JOEPEG',
           ethers.constants.AddressZero,
           royaltyReceiver.address,
+          batchReveal.address,
           config.maxBatchSize,
           config.collectionSize,
           config.amountForAuction,
           config.amountForAllowlist,
-          config.amountForDevs,
-          config.batchRevealSize,
-          config.batchRevealStart,
-          config.batchRevealInterval
+          config.amountForDevs
         )
       ).to.be.revertedWith('Launchpeg__InvalidProjectOwner()')
     })
@@ -192,37 +202,21 @@ describe('Launchpeg', () => {
     })
 
     it('Batch reveal dates must be coherent', async () => {
-      launchpeg = await launchpegCF.deploy()
+      batchReveal = await batchRevealCF.deploy()
 
       await expect(
-        launchpeg.initialize(
-          'JoePEG',
-          'JOEPEG',
-          projectOwner.address,
-          royaltyReceiver.address,
-          config.maxBatchSize,
-          config.collectionSize,
-          config.amountForAuction,
-          config.amountForAllowlist,
-          config.amountForDevs,
+        batchReveal.initialize(
           config.batchRevealSize,
+          config.collectionSize,
           config.batchRevealStart.add(8_640_000),
           config.batchRevealInterval
         )
       ).to.be.revertedWith('Launchpeg__InvalidRevealDates()')
 
       await expect(
-        launchpeg.initialize(
-          'JoePEG',
-          'JOEPEG',
-          projectOwner.address,
-          royaltyReceiver.address,
-          config.maxBatchSize,
-          config.collectionSize,
-          config.amountForAuction,
-          config.amountForAllowlist,
-          config.amountForDevs,
+        batchReveal.initialize(
           config.batchRevealSize,
+          config.collectionSize,
           config.batchRevealStart,
           config.batchRevealInterval.add(864_000)
         )
@@ -441,42 +435,42 @@ describe('Launchpeg', () => {
       const invalidRevealBatchSize = 101
       const newRevealBatchSize = 100
       await initializePhasesLaunchpeg(launchpeg, config, Phase.DutchAuction)
-      await expect(launchpeg.connect(projectOwner).setRevealBatchSize(newRevealBatchSize)).to.be.revertedWith(
-        'PendingOwnableUpgradeable__NotOwner()'
+      await expect(batchReveal.connect(projectOwner).setRevealBatchSize(newRevealBatchSize)).to.be.revertedWith(
+        'Ownable: caller is not the owner'
       )
-      await expect(launchpeg.setRevealBatchSize(invalidRevealBatchSize)).to.be.revertedWith(
+      await expect(batchReveal.setRevealBatchSize(invalidRevealBatchSize)).to.be.revertedWith(
         'Launchpeg__InvalidBatchRevealSize()'
       )
-      await launchpeg.setRevealBatchSize(newRevealBatchSize)
-      expect(await launchpeg.revealBatchSize()).to.eq(newRevealBatchSize)
+      await batchReveal.setRevealBatchSize(newRevealBatchSize)
+      expect(await batchReveal.revealBatchSize()).to.eq(newRevealBatchSize)
     })
 
     it('Owner can set reveal start time', async () => {
       const invalidRevealStartTime = config.batchRevealStart.add(duration.minutes(8_640_000))
       const newRevealStartTime = config.batchRevealStart.add(duration.minutes(30))
       await initializePhasesLaunchpeg(launchpeg, config, Phase.DutchAuction)
-      await expect(launchpeg.connect(projectOwner).setRevealStartTime(newRevealStartTime)).to.be.revertedWith(
-        'PendingOwnableUpgradeable__NotOwner()'
+      await expect(batchReveal.connect(projectOwner).setRevealStartTime(newRevealStartTime)).to.be.revertedWith(
+        'Ownable: caller is not the owner'
       )
-      await expect(launchpeg.setRevealStartTime(invalidRevealStartTime)).to.be.revertedWith(
+      await expect(batchReveal.setRevealStartTime(invalidRevealStartTime)).to.be.revertedWith(
         'Launchpeg__InvalidRevealDates()'
       )
-      await launchpeg.setRevealStartTime(newRevealStartTime)
-      expect(await launchpeg.revealStartTime()).to.eq(newRevealStartTime)
+      await batchReveal.setRevealStartTime(newRevealStartTime)
+      expect(await batchReveal.revealStartTime()).to.eq(newRevealStartTime)
     })
 
     it('Owner can set reveal interval', async () => {
       const invalidRevealInterval = 864_001
       const newRevealInterval = config.batchRevealInterval.add(10)
       await initializePhasesLaunchpeg(launchpeg, config, Phase.DutchAuction)
-      await expect(launchpeg.connect(projectOwner).setRevealInterval(newRevealInterval)).to.be.revertedWith(
-        'PendingOwnableUpgradeable__NotOwner()'
+      await expect(batchReveal.connect(projectOwner).setRevealInterval(newRevealInterval)).to.be.revertedWith(
+        'Ownable: caller is not the owner'
       )
-      await expect(launchpeg.setRevealInterval(invalidRevealInterval)).to.be.revertedWith(
+      await expect(batchReveal.setRevealInterval(invalidRevealInterval)).to.be.revertedWith(
         'Launchpeg__InvalidRevealDates()'
       )
-      await launchpeg.setRevealInterval(newRevealInterval)
-      expect(await launchpeg.revealInterval()).to.eq(newRevealInterval)
+      await batchReveal.setRevealInterval(newRevealInterval)
+      expect(await batchReveal.revealInterval()).to.eq(newRevealInterval)
     })
   })
 
@@ -821,7 +815,7 @@ describe('Launchpeg', () => {
   describe('Batch reveal on mint', () => {
     it('Invalid batch reveal size should be blocked', async () => {
       config.batchRevealSize = 49
-      await expect(deployLaunchpeg()).to.be.revertedWith('Launchpeg__InvalidBatchRevealSize()')
+      await expect(deployBatchReveal()).to.be.revertedWith('Launchpeg__InvalidBatchRevealSize()')
     })
 
     it('NFTs should be unrevealed initially', async () => {
@@ -833,7 +827,7 @@ describe('Launchpeg', () => {
       const tokenId = 0
       const expTokenURI = `${config.baseTokenURI}${tokenId}`
       await initializePhasesLaunchpeg(launchpeg, config, Phase.DutchAuction)
-      await launchpeg.setRevealBatchSize(0)
+      await batchReveal.setRevealBatchSize(0)
       expect(await launchpeg.tokenURI(tokenId)).to.be.equal(expTokenURI)
     })
 
@@ -845,6 +839,7 @@ describe('Launchpeg', () => {
       config.batchRevealSize = 10
       config.batchRevealStart = BigNumber.from(0)
       config.batchRevealInterval = BigNumber.from(0)
+      await deployBatchReveal()
       await deployLaunchpeg()
       await initializePhasesLaunchpeg(launchpeg, config, Phase.DutchAuction)
 
@@ -879,6 +874,7 @@ describe('Launchpeg', () => {
       config.batchRevealSize = 10
       config.batchRevealStart = BigNumber.from(0)
       config.batchRevealInterval = BigNumber.from(0)
+      await deployBatchReveal()
       await deployLaunchpeg()
 
       await initializePhasesLaunchpeg(launchpeg, config, Phase.DutchAuction)
@@ -902,6 +898,7 @@ describe('Launchpeg', () => {
       config.amountForAuction = 0
       config.amountForAllowlist = 0
       config.batchRevealSize = 10
+      await deployBatchReveal()
       await deployLaunchpeg()
       await initializePhasesLaunchpeg(launchpeg, config, Phase.DutchAuction)
 
@@ -926,6 +923,7 @@ describe('Launchpeg', () => {
       config.amountForAuction = 0
       config.amountForAllowlist = 0
       config.batchRevealSize = 10
+      await deployBatchReveal()
       await deployLaunchpeg()
 
       await initializePhasesLaunchpeg(launchpeg, config, Phase.Reveal)
@@ -950,6 +948,7 @@ describe('Launchpeg', () => {
     it('User cannot reveal batch if batch reveal is disabled', async () => {
       config.amountForDevs = 10
       config.batchRevealSize = 0
+      await deployBatchReveal()
       await deployLaunchpeg()
       await initializePhasesLaunchpeg(launchpeg, config, Phase.Reveal)
 
@@ -970,9 +969,9 @@ describe('Launchpeg', () => {
         'Launchpeg__RevealNextBatchNotAvailable'
       )
 
-      await expect(launchpeg.connect(bob).forceReveal()).to.be.revertedWith('PendingOwnableUpgradeable__NotOwner')
+      await expect(batchReveal.connect(bob).forceReveal()).to.be.revertedWith('Ownable: caller is not the owner')
 
-      await launchpeg.connect(dev).forceReveal()
+      await batchReveal.connect(dev).forceReveal()
       // Batch 1 is revealed
       expect(await launchpeg.tokenURI(0)).to.contains(config.baseTokenURI)
       expect(await launchpeg.tokenURI(config.batchRevealSize)).to.be.equal(config.unrevealedTokenURI)
@@ -980,21 +979,24 @@ describe('Launchpeg', () => {
 
     it('Owner cannot force reveal if batch reveal is disabled', async () => {
       await initializePhasesLaunchpeg(launchpeg, config, Phase.PublicSale)
-      await launchpeg.setRevealBatchSize(0)
+      await batchReveal.setRevealBatchSize(0)
       await launchpeg.connect(projectOwner).devMint(config.amountForDevs)
-      await expect(launchpeg.connect(dev).forceReveal()).to.be.revertedWith('Launchpeg__RevealNextBatchNotAvailable()')
+      await expect(batchReveal.connect(dev).forceReveal()).to.be.revertedWith(
+        'Launchpeg__RevealNextBatchNotAvailable()'
+      )
     })
 
     it('Owner cannot set reveal batch size once batch reveal has started', async () => {
       config.amountForDevs = 10
       config.batchRevealSize = 10
+      await deployBatchReveal()
       await deployLaunchpeg()
       await initializePhasesLaunchpeg(launchpeg, config, Phase.Reveal)
 
       const newRevealBatchSize = 5
       await launchpeg.connect(projectOwner).devMint(config.batchRevealSize)
       await launchpeg.connect(alice).revealNextBatch()
-      await expect(launchpeg.setRevealBatchSize(newRevealBatchSize)).to.be.revertedWith(
+      await expect(batchReveal.setRevealBatchSize(newRevealBatchSize)).to.be.revertedWith(
         'Launchpeg__BatchRevealStarted()'
       )
     })
@@ -1002,13 +1004,14 @@ describe('Launchpeg', () => {
     it('Owner cannot set reveal time once batch reveal has started', async () => {
       config.amountForDevs = 10
       config.batchRevealSize = 10
+      await deployBatchReveal()
       await deployLaunchpeg()
       await initializePhasesLaunchpeg(launchpeg, config, Phase.Reveal)
 
       const newRevealStartTime = config.batchRevealStart.add(duration.minutes(30))
       await launchpeg.connect(projectOwner).devMint(config.batchRevealSize)
       await launchpeg.connect(alice).revealNextBatch()
-      await expect(launchpeg.setRevealStartTime(newRevealStartTime)).to.be.revertedWith(
+      await expect(batchReveal.setRevealStartTime(newRevealStartTime)).to.be.revertedWith(
         'Launchpeg__BatchRevealStarted()'
       )
     })
@@ -1016,13 +1019,16 @@ describe('Launchpeg', () => {
     it('Owner cannot set reveal interval once batch reveal has started', async () => {
       config.amountForDevs = 10
       config.batchRevealSize = 10
+      await deployBatchReveal()
       await deployLaunchpeg()
       await initializePhasesLaunchpeg(launchpeg, config, Phase.Reveal)
 
       const newRevealInterval = config.batchRevealInterval.add(10)
       await launchpeg.connect(projectOwner).devMint(config.batchRevealSize)
       await launchpeg.connect(alice).revealNextBatch()
-      await expect(launchpeg.setRevealInterval(newRevealInterval)).to.be.revertedWith('Launchpeg__BatchRevealStarted()')
+      await expect(batchReveal.setRevealInterval(newRevealInterval)).to.be.revertedWith(
+        'Launchpeg__BatchRevealStarted()'
+      )
     })
   })
 
@@ -1040,9 +1046,10 @@ describe('Launchpeg', () => {
       config.batchRevealSize = 10
       config.batchRevealStart = BigNumber.from(0)
       config.batchRevealInterval = BigNumber.from(0)
+      await deployBatchReveal()
       await deployLaunchpeg()
       await initializePhasesLaunchpeg(launchpeg, config, Phase.DutchAuction)
-      await coordinatorMock.addConsumer(0, launchpeg.address)
+      await coordinatorMock.addConsumer(0, batchReveal.address)
       await setVRF()
       await launchpeg.setBaseURI('base/')
       await launchpeg.setUnrevealedURI('unrevealed')
@@ -1050,20 +1057,20 @@ describe('Launchpeg', () => {
 
     it('Initialisation checks', async () => {
       await expect(
-        launchpeg.setVRF(ethers.constants.AddressZero, ethers.utils.formatBytes32String('Oxff'), 1, 200_000)
+        batchReveal.setVRF(ethers.constants.AddressZero, ethers.utils.formatBytes32String('Oxff'), 1, 200_000)
       ).to.be.revertedWith('Launchpeg__InvalidCoordinator')
 
       await expect(
-        launchpeg.setVRF(coordinatorMock.address, ethers.utils.formatBytes32String('Oxff'), 1, 0)
+        batchReveal.setVRF(coordinatorMock.address, ethers.utils.formatBytes32String('Oxff'), 1, 0)
       ).to.be.revertedWith('Launchpeg__InvalidCallbackGasLimit')
 
       await expect(
-        launchpeg.setVRF(coordinatorMock.address, ethers.utils.formatBytes32String('Ox00'), 1, 200_000)
+        batchReveal.setVRF(coordinatorMock.address, ethers.utils.formatBytes32String('Ox00'), 1, 200_000)
       ).to.be.revertedWith('Launchpeg__InvalidKeyHash')
 
       await coordinatorMock.removeConsumer(0, ethers.constants.AddressZero)
       await expect(
-        launchpeg.setVRF(coordinatorMock.address, ethers.utils.formatBytes32String('Oxff'), 1, 200_000)
+        batchReveal.setVRF(coordinatorMock.address, ethers.utils.formatBytes32String('Oxff'), 1, 200_000)
       ).to.be.revertedWith('Launchpeg__IsNotInTheConsumerList')
     })
 
@@ -1073,14 +1080,14 @@ describe('Launchpeg', () => {
       // URIs are not revealed before Chainlink's coordinator response
       expect(await launchpeg.tokenURI(3)).to.eq('unrevealed')
 
-      await coordinatorMock.fulfillRandomWords(1, launchpeg.address)
+      await coordinatorMock.fulfillRandomWords(1, batchReveal.address)
       const token3URI = await launchpeg.tokenURI(3)
       expect(token3URI).to.contains('base')
       expect(await launchpeg.tokenURI(3 + config.batchRevealSize)).to.eq('unrevealed')
 
       await launchpeg.connect(projectOwner).devMint(config.batchRevealSize)
       await launchpeg.revealNextBatch()
-      await coordinatorMock.fulfillRandomWords(2, launchpeg.address)
+      await coordinatorMock.fulfillRandomWords(2, batchReveal.address)
       expect(await launchpeg.tokenURI(3)).to.eq(token3URI)
       expect(await launchpeg.tokenURI(3 + config.batchRevealSize)).to.contains('base')
       expect(await launchpeg.tokenURI(3 + 2 * config.batchRevealSize)).to.eq('unrevealed')
@@ -1091,7 +1098,7 @@ describe('Launchpeg', () => {
       await launchpeg.revealNextBatch()
       expect(await launchpeg.tokenURI(3)).to.eq('unrevealed')
 
-      await launchpeg.connect(dev).forceReveal()
+      await batchReveal.connect(dev).forceReveal()
       const token3URI = await launchpeg.tokenURI(3)
       expect(token3URI).to.contains('base')
       expect(await launchpeg.tokenURI(3 + config.batchRevealSize)).to.eq('unrevealed')

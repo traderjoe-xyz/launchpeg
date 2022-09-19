@@ -493,4 +493,18 @@ abstract contract BaseLaunchpeg is
             }
         }
     }
+
+    /// @notice Reveals the next batch if the reveal conditions are met
+    function revealNextBatch() external override isEOA {
+        if (!batchReveal.revealNextBatch(totalSupply())) {
+            revert Launchpeg__RevealNextBatchNotAvailable();
+        }
+    }
+
+    /// @notice Tells you if a batch can be revealed
+    /// @return bool Whether reveal can be triggered or not
+    /// @return uint256 The number of the next batch that will be revealed
+    function hasBatchToReveal() external view override returns (bool, uint256) {
+        return batchReveal.hasBatchToReveal(totalSupply());
+    }
 }

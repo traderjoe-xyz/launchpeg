@@ -137,8 +137,8 @@ contract BatchReveal is
         uint256 _revealStartTime,
         uint256 _revealInterval
     ) external override initializer {
-         __Ownable_init();
-         
+        __Ownable_init();
+
         if (
             (_revealBatchSize != 0 &&
                 (_collectionSize % _revealBatchSize != 0)) ||
@@ -451,9 +451,10 @@ contract BatchReveal is
     /// @param _totalSupply Number of token already minted
     /// @return hasToRevealInfo Returns a bool saying whether a reveal can be triggered or not
     /// and the number of the next batch that will be revealed
-    function _hasBatchToReveal(uint256 _totalSupply)
-        internal
+    function hasBatchToReveal(uint256 _totalSupply)
+        public
         view
+        override
         batchRevealEnabled
         returns (bool, uint256)
     {
@@ -478,14 +479,15 @@ contract BatchReveal is
     /// @dev If using VRF, the reveal happens on the coordinator callback call
     /// @param _totalSupply Number of token already minted
     /// @return isRevealed Returns false if it is not possible to reveal the next batch
-    function _revealNextBatch(uint256 _totalSupply)
-        internal
+    function revealNextBatch(uint256 _totalSupply)
+        external
+        override
         batchRevealEnabled
         returns (bool)
     {
         uint256 batchNumber;
         bool canReveal;
-        (canReveal, batchNumber) = _hasBatchToReveal(_totalSupply);
+        (canReveal, batchNumber) = hasBatchToReveal(_totalSupply);
 
         if (!canReveal) {
             return false;
@@ -531,7 +533,7 @@ contract BatchReveal is
     }
 
     /// @dev Force reveal, should be restricted to owner
-    function _forceReveal() internal batchRevealEnabled {
+    function forceReveal() external override onlyOwner batchRevealEnabled {
         uint256 batchNumber;
         unchecked {
             batchNumber = lastTokenRevealed / revealBatchSize;
