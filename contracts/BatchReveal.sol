@@ -6,6 +6,7 @@ import "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
 
 import "./chainlink/VRFConsumerBaseV2Upgradeable.sol";
 import "./interfaces/IBatchReveal.sol";
+import "./interfaces/IBaseLaunchpeg.sol";
 import "./LaunchpegErrors.sol";
 
 // Creator: Tubby Cats
@@ -18,6 +19,9 @@ contract BatchReveal is
     VRFConsumerBaseV2Upgradeable,
     OwnableUpgradeable
 {
+    /// @notice Base launchpeg address
+    address public override baseLaunchpeg;
+
     /// @dev Initialized on parent contract creation
     uint256 private collectionSize;
     int128 private intCollectionSize;
@@ -126,18 +130,26 @@ contract BatchReveal is
         _;
     }
 
+    modifier onlyBaseLaunchpeg() {
+        if (msg.sender != baseLaunchpeg) revert Launchpeg__Unauthorized();
+        _;
+    }
+
     /// @dev BatchReveal initialization
+    /// @param _baseLaunchpeg Base launchpeg address
     /// @param _revealBatchSize Size of the batch reveal. Set to 0 to disable batch reveal.
-    /// @param _collectionSize Needs to be sent by child contract
     /// @param _revealStartTime Batch reveal start time
     /// @param _revealInterval Batch reveal interval
     function initialize(
+        address _baseLaunchpeg,
         uint256 _revealBatchSize,
-        uint256 _collectionSize,
         uint256 _revealStartTime,
         uint256 _revealInterval
     ) external override initializer {
         __Ownable_init();
+
+        uint256 _collectionSize = IBaseLaunchpeg(_baseLaunchpeg)
+            .collectionSize();
 
         if (
             (_revealBatchSize != 0 &&
@@ -154,6 +166,7 @@ contract BatchReveal is
         ) {
             revert Launchpeg__InvalidRevealDates();
         }
+        baseLaunchpeg = _baseLaunchpeg;
         revealBatchSize = _revealBatchSize;
         collectionSize = _collectionSize;
         intCollectionSize = int128(int256(_collectionSize));
@@ -482,6 +495,7 @@ contract BatchReveal is
     function revealNextBatch(uint256 _totalSupply)
         external
         override
+        onlyBaseLaunchpeg
         batchRevealEnabled
         returns (bool)
     {

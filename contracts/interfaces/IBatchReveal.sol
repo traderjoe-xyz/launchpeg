@@ -6,8 +6,8 @@ pragma solidity ^0.8.4;
 /// @notice Defines the basic interface of BaseLaunchpeg
 interface IBatchReveal {
     function initialize(
+        address _baseLaunchpeg,
         uint256 _revealBatchSize,
-        uint256 _collectionSize,
         uint256 _revealStartTime,
         uint256 _revealInterval
     ) external;
@@ -24,6 +24,8 @@ interface IBatchReveal {
         uint64 _subscriptionId,
         uint32 _callbackGasLimit
     ) external;
+
+    function baseLaunchpeg() external view returns (address);
 
     function revealBatchSize() external view returns (uint256);
 

@@ -44,6 +44,7 @@ describe('FlatLaunchpeg', () => {
   })
 
   const deployFlatLaunchpeg = async () => {
+    batchReveal = await batchRevealCF.deploy()
     flatLaunchpeg = await flatLaunchpegCF.deploy()
     await flatLaunchpeg.initialize(
       'JoePEG',
@@ -56,13 +57,9 @@ describe('FlatLaunchpeg', () => {
       config.amountForDevs,
       config.amountForAllowlist
     )
-  }
-
-  const deployBatchReveal = async () => {
-    batchReveal = await batchRevealCF.deploy()
     await batchReveal.initialize(
+      flatLaunchpeg.address,
       config.batchRevealSize,
-      config.collectionSize,
       config.batchRevealStart,
       config.batchRevealInterval
     )
@@ -70,7 +67,6 @@ describe('FlatLaunchpeg', () => {
 
   beforeEach(async () => {
     config = { ...(await getDefaultLaunchpegConfig()) }
-    await deployBatchReveal()
     await deployFlatLaunchpeg()
   })
 

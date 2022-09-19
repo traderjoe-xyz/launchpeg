@@ -157,7 +157,7 @@ contract LaunchpegFactory is
             _symbol,
             _projectOwner,
             _royaltyReceiver,
-            _initializeBatchReveal(_collectionSize, _batchRevealData),
+            _initializeBatchReveal(launchpeg, _batchRevealData),
             _maxBatchSize,
             _collectionSize,
             _amountForAuction,
@@ -225,7 +225,7 @@ contract LaunchpegFactory is
             _symbol,
             _projectOwner,
             _royaltyReceiver,
-            _initializeBatchReveal(_collectionSize, _batchRevealData),
+            _initializeBatchReveal(flatLaunchpeg, _batchRevealData),
             _maxBatchSize,
             _collectionSize,
             _amountForDevs,
@@ -316,14 +316,14 @@ contract LaunchpegFactory is
     }
 
     function _initializeBatchReveal(
-        uint256 _collectionSize,
+        address _baseLaunchpeg,
         BatchReveal calldata _batchRevealData
     ) private returns (address) {
         address batchReveal = Clones.clone(batchRevealImplementation);
 
         IBatchReveal(batchReveal).initialize(
+            _baseLaunchpeg,
             _batchRevealData.batchRevealSize,
-            _collectionSize,
             _batchRevealData.revealStartTime,
             _batchRevealData.revealInterval
         );
