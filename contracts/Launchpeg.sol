@@ -105,7 +105,6 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
     /// @param _symbol ERC721 symbol
     /// @param _projectOwner The project owner
     /// @param _royaltyReceiver Royalty fee collector
-    /// @param _batchReveal Batch reveal address
     /// @param _maxBatchSize Max amount of NFTs that can be minted at once
     /// @param _collectionSize The collection size (e.g 10000)
     /// @param _amountForAuction Amount of NFTs available for the auction (e.g 8000)
@@ -116,7 +115,6 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
         string memory _symbol,
         address _projectOwner,
         address _royaltyReceiver,
-        address _batchReveal,
         uint256 _maxBatchSize,
         uint256 _collectionSize,
         uint256 _amountForAuction,
@@ -128,7 +126,6 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
             _symbol,
             _projectOwner,
             _royaltyReceiver,
-            _batchReveal,
             _maxBatchSize,
             _collectionSize,
             _amountForDevs,

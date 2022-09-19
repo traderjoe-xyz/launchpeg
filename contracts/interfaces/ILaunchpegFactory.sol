@@ -5,12 +5,6 @@ pragma solidity ^0.8.4;
 /// @author Trader Joe
 /// @notice Defines the basic interface of LaunchpegFactory
 interface ILaunchpegFactory {
-    struct BatchReveal {
-        uint256 batchRevealSize;
-        uint256 revealStartTime;
-        uint256 revealInterval;
-    }
-
     function launchpegImplementation() external view returns (address);
 
     function flatLaunchpegImplementation() external view returns (address);
@@ -45,8 +39,7 @@ interface ILaunchpegFactory {
         uint256 _collectionSize,
         uint256 _amountForAuction,
         uint256 _amountForAllowlist,
-        uint256 _amountForDevs,
-        BatchReveal calldata _batchRevealData
+        uint256 _amountForDevs
     ) external returns (address);
 
     function createFlatLaunchpeg(
@@ -57,8 +50,14 @@ interface ILaunchpegFactory {
         uint256 _maxBatchSize,
         uint256 _collectionSize,
         uint256 _amountForDevs,
-        uint256 _amountForAllowlist,
-        BatchReveal calldata _batchRevealData
+        uint256 _amountForAllowlist
+    ) external returns (address);
+
+    function createBatchReveal(
+        address baseLaunchpeg,
+        uint256 batchRevealSize,
+        uint256 revealStartTime,
+        uint256 revealInterval
     ) external returns (address);
 
     function setLaunchpegImplementation(address _launchpegImplementation)

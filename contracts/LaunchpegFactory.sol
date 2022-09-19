@@ -30,10 +30,7 @@ contract LaunchpegFactory is
         uint256 collectionSize,
         uint256 amountForAuction,
         uint256 amountForAllowlist,
-        uint256 amountForDevs,
-        uint256 batchRevealSize,
-        uint256 revealStartTime,
-        uint256 revealInterval
+        uint256 amountForDevs
     );
 
     event FlatLaunchpegCreated(
@@ -45,7 +42,11 @@ contract LaunchpegFactory is
         uint256 maxBatchSize,
         uint256 collectionSize,
         uint256 amountForDevs,
-        uint256 amountForAllowlist,
+        uint256 amountForAllowlist
+    );
+
+    event BatchRevealCreated(
+        address indexed batchReveal,
         uint256 batchRevealSize,
         uint256 revealStartTime,
         uint256 revealInterval
@@ -131,9 +132,6 @@ contract LaunchpegFactory is
     /// @param _amountForAuction Amount of NFTs available for the auction (e.g 8000)
     /// @param _amountForAllowlist Amount of NFTs available for the allowlist mint (e.g 1000)
     /// @param _amountForDevs Amount of NFTs reserved for `projectOwner` (e.g 200)
-    /// @param _batchRevealData Contains batch reveal informations :
-    ///  Size of the batch reveal, start of the token URIs reveal in seconds
-    /// and interval between two batch reveals in seconds
     /// @return launchpeg New Launchpeg address
     function createLaunchpeg(
         string memory _name,
@@ -144,8 +142,7 @@ contract LaunchpegFactory is
         uint256 _collectionSize,
         uint256 _amountForAuction,
         uint256 _amountForAllowlist,
-        uint256 _amountForDevs,
-        BatchReveal calldata _batchRevealData
+        uint256 _amountForDevs
     ) external override onlyOwner returns (address) {
         address launchpeg = Clones.clone(launchpegImplementation);
 
@@ -157,7 +154,6 @@ contract LaunchpegFactory is
             _symbol,
             _projectOwner,
             _royaltyReceiver,
-            _initializeBatchReveal(launchpeg, _batchRevealData),
             _maxBatchSize,
             _collectionSize,
             _amountForAuction,
@@ -182,10 +178,7 @@ contract LaunchpegFactory is
             _collectionSize,
             _amountForAuction,
             _amountForAllowlist,
-            _amountForDevs,
-            _batchRevealData.batchRevealSize,
-            _batchRevealData.revealStartTime,
-            _batchRevealData.revealInterval
+            _amountForDevs
         );
 
         return launchpeg;
@@ -200,9 +193,6 @@ contract LaunchpegFactory is
     /// @param _collectionSize The collection size (e.g 10000)
     /// @param _amountForDevs Amount of NFTs reserved for `projectOwner` (e.g 200)
     /// @param _amountForAllowlist Amount of NFTs available for the allowlist mint (e.g 1000)
-    /// @param _batchRevealData Contains batch reveal informations :
-    ///  Size of the batch reveal, start of the token URIs reveal in seconds
-    /// and interval between two batch reveals in seconds
     /// @return flatLaunchpeg New FlatLaunchpeg address
     function createFlatLaunchpeg(
         string memory _name,
@@ -212,8 +202,7 @@ contract LaunchpegFactory is
         uint256 _maxBatchSize,
         uint256 _collectionSize,
         uint256 _amountForDevs,
-        uint256 _amountForAllowlist,
-        BatchReveal calldata _batchRevealData
+        uint256 _amountForAllowlist
     ) external override onlyOwner returns (address) {
         address flatLaunchpeg = Clones.clone(flatLaunchpegImplementation);
 
@@ -225,7 +214,6 @@ contract LaunchpegFactory is
             _symbol,
             _projectOwner,
             _royaltyReceiver,
-            _initializeBatchReveal(flatLaunchpeg, _batchRevealData),
             _maxBatchSize,
             _collectionSize,
             _amountForDevs,
@@ -248,13 +236,38 @@ contract LaunchpegFactory is
             _maxBatchSize,
             _collectionSize,
             _amountForDevs,
-            _amountForAllowlist,
-            _batchRevealData.batchRevealSize,
-            _batchRevealData.revealStartTime,
-            _batchRevealData.revealInterval
+            _amountForAllowlist
         );
 
         return flatLaunchpeg;
+    }
+
+    function createBatchReveal(
+        address baseLaunchpeg,
+        uint256 batchRevealSize,
+        uint256 revealStartTime,
+        uint256 revealInterval
+    ) external override onlyOwner returns (address) {
+        address batchReveal = Clones.clone(batchRevealImplementation);
+
+        IBatchReveal(batchReveal).initialize(
+            baseLaunchpeg,
+            batchRevealSize,
+            revealStartTime,
+            revealInterval
+        );
+
+        IBaseLaunchpeg(baseLaunchpeg).setBatchReveal(batchReveal);
+        OwnableUpgradeable(batchReveal).transferOwnership(msg.sender);
+
+        emit BatchRevealCreated(
+            batchReveal,
+            batchRevealSize,
+            revealStartTime,
+            revealInterval
+        );
+
+        return batchReveal;
     }
 
     /// @notice Set address for launchpegImplementation
@@ -313,23 +326,5 @@ contract LaunchpegFactory is
 
         joeFeeCollector = _joeFeeCollector;
         emit SetDefaultJoeFeeCollector(_joeFeeCollector);
-    }
-
-    function _initializeBatchReveal(
-        address _baseLaunchpeg,
-        BatchReveal calldata _batchRevealData
-    ) private returns (address) {
-        address batchReveal = Clones.clone(batchRevealImplementation);
-
-        IBatchReveal(batchReveal).initialize(
-            _baseLaunchpeg,
-            _batchRevealData.batchRevealSize,
-            _batchRevealData.revealStartTime,
-            _batchRevealData.revealInterval
-        );
-
-        OwnableUpgradeable(batchReveal).transferOwnership(msg.sender);
-
-        return batchReveal;
     }
 }

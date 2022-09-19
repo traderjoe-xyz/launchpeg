@@ -116,6 +116,13 @@ contract BatchReveal is
         uint32 _callbackGasLimit
     );
 
+    modifier batchRevealInitialized() {
+        if (!isBatchRevealInitialized()) {
+            revert Launchpeg__BatchRevealNotInitialized();
+        }
+        _;
+    }
+
     modifier revealNotStarted() {
         if (lastTokenRevealed != 0) {
             revert Launchpeg__BatchRevealStarted();
@@ -148,33 +155,14 @@ contract BatchReveal is
     ) external override initializer {
         __Ownable_init();
 
+        baseLaunchpeg = _baseLaunchpeg;
         uint256 _collectionSize = IBaseLaunchpeg(_baseLaunchpeg)
             .collectionSize();
-
-        if (
-            (_revealBatchSize != 0 &&
-                (_collectionSize % _revealBatchSize != 0)) ||
-            _revealBatchSize > _collectionSize
-        ) {
-            revert Launchpeg__InvalidBatchRevealSize();
-        }
-        // We assume that if the reveal is more than 100 days in the future, that's a mistake
-        // Same if the reveal interval is longer than 10 days
-        if (
-            _revealStartTime > block.timestamp + 8_640_000 ||
-            _revealInterval > 864_000
-        ) {
-            revert Launchpeg__InvalidRevealDates();
-        }
-        baseLaunchpeg = _baseLaunchpeg;
-        revealBatchSize = _revealBatchSize;
         collectionSize = _collectionSize;
         intCollectionSize = int128(int256(_collectionSize));
-        if (_revealBatchSize != 0) {
-            _rangeLength = (_collectionSize / _revealBatchSize) * 2;
-        }
-        revealStartTime = _revealStartTime;
-        revealInterval = _revealInterval;
+        setRevealBatchSize(_revealBatchSize);
+        setRevealStartTime(_revealStartTime);
+        setRevealInterval(_revealInterval);
     }
 
     /// @notice Set the reveal batch size. Can only be set after
@@ -183,9 +171,10 @@ contract BatchReveal is
     /// @dev Set to 0 to disable batch reveal
     /// @param _revealBatchSize New reveal batch size
     function setRevealBatchSize(uint256 _revealBatchSize)
-        external
+        public
         override
         onlyOwner
+        batchRevealInitialized
         revealNotStarted
     {
         if (_revealBatchSize == 0) {
@@ -208,9 +197,10 @@ contract BatchReveal is
     /// been revealed.
     /// @param _revealStartTime New batch reveal start time
     function setRevealStartTime(uint256 _revealStartTime)
-        external
+        public
         override
         onlyOwner
+        batchRevealInitialized
         revealNotStarted
     {
         // probably a mistake if the reveal is more than 100 days in the future
@@ -226,9 +216,10 @@ contract BatchReveal is
     /// been revealed.
     /// @param _revealInterval New batch reveal interval
     function setRevealInterval(uint256 _revealInterval)
-        external
+        public
         override
         onlyOwner
+        batchRevealInitialized
         revealNotStarted
     {
         // probably a mistake if reveal interval is longer than 10 days
@@ -471,6 +462,9 @@ contract BatchReveal is
         batchRevealEnabled
         returns (bool, uint256)
     {
+        if (!isBatchRevealEnabled()) {
+            return (false, 0);
+        }
         uint256 batchNumber;
         unchecked {
             batchNumber = lastTokenRevealed / revealBatchSize;
@@ -565,7 +559,9 @@ contract BatchReveal is
         return revealBatchSize != 0;
     }
 
-    /// @dev Determines if batch reveal is initialized.
+    /// Since the collection size is only set on initialize()
+    /// and the collection size cannot be 0, we assume a 0 value means
+    /// the batch reveal configuration has not been initialized.
     function isBatchRevealInitialized() public view override returns (bool) {
         return collectionSize != 0;
     }

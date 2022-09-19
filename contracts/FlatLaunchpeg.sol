@@ -42,10 +42,6 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
         uint256 tokenId
     );
 
-    /// @dev Emitted on setPublicSaleActive()
-    /// @param isActive True if the public sale is open, false otherwise
-    event PublicSaleStateChanged(bool isActive);
-
     modifier atPhase(Phase _phase) {
         if (currentPhase() != _phase) {
             revert Launchpeg__WrongPhase();
@@ -59,7 +55,6 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
     /// @param _symbol ERC721 symbol
     /// @param _projectOwner The project owner
     /// @param _royaltyReceiver Royalty fee collector
-    /// @param _batchReveal Batch reveal address
     /// @param _maxBatchSize Max amount of NFTs that can be minted at once
     /// @param _collectionSize The collection size (e.g 10000)
     /// @param _amountForDevs Amount of NFTs reserved for `projectOwner` (e.g 200)
@@ -69,7 +64,6 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
         string memory _symbol,
         address _projectOwner,
         address _royaltyReceiver,
-        address _batchReveal,
         uint256 _maxBatchSize,
         uint256 _collectionSize,
         uint256 _amountForDevs,
@@ -80,7 +74,6 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
             _symbol,
             _projectOwner,
             _royaltyReceiver,
-            _batchReveal,
             _maxBatchSize,
             _collectionSize,
             _amountForDevs,

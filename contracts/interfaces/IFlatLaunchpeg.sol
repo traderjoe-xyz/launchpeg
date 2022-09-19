@@ -21,7 +21,6 @@ interface IFlatLaunchpeg is IBaseLaunchpeg {
         string memory _symbol,
         address _projectOwner,
         address _royaltyReceiver,
-        address _batchReveal,
         uint256 _maxBatchSize,
         uint256 _collectionSize,
         uint256 _amountForDevs,

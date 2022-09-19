@@ -148,7 +148,6 @@ abstract contract BaseLaunchpeg is
     /// @param _symbol ERC721 symbol
     /// @param _projectOwner The project owner
     /// @param _royaltyReceiver Royalty fee collector
-    /// @param _batchReveal Batch reveal address
     /// @param _maxBatchSize Max amount of NFTs that can be minted at once
     /// @param _collectionSize The collection size (e.g 10000)
     /// @param _amountForDevs Amount of NFTs reserved for `projectOwner` (e.g 200)
@@ -158,7 +157,6 @@ abstract contract BaseLaunchpeg is
         string memory _symbol,
         address _projectOwner,
         address _royaltyReceiver,
-        address _batchReveal,
         uint256 _maxBatchSize,
         uint256 _collectionSize,
         uint256 _amountForDevs,
@@ -167,7 +165,6 @@ abstract contract BaseLaunchpeg is
         __SafeAccessControlEnumerable_init();
         __ReentrancyGuard_init();
         __ERC2981_init();
-
         __ERC721A_init(_name, _symbol);
 
         if (_projectOwner == address(0)) {
@@ -189,7 +186,6 @@ abstract contract BaseLaunchpeg is
         // Default royalty is 5%
         _setDefaultRoyalty(_royaltyReceiver, 500);
 
-        batchReveal = IBatchReveal(_batchReveal);
         maxBatchSize = _maxBatchSize;
         collectionSize = _collectionSize;
         maxPerAddressDuringMint = _maxBatchSize;
@@ -338,6 +334,11 @@ abstract contract BaseLaunchpeg is
     {
         withdrawAVAXStartTime = _withdrawAVAXStartTime;
         emit WithdrawAVAXStartTimeSet(_withdrawAVAXStartTime);
+    }
+
+    /// @notice Update batch reveal
+    function setBatchReveal(address _batchReveal) external override onlyOwner {
+        batchReveal = IBatchReveal(_batchReveal);
     }
 
     /// @notice Mint NFTs to the project owner
