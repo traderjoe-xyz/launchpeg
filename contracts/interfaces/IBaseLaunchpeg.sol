@@ -52,6 +52,8 @@ interface IBaseLaunchpeg is IERC721Upgradeable, IERC721MetadataUpgradeable {
 
     function publicSaleEndTime() external view returns (uint256);
 
+    function withdrawAVAXStartTime() external view returns (uint256);
+
     function initializeJoeFee(uint256 _joeFeePercent, address _joeFeeCollector)
         external;
 
@@ -82,6 +84,8 @@ interface IBaseLaunchpeg is IERC721Upgradeable, IERC721MetadataUpgradeable {
     function setRevealStartTime(uint256 _revealStartTime) external;
 
     function setRevealInterval(uint256 _revealInterval) external;
+
+    function setWithdrawAVAXStartTime(uint256 _withdrawAVAXStartTime) external;
 
     function devMint(uint256 quantity) external;
 

@@ -84,6 +84,9 @@ abstract contract BaseLaunchpeg is
     /// @dev A timestamp greater than the public sale start
     uint256 public override publicSaleEndTime;
 
+    /// @notice Start time when funds can be withdrawn
+    uint256 public override withdrawAVAXStartTime;
+
     /// @dev Emitted on initializeJoeFee()
     /// @param feePercent The fees collected by Joepegs on the sale benefits
     /// @param feeCollector The address to which the fees on the sale will be sent
@@ -139,6 +142,10 @@ abstract contract BaseLaunchpeg is
     /// @dev Emitted on setPublicSaleEndTime()
     /// @param publicSaleEndTime New public sale end time
     event PublicSaleEndTimeSet(uint256 publicSaleEndTime);
+
+    /// @dev Emitted on setWithdrawAVAXStartTime()
+    /// @param withdrawAVAXStartTime New withdraw AVAX start time
+    event WithdrawAVAXStartTimeSet(uint256 withdrawAVAXStartTime);
 
     modifier isEOA() {
         if (tx.origin != msg.sender) {
@@ -449,6 +456,17 @@ abstract contract BaseLaunchpeg is
         _setRevealInterval(_revealInterval);
     }
 
+    /// @notice Set the withdraw AVAX start time.
+    /// @param _withdrawAVAXStartTime New public sale end time
+    function setWithdrawAVAXStartTime(uint256 _withdrawAVAXStartTime)
+        external
+        override
+        onlyOwner
+    {
+        withdrawAVAXStartTime = _withdrawAVAXStartTime;
+        emit WithdrawAVAXStartTimeSet(_withdrawAVAXStartTime);
+    }
+
     /// @notice Mint NFTs to the project owner
     /// @dev Can only mint up to `amountForDevs`
     /// @param _quantity Quantity of NFTs to mint
@@ -483,6 +501,10 @@ abstract contract BaseLaunchpeg is
         onlyOwnerOrRole(PROJECT_OWNER_ROLE)
         nonReentrant
     {
+        if (withdrawAVAXStartTime > block.timestamp) {
+            revert Launchpeg__WithdrawAVAXNotAvailable();
+        }
+
         uint256 amount = address(this).balance;
         uint256 fee;
         bool sent;

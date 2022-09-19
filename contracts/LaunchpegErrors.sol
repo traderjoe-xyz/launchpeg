@@ -36,6 +36,7 @@ error Launchpeg__PublicSaleEndBeforePublicSaleStart();
 error Launchpeg__RevealNextBatchNotAvailable();
 error Launchpeg__TransferFailed();
 error Launchpeg__Unauthorized();
+error Launchpeg__WithdrawAVAXNotAvailable();
 error Launchpeg__WrongAddressesAndNumSlotsLength();
 error Launchpeg__WrongPhase();
 
