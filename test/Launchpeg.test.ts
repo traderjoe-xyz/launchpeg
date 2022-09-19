@@ -105,25 +105,6 @@ describe('Launchpeg', () => {
           config.batchRevealInterval
         )
       ).to.be.revertedWith('Launchpeg__InvalidProjectOwner()')
-
-      launchpeg.initialize(
-        'JoePEG',
-        'JOEPEG',
-        projectOwner.address,
-        royaltyReceiver.address,
-        config.maxBatchSize,
-        config.collectionSize,
-        config.amountForAuction,
-        config.amountForAllowlist,
-        config.amountForDevs,
-        config.batchRevealSize,
-        config.batchRevealStart,
-        config.batchRevealInterval
-      )
-
-      await expect(launchpeg.connect(dev).setProjectOwner(ethers.constants.AddressZero)).to.be.revertedWith(
-        'Launchpeg__InvalidProjectOwner()'
-      )
     })
 
     it('Phases can be updated', async () => {
@@ -151,7 +132,7 @@ describe('Launchpeg', () => {
             config.publicSaleEndTime,
             config.publicSaleDiscount
           )
-      ).to.be.revertedWith('Ownable: caller is not the owner')
+      ).to.be.revertedWith('PendingOwnableUpgradeable__NotOwner()')
     })
 
     it('MaxBatchSize must be smaller than collection', async () => {
@@ -393,7 +374,7 @@ describe('Launchpeg', () => {
       const newAuctionSaleStartTime = config.auctionStartTime.add(duration.minutes(30))
       await initializePhasesLaunchpeg(launchpeg, config, Phase.DutchAuction)
       await expect(launchpeg.connect(projectOwner).setAuctionSaleStartTime(newAuctionSaleStartTime)).to.be.revertedWith(
-        'Ownable: caller is not the owner'
+        'PendingOwnableUpgradeable__NotOwner()'
       )
       await expect(launchpeg.setAuctionSaleStartTime(invalidAuctionSaleStartTime)).to.be.revertedWith(
         'Launchpeg__InvalidStartTime()'
@@ -411,7 +392,7 @@ describe('Launchpeg', () => {
       const newAllowlistStartTime = config.allowlistStartTime.sub(duration.minutes(30))
       await initializePhasesLaunchpeg(launchpeg, config, Phase.DutchAuction)
       await expect(launchpeg.connect(projectOwner).setAllowlistStartTime(newAllowlistStartTime)).to.be.revertedWith(
-        'Ownable: caller is not the owner'
+        'PendingOwnableUpgradeable__NotOwner()'
       )
       await expect(launchpeg.setAllowlistStartTime(invalidAllowlistStartTime)).to.be.revertedWith(
         'Launchpeg__AllowlistBeforeAuction()'
@@ -429,7 +410,7 @@ describe('Launchpeg', () => {
       const newPublicSaleStartTime = config.publicSaleStartTime.sub(duration.minutes(30))
       await initializePhasesLaunchpeg(launchpeg, config, Phase.DutchAuction)
       await expect(launchpeg.connect(projectOwner).setPublicSaleStartTime(newPublicSaleStartTime)).to.be.revertedWith(
-        'Ownable: caller is not the owner'
+        'PendingOwnableUpgradeable__NotOwner()'
       )
       await expect(launchpeg.setPublicSaleStartTime(invalidPublicSaleStartTime)).to.be.revertedWith(
         'Launchpeg__PublicSaleBeforeAllowlist()'
@@ -447,7 +428,7 @@ describe('Launchpeg', () => {
       const newPublicSaleEndTime = config.publicSaleEndTime.sub(duration.minutes(30))
       await initializePhasesLaunchpeg(launchpeg, config, Phase.DutchAuction)
       await expect(launchpeg.connect(projectOwner).setPublicSaleEndTime(newPublicSaleEndTime)).to.be.revertedWith(
-        'Ownable: caller is not the owner'
+        'PendingOwnableUpgradeable__NotOwner()'
       )
       await expect(launchpeg.setPublicSaleEndTime(invalidPublicSaleEndTime)).to.be.revertedWith(
         'Launchpeg__PublicSaleEndBeforePublicSaleStart()'
@@ -461,7 +442,7 @@ describe('Launchpeg', () => {
       const newRevealBatchSize = 100
       await initializePhasesLaunchpeg(launchpeg, config, Phase.DutchAuction)
       await expect(launchpeg.connect(projectOwner).setRevealBatchSize(newRevealBatchSize)).to.be.revertedWith(
-        'Ownable: caller is not the owner'
+        'PendingOwnableUpgradeable__NotOwner()'
       )
       await expect(launchpeg.setRevealBatchSize(invalidRevealBatchSize)).to.be.revertedWith(
         'Launchpeg__InvalidBatchRevealSize()'
@@ -475,7 +456,7 @@ describe('Launchpeg', () => {
       const newRevealStartTime = config.batchRevealStart.add(duration.minutes(30))
       await initializePhasesLaunchpeg(launchpeg, config, Phase.DutchAuction)
       await expect(launchpeg.connect(projectOwner).setRevealStartTime(newRevealStartTime)).to.be.revertedWith(
-        'Ownable: caller is not the owner'
+        'PendingOwnableUpgradeable__NotOwner()'
       )
       await expect(launchpeg.setRevealStartTime(invalidRevealStartTime)).to.be.revertedWith(
         'Launchpeg__InvalidRevealDates()'
@@ -489,7 +470,7 @@ describe('Launchpeg', () => {
       const newRevealInterval = config.batchRevealInterval.add(10)
       await initializePhasesLaunchpeg(launchpeg, config, Phase.DutchAuction)
       await expect(launchpeg.connect(projectOwner).setRevealInterval(newRevealInterval)).to.be.revertedWith(
-        'Ownable: caller is not the owner'
+        'PendingOwnableUpgradeable__NotOwner()'
       )
       await expect(launchpeg.setRevealInterval(invalidRevealInterval)).to.be.revertedWith(
         'Launchpeg__InvalidRevealDates()'
@@ -645,9 +626,7 @@ describe('Launchpeg', () => {
       await launchpeg.connect(bob).publicSaleMint(quantity, { value: price.mul(quantity) })
 
       quantity = 1
-      await expect(launchpeg.connect(alice).publicSaleMint(quantity)).to.be.revertedWith(
-        'Launchpeg__WrongPhase()'
-      )
+      await expect(launchpeg.connect(alice).publicSaleMint(quantity)).to.be.revertedWith('Launchpeg__WrongPhase()')
     })
 
     it('Mint reverts when the user already minted max amount', async () => {
@@ -729,11 +708,13 @@ describe('Launchpeg', () => {
     })
 
     it('Only dev can mint', async () => {
-      await expect(launchpeg.connect(alice).devMint(1)).to.be.revertedWith('Launchpeg__Unauthorized()')
+      await expect(launchpeg.connect(alice).devMint(1)).to.be.revertedWith(
+        'SafeAccessControlEnumerableUpgradeable__SenderMissingRoleAndIsNotOwner'
+      )
     })
 
     it('Mint after project owner changes', async () => {
-      await launchpeg.connect(dev).setProjectOwner(alice.address)
+      await launchpeg.connect(dev).grantRole(launchpeg.PROJECT_OWNER_ROLE(), alice.address)
       await launchpeg.connect(alice).devMint(config.amountForDevs)
       expect(await launchpeg.balanceOf(alice.address)).to.eq(config.amountForDevs)
     })
@@ -824,10 +805,10 @@ describe('Launchpeg', () => {
     })
 
     it('NFTs will be revealed immediately if batch reveal is disabled', async () => {
-      const tokenId = 0;
+      const tokenId = 0
       const expTokenURI = `${config.baseTokenURI}${tokenId}`
       await initializePhasesLaunchpeg(launchpeg, config, Phase.DutchAuction)
-      await launchpeg.setRevealBatchSize(0);
+      await launchpeg.setRevealBatchSize(0)
       expect(await launchpeg.tokenURI(tokenId)).to.be.equal(expTokenURI)
     })
 
@@ -964,7 +945,7 @@ describe('Launchpeg', () => {
         'Launchpeg__RevealNextBatchNotAvailable'
       )
 
-      await expect(launchpeg.connect(bob).forceReveal()).to.be.revertedWith('Ownable: caller is not the owner')
+      await expect(launchpeg.connect(bob).forceReveal()).to.be.revertedWith('PendingOwnableUpgradeable__NotOwner')
 
       await launchpeg.connect(dev).forceReveal()
       // Batch 1 is revealed
@@ -974,11 +955,9 @@ describe('Launchpeg', () => {
 
     it('Owner cannot force reveal if batch reveal is disabled', async () => {
       await initializePhasesLaunchpeg(launchpeg, config, Phase.PublicSale)
-      await launchpeg.setRevealBatchSize(0);
+      await launchpeg.setRevealBatchSize(0)
       await launchpeg.connect(projectOwner).devMint(config.amountForDevs)
-      await expect(launchpeg.connect(dev).forceReveal()).to.be.revertedWith(
-        'Launchpeg__RevealNextBatchNotAvailable()'
-      )
+      await expect(launchpeg.connect(dev).forceReveal()).to.be.revertedWith('Launchpeg__RevealNextBatchNotAvailable()')
     })
 
     it('Owner cannot set reveal batch size once batch reveal has started', async () => {
@@ -1018,9 +997,7 @@ describe('Launchpeg', () => {
       const newRevealInterval = config.batchRevealInterval.add(10)
       await launchpeg.connect(projectOwner).devMint(config.batchRevealSize)
       await launchpeg.connect(alice).revealNextBatch()
-      await expect(launchpeg.setRevealInterval(newRevealInterval)).to.be.revertedWith(
-        'Launchpeg__BatchRevealStarted()'
-      )
+      await expect(launchpeg.setRevealInterval(newRevealInterval)).to.be.revertedWith('Launchpeg__BatchRevealStarted()')
     })
   })
 

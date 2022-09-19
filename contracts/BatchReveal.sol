@@ -126,7 +126,8 @@ abstract contract BatchReveal is
         uint256 _revealInterval
     ) internal onlyInitializing {
         if (
-            (_revealBatchSize != 0 && (_collectionSize % _revealBatchSize != 0)) ||
+            (_revealBatchSize != 0 &&
+                (_collectionSize % _revealBatchSize != 0)) ||
             _revealBatchSize > _collectionSize
         ) {
             revert Launchpeg__InvalidBatchRevealSize();

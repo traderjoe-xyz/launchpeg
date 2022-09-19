@@ -18,6 +18,8 @@ interface IBaseLaunchpeg is IERC721Upgradeable, IERC721MetadataUpgradeable {
         Ended
     }
 
+    function PROJECT_OWNER_ROLE() external view returns (bytes32);
+
     function collectionSize() external view returns (uint256);
 
     function unrevealedURI() external view returns (string memory);
@@ -35,8 +37,6 @@ interface IBaseLaunchpeg is IERC721Upgradeable, IERC721MetadataUpgradeable {
     function joeFeePercent() external view returns (uint256);
 
     function joeFeeCollector() external view returns (address);
-
-    function projectOwner() external view returns (address);
 
     function allowlist(address) external view returns (uint256);
 
@@ -65,8 +65,6 @@ interface IBaseLaunchpeg is IERC721Upgradeable, IERC721MetadataUpgradeable {
     function setBaseURI(string calldata baseURI) external;
 
     function setUnrevealedURI(string calldata baseURI) external;
-
-    function setProjectOwner(address _projectOwner) external;
 
     function setVRF(
         address _vrfCoordinator,

@@ -4,14 +4,8 @@ pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
 
+import "../LaunchpegErrors.sol";
 import "./PendingOwnableUpgradeable.sol";
-
-error SafeAccessControlEnumerableUpgradeable__SenderMissingRoleAndIsNotOwner(
-    bytes32 role,
-    address sender
-);
-
-error SafeAccessControlEnumerableUpgradeable__RoleIsDefaultAdmin();
 
 abstract contract SafeAccessControlEnumerableUpgradeable is
     PendingOwnableUpgradeable,
