@@ -475,12 +475,12 @@ abstract contract BaseLaunchpeg is
         emit DevMint(msg.sender, _quantity);
     }
 
-    /// @notice Withdraw AVAX to the contract owner
+    /// @notice Withdraw AVAX to the given recipient
     /// @param _to Recipient of the earned AVAX
     function withdrawAVAX(address _to)
         external
         override
-        onlyOwner
+        onlyOwnerOrRole(PROJECT_OWNER_ROLE)
         nonReentrant
     {
         uint256 amount = address(this).balance;
