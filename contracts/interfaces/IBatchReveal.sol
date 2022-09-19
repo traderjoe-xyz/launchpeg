@@ -30,4 +30,13 @@ interface IBatchReveal {
     function hasBeenForceRevealed() external view returns (bool);
 
     function vrfRequestedForBatch(uint256) external view returns (bool);
+
+    function getShuffledTokenId(uint256 _startId)
+        external
+        view
+        returns (uint256);
+
+    function isBatchRevealEnabled() external view returns (bool);
+
+    function isBatchRevealInitialized() external view returns (bool);
 }

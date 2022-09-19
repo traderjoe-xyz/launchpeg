@@ -7,7 +7,7 @@ import "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
 
 import "erc721a-upgradeable/contracts/ERC721AUpgradeable.sol";
 
-import "./BatchReveal.sol";
+import "./interfaces/IBatchReveal.sol";
 import "./LaunchpegErrors.sol";
 import "./utils/SafeAccessControlEnumerableUpgradeable.sol";
 import "./interfaces/IBaseLaunchpeg.sol";
@@ -18,12 +18,13 @@ import "./interfaces/IBaseLaunchpeg.sol";
 abstract contract BaseLaunchpeg is
     IBaseLaunchpeg,
     ERC721AUpgradeable,
-    BatchReveal,
     SafeAccessControlEnumerableUpgradeable,
     ReentrancyGuardUpgradeable,
     ERC2981Upgradeable
 {
     using StringsUpgradeable for uint256;
+
+    IBatchReveal public batchReveal;
 
     /// @notice Role granted to project owners
     bytes32 public constant override PROJECT_OWNER_ROLE =
@@ -119,18 +120,6 @@ abstract contract BaseLaunchpeg is
     /// @param feePercent Royalty fee percent in basis point
     event DefaultRoyaltySet(address indexed receiver, uint256 feePercent);
 
-    /// @dev emitted on setVRF()
-    /// @param _vrfCoordinator Chainlink coordinator address
-    /// @param _keyHash Keyhash of the gas lane wanted
-    /// @param _subscriptionId Chainlink subscription ID
-    /// @param _callbackGasLimit Max gas used by the coordinator callback
-    event VRFSet(
-        address _vrfCoordinator,
-        bytes32 _keyHash,
-        uint64 _subscriptionId,
-        uint32 _callbackGasLimit
-    );
-
     /// @dev Emitted on setAllowlistStartTime()
     /// @param allowlistStartTime New allowlist start time
     event AllowlistStartTimeSet(uint256 allowlistStartTime);
@@ -159,37 +148,27 @@ abstract contract BaseLaunchpeg is
     /// @param _symbol ERC721 symbol
     /// @param _projectOwner The project owner
     /// @param _royaltyReceiver Royalty fee collector
+    /// @param _batchReveal Batch reveal address
     /// @param _maxBatchSize Max amount of NFTs that can be minted at once
     /// @param _collectionSize The collection size (e.g 10000)
     /// @param _amountForDevs Amount of NFTs reserved for `projectOwner` (e.g 200)
     /// @param _amountForAllowlist Amount of NFTs available for the allowlist mint (e.g 1000)
-    /// @param _batchRevealSize Size of the batch reveal
-    /// @param _revealStartTime Batch reveal start time
-    /// @param _revealInterval Batch reveal interval
     function initializeBaseLaunchpeg(
         string memory _name,
         string memory _symbol,
         address _projectOwner,
         address _royaltyReceiver,
+        address _batchReveal,
         uint256 _maxBatchSize,
         uint256 _collectionSize,
         uint256 _amountForDevs,
-        uint256 _amountForAllowlist,
-        uint256 _batchRevealSize,
-        uint256 _revealStartTime,
-        uint256 _revealInterval
+        uint256 _amountForAllowlist
     ) internal onlyInitializing {
         __SafeAccessControlEnumerable_init();
         __ReentrancyGuard_init();
         __ERC2981_init();
 
         __ERC721A_init(_name, _symbol);
-        initializeBatchReveal(
-            _batchRevealSize,
-            _collectionSize,
-            _revealStartTime,
-            _revealInterval
-        );
 
         if (_projectOwner == address(0)) {
             revert Launchpeg__InvalidProjectOwner();
@@ -210,6 +189,7 @@ abstract contract BaseLaunchpeg is
         // Default royalty is 5%
         _setDefaultRoyalty(_royaltyReceiver, 500);
 
+        batchReveal = IBatchReveal(_batchReveal);
         maxBatchSize = _maxBatchSize;
         collectionSize = _collectionSize;
         maxPerAddressDuringMint = _maxBatchSize;
@@ -294,74 +274,6 @@ abstract contract BaseLaunchpeg is
         emit UnrevealedURISet(unrevealedURI);
     }
 
-    /// @notice Set VRF configuration
-    /// @param _vrfCoordinator Chainlink coordinator address
-    /// @param _keyHash Keyhash of the gas lane wanted
-    /// @param _subscriptionId Chainlink subscription ID
-    /// @param _callbackGasLimit Max gas used by the coordinator callback
-    function setVRF(
-        address _vrfCoordinator,
-        bytes32 _keyHash,
-        uint64 _subscriptionId,
-        uint32 _callbackGasLimit
-    ) external override onlyOwner {
-        if (_vrfCoordinator == address(0)) {
-            revert Launchpeg__InvalidCoordinator();
-        }
-
-        (
-            ,
-            uint32 _maxGasLimit,
-            bytes32[] memory s_provingKeyHashes
-        ) = VRFCoordinatorV2Interface(_vrfCoordinator).getRequestConfig();
-
-        // 20_000 is the cost of storing one word, callback cost will never be lower than that
-        if (_callbackGasLimit > _maxGasLimit || _callbackGasLimit < 20_000) {
-            revert Launchpeg__InvalidCallbackGasLimit();
-        }
-
-        bool keyHashFound;
-        for (uint256 i; i < s_provingKeyHashes.length; i++) {
-            if (s_provingKeyHashes[i] == _keyHash) {
-                keyHashFound = true;
-                break;
-            }
-        }
-
-        if (!keyHashFound) {
-            revert Launchpeg__InvalidKeyHash();
-        }
-
-        (, , , address[] memory consumers) = VRFCoordinatorV2Interface(
-            _vrfCoordinator
-        ).getSubscription(_subscriptionId);
-
-        bool isInConsumerList;
-        for (uint256 i; i < consumers.length; i++) {
-            if (consumers[i] == address(this)) {
-                isInConsumerList = true;
-                break;
-            }
-        }
-
-        if (!isInConsumerList) {
-            revert Launchpeg__IsNotInTheConsumerList();
-        }
-
-        useVRF = true;
-        setVRFConsumer(_vrfCoordinator);
-        keyHash = _keyHash;
-        subscriptionId = _subscriptionId;
-        callbackGasLimit = _callbackGasLimit;
-
-        emit VRFSet(
-            _vrfCoordinator,
-            _keyHash,
-            _subscriptionId,
-            _callbackGasLimit
-        );
-    }
-
     /// @notice Set the public sale start time. Can only be set after phases
     /// have been initialized.
     /// @dev Only callable by owner
@@ -415,45 +327,6 @@ abstract contract BaseLaunchpeg is
         }
         publicSaleEndTime = _publicSaleEndTime;
         emit PublicSaleEndTimeSet(_publicSaleEndTime);
-    }
-
-    /// @notice Set the reveal batch size. Can only be set after
-    /// batch reveal has been initialized and before a batch has
-    /// been revealed.
-    /// @dev Only callable by owner
-    /// @param _revealBatchSize New reveal batch size
-    function setRevealBatchSize(uint256 _revealBatchSize)
-        external
-        override
-        onlyOwner
-    {
-        _setRevealBatchSize(_revealBatchSize);
-    }
-
-    /// @notice Set the batch reveal start time. Can only be set after
-    /// batch reveal has been initialized and before a batch has
-    /// been revealed.
-    /// @dev Only callable by owner
-    /// @param _revealStartTime New batch reveal start time
-    function setRevealStartTime(uint256 _revealStartTime)
-        external
-        override
-        onlyOwner
-    {
-        _setRevealStartTime(_revealStartTime);
-    }
-
-    /// @notice Set the batch reveal interval. Can only be set after
-    /// batch reveal has been initialized and before a batch has
-    /// been revealed.
-    /// @dev Only callable by owner
-    /// @param _revealInterval New batch reveal interval
-    function setRevealInterval(uint256 _revealInterval)
-        external
-        override
-        onlyOwner
-    {
-        _setRevealInterval(_revealInterval);
     }
 
     /// @notice Set the withdraw AVAX start time.
@@ -527,25 +400,6 @@ abstract contract BaseLaunchpeg is
         emit AvaxWithdraw(_to, amount, fee);
     }
 
-    /// @notice Reveals the next batch if the reveal conditions are met
-    function revealNextBatch() external override isEOA {
-        if (!_revealNextBatch(totalSupply())) {
-            revert Launchpeg__RevealNextBatchNotAvailable();
-        }
-    }
-
-    /// @notice Allows Owner to reveal batches even if the conditions are not met
-    function forceReveal() external override onlyOwner {
-        _forceReveal();
-    }
-
-    /// @notice Tells you if a batch can be revealed
-    /// @return bool Whether reveal can be triggered or not
-    /// @return uint256 The number of the next batch that will be revealed
-    function hasBatchToReveal() external view override returns (bool, uint256) {
-        return _hasBatchToReveal(totalSupply());
-    }
-
     /// @notice Returns the ownership data of a specific token ID
     /// @param _tokenId Token ID
     /// @return TokenOwnership Ownership struct for a specific token ID
@@ -567,16 +421,19 @@ abstract contract BaseLaunchpeg is
         override(ERC721AUpgradeable, IERC721MetadataUpgradeable)
         returns (string memory)
     {
-        if (isBatchRevealInitialized() && !isBatchRevealEnabled()) {
+        if (
+            batchReveal.isBatchRevealInitialized() &&
+            !batchReveal.isBatchRevealEnabled()
+        ) {
             return string(abi.encodePacked(baseURI, _id.toString()));
-        } else if (_id >= lastTokenRevealed) {
+        } else if (_id >= batchReveal.lastTokenRevealed()) {
             return unrevealedURI;
         } else {
             return
                 string(
                     abi.encodePacked(
                         baseURI,
-                        _getShuffledTokenId(_id).toString()
+                        batchReveal.getShuffledTokenId(_id).toString()
                     )
                 );
         }

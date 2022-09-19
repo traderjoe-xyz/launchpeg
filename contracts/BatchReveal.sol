@@ -100,6 +100,18 @@ abstract contract BatchReveal is
     /// @param revealInterval New reveal interval
     event RevealIntervalSet(uint256 revealInterval);
 
+    /// @dev emitted on setVRF()
+    /// @param _vrfCoordinator Chainlink coordinator address
+    /// @param _keyHash Keyhash of the gas lane wanted
+    /// @param _subscriptionId Chainlink subscription ID
+    /// @param _callbackGasLimit Max gas used by the coordinator callback
+    event VRFSet(
+        address _vrfCoordinator,
+        bytes32 _keyHash,
+        uint64 _subscriptionId,
+        uint32 _callbackGasLimit
+    );
+
     modifier revealNotStarted() {
         if (lastTokenRevealed != 0) {
             revert Launchpeg__BatchRevealStarted();
@@ -206,6 +218,74 @@ abstract contract BatchReveal is
         emit RevealIntervalSet(_revealInterval);
     }
 
+    /// @notice Set VRF configuration
+    /// @param _vrfCoordinator Chainlink coordinator address
+    /// @param _keyHash Keyhash of the gas lane wanted
+    /// @param _subscriptionId Chainlink subscription ID
+    /// @param _callbackGasLimit Max gas used by the coordinator callback
+    function _setVRF(
+        address _vrfCoordinator,
+        bytes32 _keyHash,
+        uint64 _subscriptionId,
+        uint32 _callbackGasLimit
+    ) internal {
+        if (_vrfCoordinator == address(0)) {
+            revert Launchpeg__InvalidCoordinator();
+        }
+
+        (
+            ,
+            uint32 _maxGasLimit,
+            bytes32[] memory s_provingKeyHashes
+        ) = VRFCoordinatorV2Interface(_vrfCoordinator).getRequestConfig();
+
+        // 20_000 is the cost of storing one word, callback cost will never be lower than that
+        if (_callbackGasLimit > _maxGasLimit || _callbackGasLimit < 20_000) {
+            revert Launchpeg__InvalidCallbackGasLimit();
+        }
+
+        bool keyHashFound;
+        for (uint256 i; i < s_provingKeyHashes.length; i++) {
+            if (s_provingKeyHashes[i] == _keyHash) {
+                keyHashFound = true;
+                break;
+            }
+        }
+
+        if (!keyHashFound) {
+            revert Launchpeg__InvalidKeyHash();
+        }
+
+        (, , , address[] memory consumers) = VRFCoordinatorV2Interface(
+            _vrfCoordinator
+        ).getSubscription(_subscriptionId);
+
+        bool isInConsumerList;
+        for (uint256 i; i < consumers.length; i++) {
+            if (consumers[i] == address(this)) {
+                isInConsumerList = true;
+                break;
+            }
+        }
+
+        if (!isInConsumerList) {
+            revert Launchpeg__IsNotInTheConsumerList();
+        }
+
+        useVRF = true;
+        setVRFConsumer(_vrfCoordinator);
+        keyHash = _keyHash;
+        subscriptionId = _subscriptionId;
+        callbackGasLimit = _callbackGasLimit;
+
+        emit VRFSet(
+            _vrfCoordinator,
+            _keyHash,
+            _subscriptionId,
+            _callbackGasLimit
+        );
+    }
+
     // Forked from openzeppelin
     /// @dev Returns the smallest of two numbers.
     /// @param _a First number to consider
@@ -284,8 +364,9 @@ abstract contract BatchReveal is
     /// @dev Gets the random token URI number from tokenId
     /// @param _startId Token Id to consider
     /// @return uriId Revealed Token URI Id
-    function _getShuffledTokenId(uint256 _startId)
-        internal
+    function getShuffledTokenId(uint256 _startId)
+        external
+        override
         view
         returns (uint256)
     {
@@ -456,12 +537,12 @@ abstract contract BatchReveal is
 
     /// @dev Determines if batch reveal is enabled.
     /// Batch reveal is enabled if revealBatchSize is not 0.
-    function isBatchRevealEnabled() internal view returns (bool) {
+    function isBatchRevealEnabled() public override view returns (bool) {
         return revealBatchSize != 0;
     }
 
     /// @dev Determines if batch reveal is initialized.
-    function isBatchRevealInitialized() internal view returns (bool) {
+    function isBatchRevealInitialized() public override view returns (bool) {
         return collectionSize != 0;
     }
 }

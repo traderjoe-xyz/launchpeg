@@ -68,34 +68,15 @@ interface IBaseLaunchpeg is IERC721Upgradeable, IERC721MetadataUpgradeable {
 
     function setUnrevealedURI(string calldata baseURI) external;
 
-    function setVRF(
-        address _vrfCoordinator,
-        bytes32 _keyHash,
-        uint64 _subscriptionId,
-        uint32 _callbackGasLimit
-    ) external;
-
     function setPublicSaleStartTime(uint256 _publicSaleStartTime) external;
 
     function setPublicSaleEndTime(uint256 _publicSaleEndTime) external;
-
-    function setRevealBatchSize(uint256 _revealBatchSize) external;
-
-    function setRevealStartTime(uint256 _revealStartTime) external;
-
-    function setRevealInterval(uint256 _revealInterval) external;
 
     function setWithdrawAVAXStartTime(uint256 _withdrawAVAXStartTime) external;
 
     function devMint(uint256 quantity) external;
 
     function withdrawAVAX(address to) external;
-
-    function revealNextBatch() external;
-
-    function forceReveal() external;
-
-    function hasBatchToReveal() external view returns (bool, uint256);
 
     function getOwnershipData(uint256 tokenId)
         external
