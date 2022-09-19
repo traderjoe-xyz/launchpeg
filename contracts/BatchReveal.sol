@@ -1,7 +1,6 @@
 //SPDX-License-Identifier: CC0
 pragma solidity ^0.8.4;
 
-import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
 
@@ -17,7 +16,6 @@ import "./LaunchpegErrors.sol";
 contract BatchReveal is
     IBatchReveal,
     VRFConsumerBaseV2Upgradeable,
-    Initializable,
     OwnableUpgradeable
 {
     /// @dev Initialized on parent contract creation
@@ -138,7 +136,9 @@ contract BatchReveal is
         uint256 _collectionSize,
         uint256 _revealStartTime,
         uint256 _revealInterval
-    ) external override onlyInitializing {
+    ) external override initializer {
+         __Ownable_init();
+         
         if (
             (_revealBatchSize != 0 &&
                 (_collectionSize % _revealBatchSize != 0)) ||

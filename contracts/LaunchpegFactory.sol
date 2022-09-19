@@ -328,6 +328,8 @@ contract LaunchpegFactory is
             _batchRevealData.revealInterval
         );
 
+        OwnableUpgradeable(batchReveal).transferOwnership(msg.sender);
+
         return batchReveal;
     }
 }
