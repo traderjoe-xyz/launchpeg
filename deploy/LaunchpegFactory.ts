@@ -27,4 +27,4 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 }
 export default func
 func.tags = ['LaunchpegFactory']
-func.dependencies = ['Launchpeg', 'FlatLaunchpeg']
+func.dependencies = ['Launchpeg', 'FlatLaunchpeg', 'BatchReveal']
