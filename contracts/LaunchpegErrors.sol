@@ -13,6 +13,7 @@ error Launchpeg__HasBeenForceRevealed();
 error Launchpeg__JoeFeeAlreadyInitialized();
 error Launchpeg__InvalidAuctionDropInterval();
 error Launchpeg__InvalidStartTime();
+error Launchpeg__InvalidBatchReveal();
 error Launchpeg__InvalidBatchRevealSize();
 error Launchpeg__InvalidCallbackGasLimit();
 error Launchpeg__InvalidCoordinator();

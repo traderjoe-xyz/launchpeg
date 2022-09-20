@@ -338,6 +338,9 @@ abstract contract BaseLaunchpeg is
 
     /// @notice Update batch reveal
     function setBatchReveal(address _batchReveal) external override onlyOwner {
+        if (IBatchReveal(_batchReveal).baseLaunchpeg() != address(this)) {
+            revert Launchpeg__InvalidBatchReveal();
+        }
         batchReveal = IBatchReveal(_batchReveal);
     }
 
