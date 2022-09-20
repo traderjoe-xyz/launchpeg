@@ -44,6 +44,7 @@ error Launchpeg__WrongPhase();
 
 // PendingOwnableUpgradeable
 error PendingOwnableUpgradeable__NotOwner();
+error PendingOwnableUpgradeable__AddressZero();
 error PendingOwnableUpgradeable__NotPendingOwner();
 error PendingOwnableUpgradeable__PendingOwnerAlreadySet();
 error PendingOwnableUpgradeable__NoPendingOwner();
