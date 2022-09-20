@@ -16,6 +16,7 @@
     "prettier": "prettier --write 'contracts/**/*.sol' './**/*.ts'",
     "deploy-launchpeg-fuji": "hardhat deploy-launchpeg --network fuji",
     "deploy-flat-launchpeg-fuji": "hardhat deploy-flatlaunchpeg --network fuji",
+    "deploy-playground-fuji": "hardhat deploy-playground --network fuji",
     "verify-fuji": "hardhat etherscan-verify  --network fuji",
     "test": "hardhat test",
     "coverage": "hardhat coverage"

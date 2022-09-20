@@ -9,6 +9,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const launchpegAddress = (await deployments.get('Launchpeg')).address
   const flatLaunchpegAddress = (await deployments.get('FlatLaunchpeg')).address
+  const batchRevealAddress = (await deployments.get('BatchReveal')).address
 
   await deploy('LaunchpegFactory', {
     from: deployer,
@@ -17,7 +18,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       execute: {
         init: {
           methodName: 'initialize',
-          args: [launchpegAddress, flatLaunchpegAddress, 500, deployer],
+          args: [launchpegAddress, flatLaunchpegAddress, batchRevealAddress, 500, deployer],
         },
       },
     },

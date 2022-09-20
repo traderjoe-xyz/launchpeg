@@ -18,4 +18,5 @@ task('deploy-playground', 'Deploy differents launchpeg contracts for testing').s
   await hre.run('deploy-flatlaunchpeg', { configFilename: 'playground-deployments/flatlaunchpeg-allowlist.json' })
   await hre.run('deploy-flatlaunchpeg', { configFilename: 'playground-deployments/flatlaunchpeg-public.json' })
   await hre.run('deploy-flatlaunchpeg', { configFilename: 'playground-deployments/flatlaunchpeg-sold-out.json' })
+  await hre.run('deploy-flatlaunchpeg', { configFilename: 'playground-deployments/flatlaunchpeg-no-batch-reveal.json' })
 })

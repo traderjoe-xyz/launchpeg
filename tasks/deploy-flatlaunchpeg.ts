@@ -24,8 +24,7 @@ task('deploy-flatlaunchpeg', 'Deploy FlatLaunchpeg contract')
       launchConfig.maxBatchSize,
       launchConfig.collectionSize,
       launchConfig.amountForDevs,
-      launchConfig.amountForAllowlist,
-      [launchConfig.batchRevealSize, launchConfig.batchRevealStart, launchConfig.batchRevealInterval]
+      launchConfig.amountForAllowlist
     )
 
     await creationTx.wait()
@@ -65,12 +64,10 @@ task('deploy-flatlaunchpeg', 'Deploy FlatLaunchpeg contract')
       })
     }
 
-    if (launchConfig.keyHash && launchConfig.subscriptionId && launchConfig.maxGasLimit) {
-      await hre.run('set-VRF', {
-        contractAddress: launchpeg.address,
-        keyHash: launchConfig.keyHash,
-        subscriptionId: launchConfig.subscriptionId,
-        maxGasLimit: launchConfig.maxGasLimit,
+    if (configFilename.batchRevealSize && configFilename.revealStartTime && configFilename.revealInterval) {
+      await hre.run('deploy-batch-reveal', {
+        baseLauncheg: launchpegAddress,
+        configFilename,
       })
     }
   })
