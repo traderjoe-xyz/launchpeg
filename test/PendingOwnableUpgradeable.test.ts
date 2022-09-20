@@ -52,6 +52,11 @@ describe('MockPendingOwnableUpgradeable', function () {
       this.mockPendingOwnableUpgradeable.connect(this.dev).setPendingOwner(this.alice.address)
     ).to.be.revertedWith('PendingOwnableUpgradeable__PendingOwnerAlreadySet')
 
+    // Should revert on address(0)
+    await expect(
+      this.mockPendingOwnableUpgradeable.connect(this.dev).setPendingOwner(ethers.constants.AddressZero)
+    ).to.be.revertedWith('PendingOwnableUpgradeable__AddressZero')
+
     await this.mockPendingOwnableUpgradeable.connect(this.dev).revokePendingOwner()
 
     await expect(this.mockPendingOwnableUpgradeable.connect(this.dev).revokePendingOwner()).to.be.revertedWith(

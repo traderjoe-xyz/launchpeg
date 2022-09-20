@@ -89,6 +89,8 @@ abstract contract PendingOwnableUpgradeable is
         override
         onlyOwner
     {
+        if (pendingOwner_ == address(0))
+            revert PendingOwnableUpgradeable__AddressZero();
         if (_pendingOwner != address(0))
             revert PendingOwnableUpgradeable__PendingOwnerAlreadySet();
         _setPendingOwner(pendingOwner_);
