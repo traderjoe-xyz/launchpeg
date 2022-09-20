@@ -425,10 +425,7 @@ abstract contract BaseLaunchpeg is
         override(ERC721AUpgradeable, IERC721MetadataUpgradeable)
         returns (string memory)
     {
-        if (
-            batchReveal.isBatchRevealInitialized() &&
-            !batchReveal.isBatchRevealEnabled()
-        ) {
+        if (address(batchReveal) == address(0)) {
             return string(abi.encodePacked(baseURI, _id.toString()));
         } else if (_id >= batchReveal.lastTokenRevealed()) {
             return unrevealedURI;

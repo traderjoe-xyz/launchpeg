@@ -58,8 +58,6 @@ interface IBatchReveal {
         view
         returns (uint256);
 
-    function isBatchRevealEnabled() external view returns (bool);
-
     function isBatchRevealInitialized() external view returns (bool);
 
     function revealNextBatch(uint256 _totalSupply) external returns (bool);

@@ -115,10 +115,9 @@ describe('FlatLaunchpeg', () => {
       )
     })
 
-    it('Should allow 0 batch reveal size', async () => {
+    it('Should not allow 0 batch reveal size', async () => {
       config.batchRevealSize = 0
-      await deployFlatLaunchpeg()
-      expect(await batchReveal.revealBatchSize()).to.eq(0)
+      await expect(deployFlatLaunchpeg()).to.be.revertedWith('Launchpeg__InvalidBatchRevealSize()')
     })
 
     it('Should not allow invalid reveal batch size', async () => {

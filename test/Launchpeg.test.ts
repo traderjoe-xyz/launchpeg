@@ -46,8 +46,10 @@ describe('Launchpeg', () => {
     })
   })
 
-  const deployLaunchpeg = async () => {
-    batchReveal = await batchRevealCF.deploy()
+  const deployLaunchpeg = async (isBatchRevealEnabled: boolean = true) => {
+    if (isBatchRevealEnabled) {
+      batchReveal = await batchRevealCF.deploy()
+    }
     launchpeg = await launchpegCF.deploy()
     await launchpeg.initialize(
       'JoePEG',
@@ -60,13 +62,15 @@ describe('Launchpeg', () => {
       config.amountForAllowlist,
       config.amountForDevs
     )
-    await batchReveal.initialize(
-      launchpeg.address,
-      config.batchRevealSize,
-      config.batchRevealStart,
-      config.batchRevealInterval
-    )
-    await launchpeg.setBatchReveal(batchReveal.address)
+    if (isBatchRevealEnabled) {
+      await batchReveal.initialize(
+        launchpeg.address,
+        config.batchRevealSize,
+        config.batchRevealStart,
+        config.batchRevealInterval
+      )
+      await launchpeg.setBatchReveal(batchReveal.address)
+    }
   }
 
   const setVRF = async () => {
@@ -230,10 +234,9 @@ describe('Launchpeg', () => {
       )
     })
 
-    it('Should allow 0 batch reveal size', async () => {
+    it('Should not allow 0 batch reveal size', async () => {
       config.batchRevealSize = 0
-      await deployLaunchpeg()
-      expect(await batchReveal.revealBatchSize()).to.eq(0)
+      await expect(deployLaunchpeg()).to.be.revertedWith('Launchpeg__InvalidBatchRevealSize()')
     })
 
     it('Should not allow invalid reveal batch size', async () => {
@@ -847,10 +850,11 @@ describe('Launchpeg', () => {
     })
 
     it('Should reveal NFTs immediately if batch reveal is disabled', async () => {
+      const isBatchRevealEnabled = false
       const tokenId = 0
       const expTokenURI = `${config.baseTokenURI}${tokenId}`
       config.batchRevealSize = 0
-      await deployLaunchpeg()
+      await deployLaunchpeg(isBatchRevealEnabled)
       await launchpeg.setBaseURI(config.baseTokenURI)
       expect(await launchpeg.tokenURI(tokenId)).to.be.equal(expTokenURI)
     })
@@ -993,15 +997,6 @@ describe('Launchpeg', () => {
       // Batch 1 is revealed
       expect(await launchpeg.tokenURI(0)).to.contains(config.baseTokenURI)
       expect(await launchpeg.tokenURI(config.batchRevealSize)).to.be.equal(config.unrevealedTokenURI)
-    })
-
-    it('Should not allow owner to force reveal if batch reveal is disabled', async () => {
-      config.batchRevealSize = 0
-      await deployLaunchpeg()
-      await launchpeg.connect(projectOwner).devMint(config.amountForDevs)
-      await expect(batchReveal.connect(dev).forceReveal()).to.be.revertedWith(
-        'Launchpeg__RevealNextBatchNotAvailable()'
-      )
     })
 
     it('Should not allow owner to set reveal batch size once batch reveal has started', async () => {

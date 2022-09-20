@@ -130,13 +130,6 @@ contract BatchReveal is
         _;
     }
 
-    modifier batchRevealEnabled() {
-        if (!isBatchRevealEnabled()) {
-            revert Launchpeg__RevealNextBatchNotAvailable();
-        }
-        _;
-    }
-
     modifier onlyBaseLaunchpeg() {
         if (msg.sender != baseLaunchpeg) revert Launchpeg__Unauthorized();
         _;
@@ -144,7 +137,7 @@ contract BatchReveal is
 
     /// @dev BatchReveal initialization
     /// @param _baseLaunchpeg Base launchpeg address
-    /// @param _revealBatchSize Size of the batch reveal. Set to 0 to disable batch reveal.
+    /// @param _revealBatchSize Size of the batch reveal.
     /// @param _revealStartTime Batch reveal start time
     /// @param _revealInterval Batch reveal interval
     function initialize(
@@ -168,7 +161,6 @@ contract BatchReveal is
     /// @notice Set the reveal batch size. Can only be set after
     /// batch reveal has been initialized and before a batch has
     /// been revealed.
-    /// @dev Set to 0 to disable batch reveal
     /// @param _revealBatchSize New reveal batch size
     function setRevealBatchSize(uint256 _revealBatchSize)
         public
@@ -178,16 +170,15 @@ contract BatchReveal is
         revealNotStarted
     {
         if (_revealBatchSize == 0) {
-            _rangeLength = 0;
-        } else {
-            if (
-                collectionSize % _revealBatchSize != 0 ||
-                _revealBatchSize > collectionSize
-            ) {
-                revert Launchpeg__InvalidBatchRevealSize();
-            }
-            _rangeLength = (collectionSize / _revealBatchSize) * 2;
+            revert Launchpeg__InvalidBatchRevealSize();
         }
+        if (
+            collectionSize % _revealBatchSize != 0 ||
+            _revealBatchSize > collectionSize
+        ) {
+            revert Launchpeg__InvalidBatchRevealSize();
+        }
+        _rangeLength = (collectionSize / _revealBatchSize) * 2;
         revealBatchSize = _revealBatchSize;
         emit RevealBatchSizeSet(_revealBatchSize);
     }
@@ -459,12 +450,8 @@ contract BatchReveal is
         public
         view
         override
-        batchRevealEnabled
         returns (bool, uint256)
     {
-        if (!isBatchRevealEnabled()) {
-            return (false, 0);
-        }
         uint256 batchNumber;
         unchecked {
             batchNumber = lastTokenRevealed / revealBatchSize;
@@ -490,7 +477,6 @@ contract BatchReveal is
         external
         override
         onlyBaseLaunchpeg
-        batchRevealEnabled
         returns (bool)
     {
         uint256 batchNumber;
@@ -524,7 +510,7 @@ contract BatchReveal is
     function fulfillRandomWords(
         uint256, /* requestId */
         uint256[] memory _randomWords
-    ) internal override batchRevealEnabled {
+    ) internal override {
         if (hasBeenForceRevealed) {
             revert Launchpeg__HasBeenForceRevealed();
         }
@@ -541,7 +527,7 @@ contract BatchReveal is
     }
 
     /// @dev Force reveal, should be restricted to owner
-    function forceReveal() external override onlyOwner batchRevealEnabled {
+    function forceReveal() external override onlyOwner {
         uint256 batchNumber;
         unchecked {
             batchNumber = lastTokenRevealed / revealBatchSize;
@@ -551,12 +537,6 @@ contract BatchReveal is
         _setBatchSeed(batchNumber);
         hasBeenForceRevealed = true;
         emit Reveal(batchNumber, batchToSeed[batchNumber]);
-    }
-
-    /// @dev Determines if batch reveal is enabled.
-    /// Batch reveal is enabled if revealBatchSize is not 0.
-    function isBatchRevealEnabled() public view override returns (bool) {
-        return revealBatchSize != 0;
     }
 
     /// Since the collection size is only set on initialize()
