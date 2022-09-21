@@ -15,6 +15,8 @@ interface ILaunchpegFactory {
 
     function joeFeeCollector() external view returns (address);
 
+    function defaultPausers() external view returns (address[] memory);
+
     function isLaunchpeg(uint256 _type, address _contract)
         external
         view
@@ -70,4 +72,8 @@ interface ILaunchpegFactory {
     function setDefaultJoeFeePercent(uint256 _joeFeePercent) external;
 
     function setDefaultJoeFeeCollector(address _joeFeeCollector) external;
+
+    function addDefaultPauser(address _pauser) external returns (bool);
+
+    function removeDefaultPauser(address _pauser) external returns (bool);
 }
