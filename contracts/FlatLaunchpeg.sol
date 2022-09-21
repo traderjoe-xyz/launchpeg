@@ -133,13 +133,6 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
         override
         onlyOwner
     {
-        _setAllowlistStartTime(_allowlistStartTime);
-    }
-
-    /// @notice Set the allowlist start time. Can only be set after phases
-    /// have been initialized.
-    /// @param _allowlistStartTime New allowlist start time
-    function _setAllowlistStartTime(uint256 _allowlistStartTime) private {
         if (allowlistStartTime == 0) {
             revert Launchpeg__NotInitialized();
         }
@@ -159,6 +152,7 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
         external
         payable
         override
+        whenNotPaused
         atPhase(Phase.Allowlist)
     {
         if (_quantity > allowlist[msg.sender]) {
@@ -191,6 +185,7 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
         payable
         override
         isEOA
+        whenNotPaused
         atPhase(Phase.PublicSale)
     {
         if (numberMinted(msg.sender) + _quantity > maxPerAddressDuringMint) {

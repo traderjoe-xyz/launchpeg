@@ -2,7 +2,7 @@ import { config as hardhatConfig, ethers, network } from 'hardhat'
 import { expect } from 'chai'
 import { advanceTimeAndBlock, latest, duration } from './utils/time'
 import { initializePhasesLaunchpeg, getDefaultLaunchpegConfig, Phase, LaunchpegConfig } from './utils/helpers'
-import { ContractFactory, Contract, BigNumber } from 'ethers'
+import { ContractFactory, Contract, BigNumber, Bytes } from 'ethers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
 describe('Launchpeg', () => {
@@ -21,6 +21,9 @@ describe('Launchpeg', () => {
   let bob: SignerWithAddress
   let projectOwner: SignerWithAddress
   let royaltyReceiver: SignerWithAddress
+
+  let PAUSER_ROLE: Bytes
+  let UNPAUSER_ROLE: Bytes
 
   before(async () => {
     launchpegCF = await ethers.getContractFactory('Launchpeg')
@@ -1136,6 +1139,112 @@ describe('Launchpeg', () => {
       await launchpeg.connect(projectOwner).devMint(config.batchRevealSize)
       await launchpeg.revealNextBatch()
       await expect(launchpeg.revealNextBatch()).to.be.revertedWith('Launchpeg__RevealNextBatchNotAvailable')
+    })
+  })
+
+  describe('SafePausable', () => {
+    beforeEach(async () => {
+      PAUSER_ROLE = await launchpeg.PAUSER_ROLE()
+      UNPAUSER_ROLE = await launchpeg.UNPAUSER_ROLE()
+    })
+
+    it('Should allow owner to pause and unpause', async () => {
+      await launchpeg.pause()
+      expect(await launchpeg.paused()).to.eq(true)
+
+      await launchpeg.unpause()
+      expect(await launchpeg.paused()).to.eq(false)
+    })
+
+    it('Should allow user with PAUSER_ROLE to pause and UNPAUSER_ROLE to unpause', async () => {
+      await expect(launchpeg.connect(alice).pause()).to.be.revertedWith(
+        'SafeAccessControlEnumerableUpgradeable__SenderMissingRoleAndIsNotOwner'
+      )
+      await launchpeg.grantRole(PAUSER_ROLE, alice.address)
+      await launchpeg.connect(alice).pause()
+      expect(await launchpeg.paused()).to.eq(true)
+
+      await expect(launchpeg.connect(alice).unpause()).to.be.revertedWith(
+        'SafeAccessControlEnumerableUpgradeable__SenderMissingRoleAndIsNotOwner'
+      )
+      await launchpeg.grantRole(UNPAUSER_ROLE, alice.address)
+      await launchpeg.connect(alice).unpause()
+      expect(await launchpeg.paused()).to.eq(false)
+    })
+
+    it('Should allow owner to grant and revoke PAUSER_ROLE and UNPAUSER_ROLE', async () => {
+      await launchpeg.grantRole(PAUSER_ROLE, alice.address)
+      await launchpeg.connect(alice).pause()
+      await launchpeg.revokeRole(PAUSER_ROLE, alice.address)
+      await expect(launchpeg.connect(alice).pause()).to.be.revertedWith(
+        'SafeAccessControlEnumerableUpgradeable__SenderMissingRoleAndIsNotOwner'
+      )
+
+      await launchpeg.grantRole(UNPAUSER_ROLE, alice.address)
+      await launchpeg.connect(alice).unpause()
+      await launchpeg.revokeRole(UNPAUSER_ROLE, alice.address)
+      await expect(launchpeg.connect(alice).unpause()).to.be.revertedWith(
+        'SafeAccessControlEnumerableUpgradeable__SenderMissingRoleAndIsNotOwner'
+      )
+    })
+
+    it('Should not allow non-owner to grant PAUSER_ROLE and UNPAUSER_ROLE', async () => {
+      await expect(launchpeg.connect(bob).grantRole(PAUSER_ROLE, alice.address)).to.be.revertedWith(
+        'SafeAccessControlEnumerableUpgradeable__SenderMissingRoleAndIsNotOwner'
+      )
+      await expect(launchpeg.connect(bob).grantRole(UNPAUSER_ROLE, alice.address)).to.be.revertedWith(
+        'SafeAccessControlEnumerableUpgradeable__SenderMissingRoleAndIsNotOwner'
+      )
+    })
+
+    it('Should not allow non-owner to revoke PAUSER_ROLE and UNPAUSER_ROLE', async () => {
+      await launchpeg.grantRole(PAUSER_ROLE, alice.address)
+      await expect(launchpeg.connect(bob).revokeRole(PAUSER_ROLE, alice.address)).to.be.revertedWith(
+        'SafeAccessControlEnumerableUpgradeable__SenderMissingRoleAndIsNotOwner'
+      )
+      await launchpeg.connect(alice).pause()
+
+      await launchpeg.grantRole(UNPAUSER_ROLE, alice.address)
+      await expect(launchpeg.connect(bob).revokeRole(UNPAUSER_ROLE, alice.address)).to.be.revertedWith(
+        'SafeAccessControlEnumerableUpgradeable__SenderMissingRoleAndIsNotOwner'
+      )
+      await launchpeg.connect(alice).unpause()
+    })
+
+    it('Should allow owner or pauser to pause mint methods', async () => {
+      await launchpeg.pause()
+      await expect(launchpeg.connect(dev).devMint(1)).to.be.revertedWith('Pausable: paused')
+      await expect(launchpeg.connect(alice).auctionMint(1)).to.be.revertedWith('Pausable: paused')
+      await expect(launchpeg.connect(bob).allowlistMint(1)).to.be.revertedWith('Pausable: paused')
+      await expect(launchpeg.publicSaleMint(1)).to.be.revertedWith('Pausable: paused')
+
+      await launchpeg.unpause()
+      await launchpeg.connect(dev).devMint(1)
+    })
+
+    it('Should allow owner or pauser to pause funds withdrawal', async () => {
+      await launchpeg.pause()
+      await expect(launchpeg.connect(dev).withdrawAVAX(alice.address)).to.be.revertedWith('Pausable: paused')
+
+      await launchpeg.unpause()
+      await launchpeg.connect(dev).withdrawAVAX(alice.address)
+    })
+
+    it('Should allow owner or pauser to pause batch reveal', async () => {
+      config.collectionSize = 50
+      config.amountForDevs = 10
+      config.amountForAuction = 0
+      config.amountForAllowlist = 0
+      config.batchRevealSize = 10
+      await deployLaunchpeg()
+      initializePhasesLaunchpeg(launchpeg, config, Phase.Reveal)
+
+      await launchpeg.devMint(10)
+      await launchpeg.pause()
+      await expect(launchpeg.connect(alice).revealNextBatch()).to.be.revertedWith('Pausable: paused')
+
+      await launchpeg.unpause()
+      await launchpeg.connect(alice).revealNextBatch()
     })
   })
 
