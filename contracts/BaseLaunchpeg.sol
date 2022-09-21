@@ -332,6 +332,9 @@ abstract contract BaseLaunchpeg is
         override
         onlyOwner
     {
+        if (_withdrawAVAXStartTime < block.timestamp) {
+            revert Launchpeg__InvalidStartTime();
+        }
         withdrawAVAXStartTime = _withdrawAVAXStartTime;
         emit WithdrawAVAXStartTimeSet(_withdrawAVAXStartTime);
     }
@@ -378,7 +381,10 @@ abstract contract BaseLaunchpeg is
         onlyOwnerOrRole(PROJECT_OWNER_ROLE)
         nonReentrant
     {
-        if (withdrawAVAXStartTime > block.timestamp) {
+        if (
+            withdrawAVAXStartTime > block.timestamp ||
+            withdrawAVAXStartTime == 0
+        ) {
             revert Launchpeg__WithdrawAVAXNotAvailable();
         }
 

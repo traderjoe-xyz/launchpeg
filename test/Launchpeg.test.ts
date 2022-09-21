@@ -785,6 +785,19 @@ describe('Launchpeg', () => {
       )
     })
 
+    it("Can't set start time before current block timestamp", async () => {
+      const blockTimestamp = await latest()
+      await expect(launchpeg.setWithdrawAVAXStartTime(blockTimestamp.sub(duration.minutes(1)))).to.be.revertedWith(
+        'Launchpeg__InvalidStartTime()'
+      )
+    })
+
+    it("Can't withdraw when start time not initialized", async () => {
+      await expect(launchpeg.connect(projectOwner).withdrawAVAX(projectOwner.address)).to.be.revertedWith(
+        'Launchpeg__WithdrawAVAXNotAvailable()'
+      )
+    })
+
     it('Invalid fee setup should be blocked', async () => {
       let feePercent = 10001
       let feeCollector = bob

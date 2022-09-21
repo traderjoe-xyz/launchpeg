@@ -24,8 +24,10 @@ export interface LaunchpegConfig {
   unrevealedTokenURI: string
   flatPublicSalePrice: BigNumber
   flatAllowlistSalePrice: BigNumber
+  withdrawAVAXStartTime: BigNumber
 }
 
+const WITHDRAW_AVAX_START_OFFSET = 1
 const AUCTION_START_OFFSET = 10
 const ALLOWLIST_START_OFFSET = 100
 const PUBLIC_SALE_START_OFFSET = 200
@@ -34,7 +36,8 @@ const REVEAL_START_OFFSET = 400
 const REVEAL_INTERVAL = 50
 
 export const getDefaultLaunchpegConfig = async (): Promise<LaunchpegConfig> => {
-  const auctionStartTime = (await latest()).add(duration.minutes(AUCTION_START_OFFSET))
+  const blockTimestamp = await latest()
+  const auctionStartTime = blockTimestamp.add(duration.minutes(AUCTION_START_OFFSET))
   return {
     auctionStartTime,
     allowlistStartTime: auctionStartTime.add(duration.minutes(ALLOWLIST_START_OFFSET)),
@@ -57,6 +60,7 @@ export const getDefaultLaunchpegConfig = async (): Promise<LaunchpegConfig> => {
     unrevealedTokenURI: 'unrevealed',
     flatPublicSalePrice: ethers.utils.parseUnits('1', 18),
     flatAllowlistSalePrice: ethers.utils.parseUnits('0.5', 18),
+    withdrawAVAXStartTime: blockTimestamp.add(duration.minutes(WITHDRAW_AVAX_START_OFFSET)),
   }
 }
 
@@ -83,6 +87,7 @@ export const initializePhasesLaunchpeg = async (launchpeg: Contract, config: Lau
   )
   await launchpeg.setUnrevealedURI(config.unrevealedTokenURI)
   await launchpeg.setBaseURI(config.baseTokenURI)
+  await launchpeg.setWithdrawAVAXStartTime(config.withdrawAVAXStartTime)
   await advanceTimeAndBlockToPhase(currentPhase)
 }
 
@@ -100,6 +105,7 @@ export const initializePhasesFlatLaunchpeg = async (
   )
   await flatLaunchpeg.setUnrevealedURI(config.unrevealedTokenURI)
   await flatLaunchpeg.setBaseURI(config.baseTokenURI)
+  await flatLaunchpeg.setWithdrawAVAXStartTime(config.withdrawAVAXStartTime)
   await advanceTimeAndBlockToPhase(currentPhase)
 }
 

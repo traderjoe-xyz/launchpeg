@@ -480,11 +480,23 @@ describe('FlatLaunchpeg', () => {
     })
 
     it("Can't withdraw before start time", async () => {
+      const blockTimestamp = await latest()
+      config.withdrawAVAXStartTime = blockTimestamp.add(duration.days(1))
       await initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.PublicSale)
 
-      const blockTimestamp = await latest()
-      await flatLaunchpeg.setWithdrawAVAXStartTime(blockTimestamp.add(duration.hours(1)))
+      await expect(flatLaunchpeg.connect(projectOwner).withdrawAVAX(projectOwner.address)).to.be.revertedWith(
+        'Launchpeg__WithdrawAVAXNotAvailable()'
+      )
+    })
 
+    it("Can't set start time before current block timestamp", async () => {
+      const blockTimestamp = await latest()
+      await expect(flatLaunchpeg.setWithdrawAVAXStartTime(blockTimestamp.sub(duration.minutes(1)))).to.be.revertedWith(
+        'Launchpeg__InvalidStartTime()'
+      )
+    })
+
+    it("Can't withdraw when start time not initialized", async () => {
       await expect(flatLaunchpeg.connect(projectOwner).withdrawAVAX(projectOwner.address)).to.be.revertedWith(
         'Launchpeg__WithdrawAVAXNotAvailable()'
       )
