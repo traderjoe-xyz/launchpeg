@@ -7,10 +7,10 @@ import "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
 
 import "erc721a-upgradeable/contracts/ERC721AUpgradeable.sol";
 
-import "./interfaces/IBatchReveal.sol";
 import "./LaunchpegErrors.sol";
-import "./utils/SafeAccessControlEnumerableUpgradeable.sol";
 import "./interfaces/IBaseLaunchpeg.sol";
+import "./interfaces/IBatchReveal.sol";
+import "./utils/SafePausableUpgradeable.sol";
 
 /// @title BaseLaunchpeg
 /// @author Trader Joe
@@ -18,7 +18,7 @@ import "./interfaces/IBaseLaunchpeg.sol";
 abstract contract BaseLaunchpeg is
     IBaseLaunchpeg,
     ERC721AUpgradeable,
-    SafeAccessControlEnumerableUpgradeable,
+    SafePausableUpgradeable,
     ReentrancyGuardUpgradeable,
     ERC2981Upgradeable
 {
@@ -162,7 +162,7 @@ abstract contract BaseLaunchpeg is
         uint256 _amountForDevs,
         uint256 _amountForAllowlist
     ) internal onlyInitializing {
-        __SafeAccessControlEnumerable_init();
+        __SafePausable_init();
         __ReentrancyGuard_init();
         __ERC2981_init();
         __ERC721A_init(_name, _symbol);
@@ -279,13 +279,6 @@ abstract contract BaseLaunchpeg is
         override
         onlyOwner
     {
-        _setPublicSaleStartTime(_publicSaleStartTime);
-    }
-
-    /// @notice Set the public sale start time. Can only be set after phases
-    /// have been initialized.
-    /// @param _publicSaleStartTime New public sale start time
-    function _setPublicSaleStartTime(uint256 _publicSaleStartTime) private {
         if (publicSaleStartTime == 0) {
             revert Launchpeg__NotInitialized();
         }
@@ -308,13 +301,6 @@ abstract contract BaseLaunchpeg is
         override
         onlyOwner
     {
-        _setPublicSaleEndTime(_publicSaleEndTime);
-    }
-
-    /// @notice Set the public sale end time. Can only be set after phases
-    /// have been initialized.
-    /// @param _publicSaleEndTime New public sale end time
-    function _setPublicSaleEndTime(uint256 _publicSaleEndTime) private {
         if (publicSaleEndTime == 0) {
             revert Launchpeg__NotInitialized();
         }
@@ -351,6 +337,7 @@ abstract contract BaseLaunchpeg is
         external
         override
         onlyOwnerOrRole(PROJECT_OWNER_ROLE)
+        whenNotPaused
     {
         if (totalSupply() + _quantity > collectionSize) {
             revert Launchpeg__MaxSupplyReached();
@@ -377,6 +364,7 @@ abstract contract BaseLaunchpeg is
         override
         onlyOwnerOrRole(PROJECT_OWNER_ROLE)
         nonReentrant
+        whenNotPaused
     {
         if (withdrawAVAXStartTime > block.timestamp) {
             revert Launchpeg__WithdrawAVAXNotAvailable();
@@ -467,7 +455,7 @@ abstract contract BaseLaunchpeg is
             ERC721AUpgradeable,
             ERC2981Upgradeable,
             IERC165Upgradeable,
-            SafeAccessControlEnumerableUpgradeable
+            SafePausableUpgradeable
         )
         returns (bool)
     {
@@ -475,9 +463,7 @@ abstract contract BaseLaunchpeg is
             ERC721AUpgradeable.supportsInterface(_interfaceId) ||
             ERC2981Upgradeable.supportsInterface(_interfaceId) ||
             ERC165Upgradeable.supportsInterface(_interfaceId) ||
-            SafeAccessControlEnumerableUpgradeable.supportsInterface(
-                _interfaceId
-            ) ||
+            SafePausableUpgradeable.supportsInterface(_interfaceId) ||
             super.supportsInterface(_interfaceId);
     }
 
@@ -496,7 +482,7 @@ abstract contract BaseLaunchpeg is
     }
 
     /// @notice Reveals the next batch if the reveal conditions are met
-    function revealNextBatch() external override isEOA {
+    function revealNextBatch() external override isEOA whenNotPaused {
         if (!batchReveal.revealNextBatch(totalSupply())) {
             revert Launchpeg__RevealNextBatchNotAvailable();
         }

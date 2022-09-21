@@ -1,7 +1,7 @@
 import { config as hardhatConfig, ethers, network } from 'hardhat'
 import { expect } from 'chai'
 import { getDefaultLaunchpegConfig, Phase, LaunchpegConfig, initializePhasesFlatLaunchpeg } from './utils/helpers'
-import { ContractFactory, Contract, BigNumber } from 'ethers'
+import { ContractFactory, Contract, BigNumber, Bytes } from 'ethers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { duration, latest } from './utils/time'
 
@@ -19,6 +19,9 @@ describe('FlatLaunchpeg', () => {
   let bob: SignerWithAddress
   let projectOwner: SignerWithAddress
   let royaltyReceiver: SignerWithAddress
+
+  let PAUSER_ROLE: Bytes
+  let UNPAUSER_ROLE: Bytes
 
   before(async () => {
     flatLaunchpegCF = await ethers.getContractFactory('FlatLaunchpeg')
@@ -510,6 +513,50 @@ describe('FlatLaunchpeg', () => {
         ethers.utils.parseEther('0.01')
       )
       expect(await feeCollector.getBalance()).to.be.eq(initialFeeCollectorBalance.add(fee))
+    })
+  })
+
+  describe('SafePausable', () => {
+    beforeEach(async () => {
+      PAUSER_ROLE = await flatLaunchpeg.PAUSER_ROLE()
+      UNPAUSER_ROLE = await flatLaunchpeg.UNPAUSER_ROLE()
+    })
+
+    it('Should allow owner or pauser to pause mint methods', async () => {
+      await flatLaunchpeg.grantRole(PAUSER_ROLE, alice.address)
+      await flatLaunchpeg.connect(alice).pause()
+      await expect(flatLaunchpeg.connect(dev).devMint(1)).to.be.revertedWith('Pausable: paused')
+      await expect(flatLaunchpeg.connect(bob).allowlistMint(1)).to.be.revertedWith('Pausable: paused')
+      await expect(flatLaunchpeg.publicSaleMint(1)).to.be.revertedWith('Pausable: paused')
+
+      await flatLaunchpeg.grantRole(UNPAUSER_ROLE, alice.address)
+      await flatLaunchpeg.connect(alice).unpause()
+      await flatLaunchpeg.connect(dev).devMint(1)
+    })
+
+    it('Should allow owner or pauser to pause funds withdrawal', async () => {
+      await flatLaunchpeg.pause()
+      await expect(flatLaunchpeg.connect(dev).withdrawAVAX(alice.address)).to.be.revertedWith('Pausable: paused')
+
+      await flatLaunchpeg.unpause()
+      await flatLaunchpeg.connect(dev).withdrawAVAX(alice.address)
+    })
+
+    it('Should allow owner or pauser to pause batch reveal', async () => {
+      config.collectionSize = 50
+      config.amountForDevs = 10
+      config.amountForAuction = 0
+      config.amountForAllowlist = 0
+      config.batchRevealSize = 10
+      await deployFlatLaunchpeg()
+      initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.Reveal)
+
+      await flatLaunchpeg.devMint(10)
+      await flatLaunchpeg.pause()
+      await expect(flatLaunchpeg.connect(alice).revealNextBatch()).to.be.revertedWith('Pausable: paused')
+
+      await flatLaunchpeg.unpause()
+      await flatLaunchpeg.connect(alice).revealNextBatch()
     })
   })
 

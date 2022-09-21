@@ -55,3 +55,7 @@ error SafeAccessControlEnumerableUpgradeable__SenderMissingRoleAndIsNotOwner(
     address sender
 );
 error SafeAccessControlEnumerableUpgradeable__RoleIsDefaultAdmin();
+
+// SafeAccessControlEnumerableUpgradeable
+error SafePausableUpgradeable__AlreadyPaused();
+error SafePausableUpgradeable__AlreadyUnpaused();
