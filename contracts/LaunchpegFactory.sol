@@ -45,13 +45,6 @@ contract LaunchpegFactory is
         uint256 amountForAllowlist
     );
 
-    event BatchRevealCreated(
-        address indexed batchReveal,
-        uint256 batchRevealSize,
-        uint256 revealStartTime,
-        uint256 revealInterval
-    );
-
     event SetLaunchpegImplementation(address indexed launchpegImplementation);
     event SetFlatLaunchpegImplementation(
         address indexed flatLaunchpegImplementation
