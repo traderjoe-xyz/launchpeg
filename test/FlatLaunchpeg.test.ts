@@ -547,11 +547,14 @@ describe('FlatLaunchpeg', () => {
     })
 
     it('Should allow owner or pauser to pause funds withdrawal', async () => {
+      initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.Allowlist)
       await flatLaunchpeg.pause()
-      await expect(flatLaunchpeg.connect(dev).withdrawAVAX(alice.address)).to.be.revertedWith('Pausable: paused')
+      await expect(flatLaunchpeg.connect(projectOwner).withdrawAVAX(alice.address)).to.be.revertedWith(
+        'Pausable: paused'
+      )
 
       await flatLaunchpeg.unpause()
-      await flatLaunchpeg.connect(dev).withdrawAVAX(alice.address)
+      await flatLaunchpeg.connect(projectOwner).withdrawAVAX(alice.address)
     })
 
     it('Should allow owner or pauser to pause batch reveal', async () => {

@@ -1223,11 +1223,12 @@ describe('Launchpeg', () => {
     })
 
     it('Should allow owner or pauser to pause funds withdrawal', async () => {
+      initializePhasesLaunchpeg(launchpeg, config, Phase.DutchAuction)
       await launchpeg.pause()
-      await expect(launchpeg.connect(dev).withdrawAVAX(alice.address)).to.be.revertedWith('Pausable: paused')
+      await expect(launchpeg.connect(projectOwner).withdrawAVAX(alice.address)).to.be.revertedWith('Pausable: paused')
 
       await launchpeg.unpause()
-      await launchpeg.connect(dev).withdrawAVAX(alice.address)
+      await launchpeg.connect(projectOwner).withdrawAVAX(alice.address)
     })
 
     it('Should allow owner or pauser to pause batch reveal', async () => {
