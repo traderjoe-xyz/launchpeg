@@ -230,6 +230,37 @@ describe('LaunchpegFactory', () => {
         'Launchpeg__InvalidJoeFeeCollector()'
       )
     })
+
+    it('Should allow owner to add and remove default pausers', async () => {
+      await launchpegFactory.addDefaultPauser(alice.address)
+      await launchpegFactory.addDefaultPauser(bob.address)
+      expect(await launchpegFactory.defaultPausers()).to.eql([alice.address, bob.address])
+      await launchpegFactory.removeDefaultPauser(bob.address)
+      expect(await launchpegFactory.defaultPausers()).to.eql([alice.address])
+
+      const launchpegAddress = await launchpegFactory.createLaunchpeg(
+        'My new collection',
+        'JOEPEG',
+        projectOwner.address,
+        royaltyReceiver.address,
+        config.maxBatchSize,
+        config.collectionSize,
+        config.amountForAuction,
+        config.amountForAllowlist,
+        config.amountForDevs
+      )
+      const launchpeg0Address = await launchpegFactory.allLaunchpegs(0, 0)
+      const launchpeg = await ethers.getContractAt('Launchpeg', launchpeg0Address)
+
+      await launchpeg.connect(alice).pause()
+      expect(await launchpeg.paused()).to.eq(true)
+      await expect(launchpeg.connect(bob).pause()).to.be.revertedWith(
+        'SafeAccessControlEnumerableUpgradeable__SenderMissingRoleAndIsNotOwner'
+      )
+      await expect(launchpeg.connect(alice).unpause()).to.be.revertedWith(
+        'SafeAccessControlEnumerableUpgradeable__SenderMissingRoleAndIsNotOwner'
+      )
+    })
   })
 
   after(async () => {
