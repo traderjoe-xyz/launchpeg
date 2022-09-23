@@ -1,7 +1,7 @@
-import { config as hardhatConfig, ethers, network, upgrades } from 'hardhat'
+import { ethers, network, upgrades } from 'hardhat'
 import { expect } from 'chai'
 import { getDefaultLaunchpegConfig, LaunchpegConfig } from './utils/helpers'
-import { ContractFactory, Contract, Event } from 'ethers'
+import { ContractFactory, Contract } from 'ethers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
 describe('LaunchpegFactory', () => {
