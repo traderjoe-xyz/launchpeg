@@ -9,7 +9,7 @@ interface ILaunchpegFactory {
 
     function flatLaunchpegImplementation() external view returns (address);
 
-    function batchRevealImplementation() external view returns (address);
+    function batchReveal() external view returns (address);
 
     function joeFeePercent() external view returns (uint256);
 
@@ -53,19 +53,14 @@ interface ILaunchpegFactory {
         uint256 _amountForAllowlist
     ) external returns (address);
 
-    function createBatchReveal(
-        address baseLaunchpeg,
-        uint256 batchRevealSize,
-        uint256 revealStartTime,
-        uint256 revealInterval
-    ) external returns (address);
-
     function setLaunchpegImplementation(address _launchpegImplementation)
         external;
 
     function setFlatLaunchpegImplementation(
         address _flatLaunchpegImplementation
     ) external;
+
+    function setBatchReveal(address _batchReveal) external;
 
     function setDefaultJoeFeePercent(uint256 _joeFeePercent) external;
 

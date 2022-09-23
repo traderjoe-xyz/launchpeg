@@ -1,22 +1,45 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-/// @title IBaseLaunchpeg
+/// @title IBatchReveal
 /// @author Trader Joe
-/// @notice Defines the basic interface of BaseLaunchpeg
+/// @notice Defines the basic interface of BatchReveal
 interface IBatchReveal {
-    function initialize(
+    struct BatchRevealConfig {
+        uint256 collectionSize;
+        int128 intCollectionSize;
+        /// @notice Size of the batch reveal
+        /// @dev Must divide collectionSize
+        uint256 revealBatchSize;
+        /// @notice Timestamp for the start of the reveal process
+        /// @dev Can be set to zero for immediate reveal after token mint
+        uint256 revealStartTime;
+        /// @notice Time interval for gradual reveal
+        /// @dev Can be set to zero in order to reveal the collection all at once
+        uint256 revealInterval;
+    }
+
+    function initialize() external;
+
+    function configure(
         address _baseLaunchpeg,
         uint256 _revealBatchSize,
         uint256 _revealStartTime,
         uint256 _revealInterval
     ) external;
 
-    function setRevealBatchSize(uint256 _revealBatchSize) external;
+    function setRevealBatchSize(
+        address _baseLaunchpeg,
+        uint256 _revealBatchSize
+    ) external;
 
-    function setRevealStartTime(uint256 _revealStartTime) external;
+    function setRevealStartTime(
+        address _baseLaunchpeg,
+        uint256 _revealStartTime
+    ) external;
 
-    function setRevealInterval(uint256 _revealInterval) external;
+    function setRevealInterval(address _baseLaunchpeg, uint256 _revealInterval)
+        external;
 
     function setVRF(
         address _vrfCoordinator,
@@ -25,17 +48,26 @@ interface IBatchReveal {
         uint32 _callbackGasLimit
     ) external;
 
-    function baseLaunchpeg() external view returns (address);
+    function launchpegToConfig(address)
+        external
+        view
+        returns (
+            uint256,
+            int128,
+            uint256,
+            uint256,
+            uint256
+        );
 
-    function revealBatchSize() external view returns (uint256);
+    function launchpegToBatchToSeed(address, uint256)
+        external
+        view
+        returns (uint256);
 
-    function batchToSeed(uint256) external view returns (uint256);
-
-    function lastTokenRevealed() external view returns (uint256);
-
-    function revealStartTime() external view returns (uint256);
-
-    function revealInterval() external view returns (uint256);
+    function launchpegToLastTokenReveal(address)
+        external
+        view
+        returns (uint256);
 
     function useVRF() external view returns (bool);
 
@@ -47,25 +79,39 @@ interface IBatchReveal {
 
     function requestConfirmations() external view returns (uint16);
 
-    function nextBatchToReveal() external view returns (uint256);
-
-    function hasBeenForceRevealed() external view returns (bool);
-
-    function vrfRequestedForBatch(uint256) external view returns (bool);
-
-    function getShuffledTokenId(uint256 _startId)
+    function launchpegToNextBatchToReveal(address)
         external
         view
         returns (uint256);
 
-    function isBatchRevealInitialized() external view returns (bool);
+    function launchpegToHasBeenForceRevealed(address)
+        external
+        view
+        returns (bool);
 
-    function revealNextBatch(uint256 _totalSupply) external returns (bool);
+    function launchpegToVrfRequestedForBatch(address, uint256)
+        external
+        view
+        returns (bool);
 
-    function hasBatchToReveal(uint256 _totalSupply)
+    function getShuffledTokenId(address _baseLaunchpeg, uint256 _startId)
+        external
+        view
+        returns (uint256);
+
+    function isBatchRevealInitialized(address _baseLaunchpeg)
+        external
+        view
+        returns (bool);
+
+    function revealNextBatch(address _baseLaunchpeg, uint256 _totalSupply)
+        external
+        returns (bool);
+
+    function hasBatchToReveal(address _baseLaunchpeg, uint256 _totalSupply)
         external
         view
         returns (bool, uint256);
 
-    function forceReveal() external;
+    function forceReveal(address _baseLaunchpeg) external;
 }

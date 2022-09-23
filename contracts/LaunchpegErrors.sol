@@ -3,6 +3,7 @@ pragma solidity ^0.8.4;
 
 // LaunchpegFactory
 error LaunchpegFactory__InvalidImplementation();
+error LaunchpegFactory__InvalidBatchReveal();
 
 // Launchpeg
 error Launchpeg__BatchRevealNotInitialized();
