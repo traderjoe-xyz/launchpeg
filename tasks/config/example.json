@@ -23,8 +23,5 @@
   "revealInterval": "300",
   "allowlistLocalPath": "SomeAllowlistFile.csv",
   "unrevealedURI": "ipfs://bafybeid4cydpmpnlvzfsdrfvgbd7cyl2rq3nrfrg22ue5tn7z2uhgvrsbq/0",
-  "baseURI": "ipfs://bafybeihqbeiuqb4lqpxl7abrlvgumfy5xhlcmqccgmob6ghpxul573dwhu/",
-  "keyHash": "0x354d2f95da55398f44b7cff77da56283d9c6c829a4bdf1bbcaf2ad6a4d081f61",
-  "subscriptionId": "139",
-  "maxGasLimit": "200000"
+  "baseURI": "ipfs://bafybeihqbeiuqb4lqpxl7abrlvgumfy5xhlcmqccgmob6ghpxul573dwhu/"
 }

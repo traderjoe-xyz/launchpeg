@@ -68,7 +68,7 @@ task('deploy-launchpeg', 'Deploy Launchpeg contract')
     }
 
     if (configFilename.batchRevealSize && configFilename.revealStartTime && configFilename.revealInterval) {
-      await hre.run('deploy-batch-reveal', {
+      await hre.run('configure-batch-reveal', {
         baseLauncheg: launchpegAddress,
         configFilename,
       })
