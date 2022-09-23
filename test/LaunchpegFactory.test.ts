@@ -204,6 +204,23 @@ describe('LaunchpegFactory', () => {
       const launchpegAddress = await launchpegFactory.allLaunchpegs(1, 0)
       expect(await launchpegFactory.isLaunchpeg(1, launchpegAddress)).to.equal(true)
     })
+
+    it('Should set batch reveal', async () => {
+      await launchpegFactory.createLaunchpeg(
+        'JoePEG',
+        'JOEPEG',
+        projectOwner.address,
+        royaltyReceiver.address,
+        config.maxBatchSize,
+        config.collectionSize,
+        config.amountForAuction,
+        config.amountForAllowlist,
+        config.amountForDevs
+      )
+      const launchpegAddress = await launchpegFactory.allLaunchpegs(0, 0)
+      const launchpeg = await ethers.getContractAt('Launchpeg', launchpegAddress)
+      expect(await launchpeg.batchReveal()).to.equal(batchReveal.address)
+    })
   })
 
   describe('Factory configuration', () => {
@@ -299,40 +316,6 @@ describe('LaunchpegFactory', () => {
       await expect(launchpeg.connect(alice).unpause()).to.be.revertedWith(
         'SafeAccessControlEnumerableUpgradeable__SenderMissingRoleAndIsNotOwner'
       )
-    })
-  })
-
-  describe('BatchReveal', () => {
-    it('Should create and initialize contract', async () => {
-      await launchpegFactory.createLaunchpeg(
-        'JoePEG',
-        'JOEPEG',
-        projectOwner.address,
-        royaltyReceiver.address,
-        config.maxBatchSize,
-        config.collectionSize,
-        config.amountForAuction,
-        config.amountForAllowlist,
-        config.amountForDevs
-      )
-      const launchpegAddress = await launchpegFactory.allLaunchpegs(0, 0)
-
-      const tx = await launchpegFactory.createBatchReveal(
-        launchpegAddress,
-        config.batchRevealSize,
-        config.batchRevealStart,
-        config.batchRevealInterval
-      )
-      const response = await tx.wait()
-
-      const batchRevealCreatedEvent: Event = response.events.find(
-        (event: Event) => event.event === 'BatchRevealCreated'
-      )
-      const batchRevealAddress = batchRevealCreatedEvent.args ? batchRevealCreatedEvent.args[0] : undefined
-      const batchReveal = await ethers.getContractAt('BatchReveal', batchRevealAddress)
-
-      expect(await batchReveal.baseLaunchpeg()).to.equal(launchpegAddress)
-      expect(await batchReveal.owner()).to.be.equal(dev.address)
     })
   })
 
