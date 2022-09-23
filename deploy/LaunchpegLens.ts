@@ -8,14 +8,15 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer } = await getNamedAccounts()
 
   const launchpegFactoryAddress = (await deployments.get('LaunchpegFactory')).address
+  const batchRevealAddress = (await deployments.get('BatchReveal')).address
 
   await deploy('LaunchpegLens', {
     from: deployer,
-    args: [launchpegFactoryAddress],
+    args: [launchpegFactoryAddress, batchRevealAddress],
     log: true,
     autoMine: true, // speed up deployment on local network (ganache, hardhat), no effect on live networks
   })
 }
 export default func
 func.tags = ['LaunchpegLens']
-func.dependencies = ['LaunchpegFactory']
+func.dependencies = ['LaunchpegFactory', 'BatchReveal']
