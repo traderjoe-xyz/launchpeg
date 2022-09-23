@@ -61,10 +61,12 @@ contract LaunchpegFactory is
     );
     event SetDefaultJoeFeePercent(uint256 joeFeePercent);
     event SetDefaultJoeFeeCollector(address indexed joeFeeCollector);
+    event AddDefaultPauser(address indexed pauser);
+    event RemoveDefaultPauser(address indexed pauser);
 
     using EnumerableSet for EnumerableSet.AddressSet;
 
-    /// @dev Default addresses with pauser and unpauser roles for new collections
+    /// @dev Default addresses with pauser role for created collections
     EnumerableSet.AddressSet private _defaultPausers;
 
     /// @notice Launchpeg contract to be cloned
@@ -354,35 +356,44 @@ contract LaunchpegFactory is
         emit SetDefaultJoeFeeCollector(_joeFeeCollector);
     }
 
+    /// @notice Add a default address with pauser role
+    /// @param _pauser Pauser address to add
+    /// @return true if not existing pauser and successfully added, false otherwise
     function addDefaultPauser(address _pauser)
         external
         override
         onlyOwner
         returns (bool)
     {
-        return _defaultPausers.add(_pauser);
+        bool success = _defaultPausers.add(_pauser);
+        if (success) {
+            emit AddDefaultPauser(_pauser);
+        }
+        return success;
     }
 
+    /// @notice Remove a default address with pauser role
+    /// @param _pauser Pauser address to remove
+    /// @return true if existing pauser and successfully removed, false otherwise
     function removeDefaultPauser(address _pauser)
         external
         override
         onlyOwner
         returns (bool)
     {
-        return _defaultPausers.remove(_pauser);
+        bool success = _defaultPausers.remove(_pauser);
+        if (success) {
+            emit RemoveDefaultPauser(_pauser);
+        }
+        return success;
     }
 
+    /// @dev Add users with pauser role to a new Launchpeg collection
     function _setPausers(address launchpeg) private {
         bytes32 pauserRole = ISafePausableUpgradeable(launchpeg).PAUSER_ROLE();
-        bytes32 unPauserRole = ISafePausableUpgradeable(launchpeg)
-            .UNPAUSER_ROLE();
         for (uint256 i; i < _defaultPausers.length(); i++) {
             address pauser = _defaultPausers.at(i);
             IAccessControlUpgradeable(launchpeg).grantRole(pauserRole, pauser);
-            IAccessControlUpgradeable(launchpeg).grantRole(
-                unPauserRole,
-                pauser
-            );
         }
     }
 }
