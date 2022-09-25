@@ -68,11 +68,20 @@ abstract contract BaseLaunchpeg is
     /// @notice Tracks the amount of NFTs minted by `projectOwner`
     uint256 public override amountMintedByDevs;
 
+    /// @notice Tracks the amount of NFTs minted in the Pre-Mint phase
+    uint256 public override amountMintedDuringPreMint;
+
+    /// @notice Tracks the amount of NFTs batch minted
+    uint256 public override amountBatchMinted;
+
     /// @notice Tracks the amount of NFTs minted on Allowlist phase
     uint256 public override amountMintedDuringAllowlist;
 
     /// @notice Tracks the amount of NFTs minted on Public Sale phase
     uint256 public override amountMintedDuringPublicSale;
+
+    /// @notice Start time of the pre-mint in seconds
+    uint256 public override preMintStartTime;
 
     /// @notice Start time of the allowlist mint in seconds
     uint256 public override allowlistStartTime;
@@ -88,6 +97,17 @@ abstract contract BaseLaunchpeg is
     /// @notice Start time when funds can be withdrawn
     uint256 public override withdrawAVAXStartTime;
 
+    /// @dev Queue of pre-mint requests by allowlist users
+    PreMintData[] private preMintQueue;
+
+    /// @dev Next index of the `preMintQueue` to be processed by batch mint
+    uint256 private preMintQueueIdx;
+
+    struct PreMintData {
+        address sender;
+        uint256 quantity;
+    }
+
     /// @dev Emitted on initializeJoeFee()
     /// @param feePercent The fees collected by Joepegs on the sale benefits
     /// @param feeCollector The address to which the fees on the sale will be sent
@@ -97,6 +117,27 @@ abstract contract BaseLaunchpeg is
     /// @param sender The address that minted
     /// @param quantity Amount of NFTs minted
     event DevMint(address indexed sender, uint256 quantity);
+
+    /// @dev Emitted on preMint()
+    /// @param sender The address that minted
+    /// @param quantity Amount of NFTs minted
+    /// @param price Price of 1 NFT
+    event PreMint(address indexed sender, uint256 quantity, uint256 price);
+
+    /// @dev Emitted on auctionMint(), batchMint(), allowlistMint(), publicSaleMint()
+    /// @param sender The address that minted
+    /// @param quantity Amount of NFTs minted
+    /// @param price Price in AVAX for the NFTs
+    /// @param startTokenId The token ID of the first minted NFT:
+    /// if `startTokenId` = 100 and `quantity` = 2, `sender` minted 100 and 101
+    /// @param phase The phase in which the mint occurs
+    event Mint(
+        address indexed sender,
+        uint256 quantity,
+        uint256 price,
+        uint256 startTokenId,
+        Phase phase
+    );
 
     /// @dev Emitted on withdrawAVAX()
     /// @param sender The address that withdrew the tokens
@@ -119,6 +160,10 @@ abstract contract BaseLaunchpeg is
     /// @param receiver Royalty fee collector
     /// @param feePercent Royalty fee percent in basis point
     event DefaultRoyaltySet(address indexed receiver, uint256 feePercent);
+
+    /// @dev Emitted on setPreMintStartTime()
+    /// @param preMintStartTime New pre-mint start time
+    event PreMintStartTimeSet(uint256 preMintStartTime);
 
     /// @dev Emitted on setAllowlistStartTime()
     /// @param allowlistStartTime New allowlist start time
@@ -270,6 +315,28 @@ abstract contract BaseLaunchpeg is
         emit UnrevealedURISet(unrevealedURI);
     }
 
+    /// @notice Set the allowlist start time. Can only be set after phases
+    /// have been initialized.
+    /// @dev Only callable by owner
+    /// @param _allowlistStartTime New allowlist start time
+    function setAllowlistStartTime(uint256 _allowlistStartTime)
+        external
+        override
+        onlyOwner
+    {
+        if (allowlistStartTime == 0) {
+            revert Launchpeg__NotInitialized();
+        }
+        if (_allowlistStartTime < preMintStartTime) {
+            revert Launchpeg__AllowlistBeforePreMint();
+        }
+        if (publicSaleStartTime < _allowlistStartTime) {
+            revert Launchpeg__PublicSaleBeforeAllowlist();
+        }
+        allowlistStartTime = _allowlistStartTime;
+        emit AllowlistStartTimeSet(_allowlistStartTime);
+    }
+
     /// @notice Set the public sale start time. Can only be set after phases
     /// have been initialized.
     /// @dev Only callable by owner
@@ -359,6 +426,72 @@ abstract contract BaseLaunchpeg is
         }
         emit DevMint(msg.sender, _quantity);
     }
+
+    /// @dev Should only be called in the pre-mint phase
+    /// @param _quantity Quantity of NFTS to mint
+    function _preMint(uint256 _quantity) internal {
+        if (_quantity == 0) {
+            revert Launchpeg__InvalidQuantity();
+        }
+        if (_quantity > allowlist[msg.sender]) {
+            revert Launchpeg__NotEligibleForAllowlistMint();
+        }
+        if (
+            totalSupply() + _quantity > collectionSize ||
+            amountMintedDuringAllowlist + _quantity > amountForAllowlist
+        ) {
+            revert Launchpeg__MaxSupplyReached();
+        }
+        allowlist[msg.sender] -= _quantity;
+        uint256 price = _preMintPrice();
+        uint256 totalCost = price * _quantity;
+        amountMintedDuringPreMint += _quantity;
+        amountMintedDuringAllowlist += _quantity;
+        preMintQueue.push(
+            PreMintData({sender: msg.sender, quantity: _quantity})
+        );
+        emit PreMint(msg.sender, _quantity, price);
+        _refundIfOver(totalCost);
+    }
+
+    /// @dev Should only be called in the allowlist and public sale phases.
+    /// @param _maxQuantity Max quantity of NFTs to mint
+    function _batchMint(uint256 _maxQuantity) internal {
+        if (_maxQuantity == 0) {
+            revert Launchpeg__InvalidQuantity();
+        }
+        if (amountMintedDuringPreMint == amountBatchMinted) {
+            revert Launchpeg__MaxSupplyForBatchMintReached();
+        }
+        uint256 remQuantity = _maxQuantity;
+        uint256 price = _preMintPrice();
+        address sender;
+        uint256 quantity;
+        while (preMintQueueIdx < preMintQueue.length && remQuantity > 0) {
+            PreMintData memory data = preMintQueue[preMintQueueIdx];
+            sender = data.sender;
+            if (data.quantity > remQuantity) {
+                quantity = remQuantity;
+                data.quantity -= quantity;
+            } else {
+                quantity = data.quantity;
+                delete preMintQueue[preMintQueueIdx];
+                preMintQueueIdx++;
+            }
+            remQuantity -= quantity;
+            amountBatchMinted += quantity;
+            _mint(sender, quantity, "", false);
+            emit Mint(
+                sender,
+                quantity,
+                price,
+                _totalMinted() - quantity,
+                Phase.PreMint
+            );
+        }
+    }
+
+    function _preMintPrice() internal view virtual returns (uint256);
 
     /// @notice Withdraw AVAX to the given recipient
     /// @param _to Recipient of the earned AVAX

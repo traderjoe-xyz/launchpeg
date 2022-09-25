@@ -137,6 +137,7 @@ describe('Launchpeg', () => {
             config.startPrice,
             config.endPrice,
             config.auctionDropInterval,
+            config.preMintStartTime,
             config.allowlistStartTime,
             config.allowlistDiscount,
             config.publicSaleStartTime,
@@ -171,10 +172,17 @@ describe('Launchpeg', () => {
       )
     })
 
-    it('Allowlist must happen after auction', async () => {
-      config.allowlistStartTime = config.auctionStartTime.sub(duration.minutes(10))
+    it('Pre-mint must happen after auction', async () => {
+      config.preMintStartTime = config.auctionStartTime.sub(duration.minutes(10))
       await expect(initializePhasesLaunchpeg(launchpeg, config, Phase.DutchAuction)).to.be.revertedWith(
-        'Launchpeg__AllowlistBeforeAuction()'
+        'Launchpeg__PreMintBeforeAuction()'
+      )
+    })
+
+    it('Allowlist must happen after pre-mint', async () => {
+      config.allowlistStartTime = config.preMintStartTime.sub(duration.minutes(10))
+      await expect(initializePhasesLaunchpeg(launchpeg, config, Phase.DutchAuction)).to.be.revertedWith(
+        'Launchpeg__AllowlistBeforePreMint()'
       )
     })
 
@@ -262,6 +270,11 @@ describe('Launchpeg', () => {
       await expect(launchpeg.setAuctionSaleStartTime(newAuctionSaleStartTime)).to.be.revertedWith(
         'Launchpeg__NotInitialized()'
       )
+    })
+
+    it('Reverts when setting pre-mint start time before phases are initialized', async () => {
+      const newPreMintStartTime = config.preMintStartTime.sub(duration.minutes(30))
+      await expect(launchpeg.setPreMintStartTime(newPreMintStartTime)).to.be.revertedWith('Launchpeg__NotInitialized()')
     })
 
     it('Reverts when setting allowlist start time before phases are initialized', async () => {
@@ -409,21 +422,39 @@ describe('Launchpeg', () => {
       )
       invalidAuctionSaleStartTime = config.allowlistStartTime.add(duration.minutes(30))
       await expect(launchpeg.setAuctionSaleStartTime(invalidAuctionSaleStartTime)).to.be.revertedWith(
-        'Launchpeg__AllowlistBeforeAuction()'
+        'Launchpeg__PreMintBeforeAuction()'
       )
       await launchpeg.setAuctionSaleStartTime(newAuctionSaleStartTime)
       expect(await launchpeg.auctionSaleStartTime()).to.eq(newAuctionSaleStartTime)
     })
 
+    it('Owner can set pre-mint start time', async () => {
+      let invalidPreMintStartTime = config.auctionStartTime.sub(duration.minutes(30))
+      const newPreMintStartTime = config.preMintStartTime.sub(duration.minutes(30))
+      await initializePhasesLaunchpeg(launchpeg, config, Phase.PreMint)
+      await expect(launchpeg.connect(projectOwner).setPreMintStartTime(newPreMintStartTime)).to.be.revertedWith(
+        'PendingOwnableUpgradeable__NotOwner()'
+      )
+      await expect(launchpeg.setPreMintStartTime(invalidPreMintStartTime)).to.be.revertedWith(
+        'Launchpeg__PreMintBeforeAuction()'
+      )
+      invalidPreMintStartTime = config.allowlistStartTime.add(duration.minutes(30))
+      await expect(launchpeg.setPreMintStartTime(invalidPreMintStartTime)).to.be.revertedWith(
+        'Launchpeg__AllowlistBeforePreMint()'
+      )
+      await launchpeg.setPreMintStartTime(newPreMintStartTime)
+      expect(await launchpeg.preMintStartTime()).to.eq(newPreMintStartTime)
+    })
+
     it('Owner can set allowlist start time', async () => {
-      let invalidAllowlistStartTime = config.auctionStartTime.sub(duration.minutes(30))
+      let invalidAllowlistStartTime = config.preMintStartTime.sub(duration.minutes(30))
       const newAllowlistStartTime = config.allowlistStartTime.sub(duration.minutes(30))
       await initializePhasesLaunchpeg(launchpeg, config, Phase.DutchAuction)
       await expect(launchpeg.connect(projectOwner).setAllowlistStartTime(newAllowlistStartTime)).to.be.revertedWith(
         'PendingOwnableUpgradeable__NotOwner()'
       )
       await expect(launchpeg.setAllowlistStartTime(invalidAllowlistStartTime)).to.be.revertedWith(
-        'Launchpeg__AllowlistBeforeAuction()'
+        'Launchpeg__AllowlistBeforePreMint()'
       )
       invalidAllowlistStartTime = config.publicSaleStartTime.add(duration.minutes(30))
       await expect(launchpeg.setAllowlistStartTime(invalidAllowlistStartTime)).to.be.revertedWith(
@@ -508,6 +539,10 @@ describe('Launchpeg', () => {
     })
   })
 
+  describe('Pre-mint phase', () => {
+    // TODO
+  })
+
   describe('Allowlist phase', () => {
     it('NFT is transfered when user is on allowlist', async () => {
       await initializePhasesLaunchpeg(launchpeg, config, Phase.Allowlist)
@@ -571,7 +606,7 @@ describe('Launchpeg', () => {
 
     it('Mint price is discounted', async () => {
       await initializePhasesLaunchpeg(launchpeg, config, Phase.Allowlist)
-      expect(await launchpeg.getAllowlistPrice()).to.eq(ethers.utils.parseUnits('0.9', 18))
+      expect(await launchpeg.allowlistPrice()).to.eq(ethers.utils.parseUnits('0.9', 18))
     })
 
     it('Owner can set public sale start time', async () => {
@@ -686,7 +721,7 @@ describe('Launchpeg', () => {
 
     it('Public sale price is discounted', async () => {
       await initializePhasesLaunchpeg(launchpeg, config, Phase.PublicSale)
-      expect(await launchpeg.getPublicSalePrice()).to.eq(ethers.utils.parseUnits('0.8', 18))
+      expect(await launchpeg.salePrice()).to.eq(ethers.utils.parseUnits('0.8', 18))
     })
 
     it('Public sale is limited by amount for dev', async () => {

@@ -4,6 +4,7 @@ import { duration, advanceTimeAndBlock, latest } from './time'
 
 export interface LaunchpegConfig {
   auctionStartTime: BigNumber
+  preMintStartTime: BigNumber
   allowlistStartTime: BigNumber
   publicSaleStartTime: BigNumber
   publicSaleEndTime: BigNumber
@@ -29,7 +30,8 @@ export interface LaunchpegConfig {
 
 const WITHDRAW_AVAX_START_OFFSET = 1
 const AUCTION_START_OFFSET = 10
-const ALLOWLIST_START_OFFSET = 100
+const PREMINT_START_OFFSET = 100
+const ALLOWLIST_START_OFFSET = 150
 const PUBLIC_SALE_START_OFFSET = 200
 const PUBLIC_SALE_END_OFFSET = 300
 const REVEAL_START_OFFSET = 400
@@ -40,6 +42,7 @@ export const getDefaultLaunchpegConfig = async (): Promise<LaunchpegConfig> => {
   const auctionStartTime = blockTimestamp.add(duration.minutes(AUCTION_START_OFFSET))
   return {
     auctionStartTime,
+    preMintStartTime: auctionStartTime.add(duration.minutes(PREMINT_START_OFFSET)),
     allowlistStartTime: auctionStartTime.add(duration.minutes(ALLOWLIST_START_OFFSET)),
     publicSaleStartTime: auctionStartTime.add(duration.minutes(PUBLIC_SALE_START_OFFSET)),
     publicSaleEndTime: auctionStartTime.add(duration.minutes(PUBLIC_SALE_END_OFFSET)),
@@ -67,6 +70,7 @@ export const getDefaultLaunchpegConfig = async (): Promise<LaunchpegConfig> => {
 export enum Phase {
   NotStarted,
   DutchAuction,
+  PreMint,
   Allowlist,
   PublicSale,
   Reveal,
@@ -79,6 +83,7 @@ export const initializePhasesLaunchpeg = async (launchpeg: Contract, config: Lau
     config.startPrice,
     config.endPrice,
     config.auctionDropInterval,
+    config.preMintStartTime,
     config.allowlistStartTime,
     config.allowlistDiscount,
     config.publicSaleStartTime,
@@ -97,6 +102,7 @@ export const initializePhasesFlatLaunchpeg = async (
   currentPhase: Phase
 ) => {
   await flatLaunchpeg.initializePhases(
+    config.preMintStartTime,
     config.allowlistStartTime,
     config.publicSaleStartTime,
     config.publicSaleEndTime,
@@ -115,6 +121,9 @@ const advanceTimeAndBlockToPhase = async (phase: Phase) => {
       break
     case Phase.DutchAuction:
       await advanceTimeAndBlock(duration.minutes(AUCTION_START_OFFSET))
+      break
+    case Phase.PreMint:
+      await advanceTimeAndBlock(duration.minutes(PREMINT_START_OFFSET + AUCTION_START_OFFSET))
       break
     case Phase.Allowlist:
       await advanceTimeAndBlock(duration.minutes(ALLOWLIST_START_OFFSET + AUCTION_START_OFFSET))

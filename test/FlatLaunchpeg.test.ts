@@ -89,9 +89,17 @@ describe('FlatLaunchpeg', () => {
     })
 
     it('Sale dates should be correct', async () => {
-      config.allowlistStartTime = BigNumber.from(0)
+      config.preMintStartTime = BigNumber.from(0)
       await expect(initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.Allowlist)).to.be.revertedWith(
         'Launchpeg__InvalidStartTime()'
+      )
+    })
+
+    it('Allowlist must happen after pre-mint', async () => {
+      config.allowlistStartTime = config.preMintStartTime.sub(duration.minutes(20))
+
+      await expect(initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.Allowlist)).to.be.revertedWith(
+        'Launchpeg__AllowlistBeforePreMint()'
       )
     })
 
@@ -138,6 +146,13 @@ describe('FlatLaunchpeg', () => {
       await expect(deployFlatLaunchpeg()).to.be.revertedWith('Launchpeg__InvalidRevealDates()')
     })
 
+    it('Reverts when setting pre-mint start time before phases are initialized', async () => {
+      const newPreMintStartTime = config.preMintStartTime.sub(duration.minutes(30))
+      await expect(flatLaunchpeg.setPreMintStartTime(newPreMintStartTime)).to.be.revertedWith(
+        'Launchpeg__NotInitialized()'
+      )
+    })
+
     it('Reverts when setting allowlist start time before phases are initialized', async () => {
       const newAllowlistStartTime = config.allowlistStartTime.sub(duration.minutes(30))
       await expect(flatLaunchpeg.setAllowlistStartTime(newAllowlistStartTime)).to.be.revertedWith(
@@ -177,6 +192,10 @@ describe('FlatLaunchpeg', () => {
       await flatLaunchpeg.connect(alice).devMint(config.amountForDevs)
       expect(await flatLaunchpeg.balanceOf(alice.address)).to.eq(config.amountForDevs)
     })
+  })
+
+  describe('Pre-mint phase', () => {
+    // TODO
   })
 
   describe('Allowlist phase', () => {
@@ -233,6 +252,24 @@ describe('FlatLaunchpeg', () => {
       )
     })
 
+    it('Owner can set pre-mint start time', async () => {
+      let invalidPreMintStartTime = BigNumber.from(0)
+      const newPreMintStartTime = config.preMintStartTime.add(duration.minutes(30))
+      await initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.PreMint)
+      await expect(flatLaunchpeg.connect(projectOwner).setPreMintStartTime(newPreMintStartTime)).to.be.revertedWith(
+        'PendingOwnableUpgradeable__NotOwner()'
+      )
+      await expect(flatLaunchpeg.setPreMintStartTime(invalidPreMintStartTime)).to.be.revertedWith(
+        'Launchpeg__InvalidStartTime()'
+      )
+      invalidPreMintStartTime = config.allowlistStartTime.add(duration.minutes(30))
+      await expect(flatLaunchpeg.setPreMintStartTime(invalidPreMintStartTime)).to.be.revertedWith(
+        'Launchpeg__AllowlistBeforePreMint()'
+      )
+      await flatLaunchpeg.setPreMintStartTime(newPreMintStartTime)
+      expect(await flatLaunchpeg.preMintStartTime()).to.eq(newPreMintStartTime)
+    })
+
     it('Owner can set allowlist start time', async () => {
       let invalidAllowlistStartTime = BigNumber.from(0)
       const newAllowlistStartTime = config.allowlistStartTime.add(duration.minutes(30))
@@ -241,7 +278,7 @@ describe('FlatLaunchpeg', () => {
         'PendingOwnableUpgradeable__NotOwner()'
       )
       await expect(flatLaunchpeg.setAllowlistStartTime(invalidAllowlistStartTime)).to.be.revertedWith(
-        'Launchpeg__InvalidStartTime()'
+        'Launchpeg__AllowlistBeforePreMint()'
       )
       invalidAllowlistStartTime = config.publicSaleStartTime.add(duration.minutes(30))
       await expect(flatLaunchpeg.setAllowlistStartTime(invalidAllowlistStartTime)).to.be.revertedWith(
