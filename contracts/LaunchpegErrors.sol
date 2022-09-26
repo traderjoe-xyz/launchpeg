@@ -1,7 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
+// LaunchpegFactory
 error LaunchpegFactory__InvalidImplementation();
+
+// Launchpeg
 error Launchpeg__BatchRevealNotInitialized();
 error Launchpeg__BatchRevealStarted();
 error Launchpeg__CanNotMintThisMany();
@@ -36,3 +39,16 @@ error Launchpeg__TransferFailed();
 error Launchpeg__Unauthorized();
 error Launchpeg__WrongAddressesAndNumSlotsLength();
 error Launchpeg__WrongPhase();
+
+// PendingOwnableUpgradeable
+error PendingOwnableUpgradeable__NotOwner();
+error PendingOwnableUpgradeable__NotPendingOwner();
+error PendingOwnableUpgradeable__PendingOwnerAlreadySet();
+error PendingOwnableUpgradeable__NoPendingOwner();
+
+// SafeAccessControlEnumerableUpgradeable
+error SafeAccessControlEnumerableUpgradeable__SenderMissingRoleAndIsNotOwner(
+    bytes32 role,
+    address sender
+);
+error SafeAccessControlEnumerableUpgradeable__RoleIsDefaultAdmin();

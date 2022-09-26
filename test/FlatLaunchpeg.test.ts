@@ -160,11 +160,13 @@ describe('FlatLaunchpeg', () => {
     })
 
     it('Only dev can mint', async () => {
-      await expect(flatLaunchpeg.connect(alice).devMint(1)).to.be.revertedWith('Launchpeg__Unauthorized()')
+      await expect(flatLaunchpeg.connect(alice).devMint(1)).to.be.revertedWith(
+        'SafeAccessControlEnumerableUpgradeable__SenderMissingRoleAndIsNotOwner'
+      )
     })
 
     it('Mint after project owner changes', async () => {
-      await flatLaunchpeg.connect(dev).setProjectOwner(alice.address)
+      await flatLaunchpeg.connect(dev).grantRole(flatLaunchpeg.PROJECT_OWNER_ROLE(), alice.address)
       await flatLaunchpeg.connect(alice).devMint(config.amountForDevs)
       expect(await flatLaunchpeg.balanceOf(alice.address)).to.eq(config.amountForDevs)
     })
@@ -229,7 +231,7 @@ describe('FlatLaunchpeg', () => {
       const newAllowlistStartTime = config.allowlistStartTime.add(duration.minutes(30))
       await initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.Allowlist)
       await expect(flatLaunchpeg.connect(projectOwner).setAllowlistStartTime(newAllowlistStartTime)).to.be.revertedWith(
-        'Ownable: caller is not the owner'
+        'PendingOwnableUpgradeable__NotOwner()'
       )
       await expect(flatLaunchpeg.setAllowlistStartTime(invalidAllowlistStartTime)).to.be.revertedWith(
         'Launchpeg__InvalidStartTime()'
@@ -248,7 +250,7 @@ describe('FlatLaunchpeg', () => {
       await initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.Allowlist)
       await expect(
         flatLaunchpeg.connect(projectOwner).setPublicSaleStartTime(newPublicSaleStartTime)
-      ).to.be.revertedWith('Ownable: caller is not the owner')
+      ).to.be.revertedWith('PendingOwnableUpgradeable__NotOwner()')
       await expect(flatLaunchpeg.setPublicSaleStartTime(invalidPublicSaleStartTime)).to.be.revertedWith(
         'Launchpeg__PublicSaleBeforeAllowlist()'
       )
@@ -265,7 +267,7 @@ describe('FlatLaunchpeg', () => {
       const newPublicSaleEndTime = config.publicSaleEndTime.sub(duration.minutes(30))
       await initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.Allowlist)
       await expect(flatLaunchpeg.connect(projectOwner).setPublicSaleEndTime(newPublicSaleEndTime)).to.be.revertedWith(
-        'Ownable: caller is not the owner'
+        'PendingOwnableUpgradeable__NotOwner()'
       )
       await expect(flatLaunchpeg.setPublicSaleEndTime(invalidPublicSaleEndTime)).to.be.revertedWith(
         'Launchpeg__PublicSaleEndBeforePublicSaleStart()'
@@ -279,7 +281,7 @@ describe('FlatLaunchpeg', () => {
       const newRevealBatchSize = 100
       await initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.Allowlist)
       await expect(flatLaunchpeg.connect(projectOwner).setRevealBatchSize(newRevealBatchSize)).to.be.revertedWith(
-        'Ownable: caller is not the owner'
+        'PendingOwnableUpgradeable__NotOwner()'
       )
       await expect(flatLaunchpeg.setRevealBatchSize(invalidRevealBatchSize)).to.be.revertedWith(
         'Launchpeg__InvalidBatchRevealSize()'
@@ -293,7 +295,7 @@ describe('FlatLaunchpeg', () => {
       const newRevealStartTime = config.batchRevealStart.add(duration.minutes(30))
       await initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.Allowlist)
       await expect(flatLaunchpeg.connect(projectOwner).setRevealStartTime(newRevealStartTime)).to.be.revertedWith(
-        'Ownable: caller is not the owner'
+        'PendingOwnableUpgradeable__NotOwner()'
       )
       await expect(flatLaunchpeg.setRevealStartTime(invalidRevealStartTime)).to.be.revertedWith(
         'Launchpeg__InvalidRevealDates()'
@@ -307,7 +309,7 @@ describe('FlatLaunchpeg', () => {
       const newRevealInterval = config.batchRevealInterval.add(10)
       await initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.Allowlist)
       await expect(flatLaunchpeg.connect(projectOwner).setRevealInterval(newRevealInterval)).to.be.revertedWith(
-        'Ownable: caller is not the owner'
+        'PendingOwnableUpgradeable__NotOwner()'
       )
       await expect(flatLaunchpeg.setRevealInterval(invalidRevealInterval)).to.be.revertedWith(
         'Launchpeg__InvalidRevealDates()'
