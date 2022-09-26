@@ -67,7 +67,7 @@ abstract contract BaseLaunchpeg is
     mapping(address => uint256) public override allowlist;
 
     // @notice The no. of NFTs pre-minted by the user address
-    mapping(address => uint256) public override numberPreMinted;
+    mapping(address => uint256) public override userAddressToAmountPreMinted;
 
     /// @notice Tracks the amount of NFTs minted by `projectOwner`
     uint256 public override amountMintedByDevs;
@@ -413,7 +413,7 @@ abstract contract BaseLaunchpeg is
         onlyOwnerOrRole(PROJECT_OWNER_ROLE)
         whenNotPaused
     {
-        if (totalSupply() + _quantity > collectionSize) {
+        if (_totalSupplyWithPreMint() + _quantity > collectionSize) {
             revert Launchpeg__MaxSupplyReached();
         }
         if (amountMintedByDevs + _quantity > amountForDevs) {
@@ -432,7 +432,7 @@ abstract contract BaseLaunchpeg is
     }
 
     /// @dev Should only be called in the pre-mint phase
-    /// @param _quantity Quantity of NFTS to mint
+    /// @param _quantity Quantity of NFTs to mint
     function _preMint(uint256 _quantity) internal {
         if (_quantity == 0) {
             revert Launchpeg__InvalidQuantity();
@@ -441,20 +441,22 @@ abstract contract BaseLaunchpeg is
             revert Launchpeg__NotEligibleForAllowlistMint();
         }
         if (
-            totalSupply() + _quantity > collectionSize ||
-            amountMintedDuringAllowlist + _quantity > amountForAllowlist
+            (_totalSupplyWithPreMint() + _quantity > collectionSize) ||
+            (amountMintedDuringPreMint +
+                amountMintedDuringAllowlist +
+                _quantity >
+                amountForAllowlist)
         ) {
             revert Launchpeg__MaxSupplyReached();
         }
         allowlist[msg.sender] -= _quantity;
-        uint256 price = _preMintPrice();
-        uint256 totalCost = price * _quantity;
-        numberPreMinted[msg.sender] += _quantity;
+        userAddressToAmountPreMinted[msg.sender] += _quantity;
         amountMintedDuringPreMint += _quantity;
-        amountMintedDuringAllowlist += _quantity;
         preMintQueue.push(
             PreMintData({sender: msg.sender, quantity: _quantity})
         );
+        uint256 price = _preMintPrice();
+        uint256 totalCost = price * _quantity;
         emit PreMint(msg.sender, _quantity, price);
         _refundIfOver(totalCost);
     }
@@ -640,5 +642,19 @@ abstract contract BaseLaunchpeg is
     /// @return uint256 The number of the next batch that will be revealed
     function hasBatchToReveal() external view override returns (bool, uint256) {
         return batchReveal.hasBatchToReveal(totalSupply());
+    }
+
+    // @dev Total supply including pre-mints
+    function _totalSupplyWithPreMint() internal view returns (uint256) {
+        return totalSupply() + amountMintedDuringPreMint - amountBatchMinted;
+    }
+
+    // @dev Number minted by user including pre-mints
+    function _numberMintedWithPreMint(address _owner)
+        internal
+        view
+        returns (uint256)
+    {
+        return _numberMinted(_owner) + userAddressToAmountPreMinted[_owner];
     }
 }

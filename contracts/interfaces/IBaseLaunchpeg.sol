@@ -108,9 +108,12 @@ interface IBaseLaunchpeg is IERC721Upgradeable, IERC721MetadataUpgradeable {
         view
         returns (ERC721AUpgradeable.TokenOwnership memory);
 
-    function numberMinted(address owner) external view returns (uint256);
+    function userAddressToAmountPreMinted(address owner)
+        external
+        view
+        returns (uint256);
 
-    function numberPreMinted(address owner) external view returns (uint256);
+    function numberMinted(address owner) external view returns (uint256);
 
     function currentPhase() external view returns (Phase);
 

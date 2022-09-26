@@ -40,7 +40,7 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
     }
 
     /// @dev Batch mint is allowed in the allowlist and public sale phases
-    modifier atBatchMintPhase() {
+    modifier isBatchMintAvailable() {
         Phase currPhase = currentPhase();
         if (currPhase != Phase.Allowlist && currPhase != Phase.PublicSale) {
             revert Launchpeg__WrongPhase();
@@ -170,7 +170,7 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
         external
         override
         whenNotPaused
-        atBatchMintPhase
+        isBatchMintAvailable
     {
         _batchMint(_maxQuantity);
     }
@@ -188,8 +188,11 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
             revert Launchpeg__NotEligibleForAllowlistMint();
         }
         if (
-            totalSupply() + _quantity > collectionSize ||
-            amountMintedDuringAllowlist + _quantity > amountForAllowlist
+            (_totalSupplyWithPreMint() + _quantity > collectionSize) ||
+            (amountMintedDuringPreMint +
+                amountMintedDuringAllowlist +
+                _quantity) >
+            amountForAllowlist
         ) {
             revert Launchpeg__MaxSupplyReached();
         }
@@ -218,10 +221,13 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
         whenNotPaused
         atPhase(Phase.PublicSale)
     {
-        if (numberMinted(msg.sender) + _quantity > maxPerAddressDuringMint) {
+        if (
+            _numberMintedWithPreMint(msg.sender) + _quantity >
+            maxPerAddressDuringMint
+        ) {
             revert Launchpeg__CanNotMintThisMany();
         }
-        if (totalSupply() + _quantity > collectionSize) {
+        if (_totalSupplyWithPreMint() + _quantity > collectionSize) {
             revert Launchpeg__MaxSupplyReached();
         }
         uint256 total = salePrice * _quantity;

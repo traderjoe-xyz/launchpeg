@@ -88,7 +88,7 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
     }
 
     /// @dev Batch mint is allowed in the allowlist and public sale phases
-    modifier atBatchMintPhase() {
+    modifier isBatchMintAvailable() {
         Phase currPhase = currentPhase();
         if (currPhase != Phase.Allowlist && currPhase != Phase.PublicSale) {
             revert Launchpeg__WrongPhase();
@@ -291,7 +291,10 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
         if (remainingSupply < _quantity) {
             _quantity = remainingSupply;
         }
-        if (numberMinted(msg.sender) + _quantity > maxPerAddressDuringMint) {
+        if (
+            _numberMintedWithPreMint(msg.sender) + _quantity >
+            maxPerAddressDuringMint
+        ) {
             revert Launchpeg__CanNotMintThisMany();
         }
         lastAuctionPrice = getAuctionPrice(auctionSaleStartTime);
@@ -326,7 +329,7 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
         external
         override
         whenNotPaused
-        atBatchMintPhase
+        isBatchMintAvailable
     {
         _batchMint(_maxQuantity);
     }
@@ -343,11 +346,12 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
         if (_quantity > allowlist[msg.sender]) {
             revert Launchpeg__NotEligibleForAllowlistMint();
         }
-        uint256 remainingAuctionSupply = amountForAuction -
-            amountMintedDuringAuction;
         if (
-            totalSupply() + remainingAuctionSupply + _quantity >
-            amountForAuction + amountForAllowlist + amountMintedByDevs
+            (_totalSupplyWithPreMint() + _quantity > collectionSize) ||
+            (amountMintedDuringPreMint +
+                amountMintedDuringAllowlist +
+                _quantity >
+                amountForAllowlist)
         ) {
             revert Launchpeg__MaxSupplyReached();
         }
@@ -378,13 +382,16 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
         atPhase(Phase.PublicSale)
     {
         if (
-            totalSupply() + _quantity >
+            _numberMintedWithPreMint(msg.sender) + _quantity >
+            maxPerAddressDuringMint
+        ) {
+            revert Launchpeg__CanNotMintThisMany();
+        }
+        if (
+            _totalSupplyWithPreMint() + _quantity >
             collectionSize - (amountForDevs - amountMintedByDevs)
         ) {
             revert Launchpeg__MaxSupplyReached();
-        }
-        if (numberMinted(msg.sender) + _quantity > maxPerAddressDuringMint) {
-            revert Launchpeg__CanNotMintThisMany();
         }
         uint256 price = salePrice();
 
