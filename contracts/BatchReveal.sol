@@ -342,6 +342,7 @@ contract BatchReveal is
     /// @param _start beginning of the array to be added
     /// @param _end end of the array to be added
     /// @param _lastIndex last position in the range array to consider
+    /// @param _intCollectionSize collection size
     /// @return newLastIndex new lastIndex to consider for the future range to be added
     function _addRange(
         Range[] memory _ranges,
@@ -631,10 +632,10 @@ contract BatchReveal is
     /// @dev Callback triggered by the VRF coordinator
     /// @param _randomWords Array of random numbers provided by the VRF coordinator
     function fulfillRandomWords(
-        uint256 requestId,
+        uint256 _requestId,
         uint256[] memory _randomWords
     ) internal override {
-        address baseLaunchpeg = vrfRequestIdToLaunchpeg[requestId];
+        address baseLaunchpeg = vrfRequestIdToLaunchpeg[_requestId];
 
         if (launchpegToHasBeenForceRevealed[baseLaunchpeg]) {
             revert Launchpeg__HasBeenForceRevealed();

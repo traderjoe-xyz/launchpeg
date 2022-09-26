@@ -866,6 +866,18 @@ describe('Launchpeg', () => {
       expect(await launchpeg.tokenURI(0)).to.be.equal(config.unrevealedTokenURI)
     })
 
+    it('revealNextBatch reverts when batch reveal disabled', async () => {
+      await launchpeg.setBatchReveal(ethers.constants.AddressZero)
+      await expect(launchpeg.revealNextBatch()).to.be.revertedWith('Launchpeg__BatchRevealDisabled()')
+    })
+
+    it('hasBatchToReveal returns false when batch reveal disabled', async () => {
+      await launchpeg.setBatchReveal(ethers.constants.AddressZero)
+      const hasBatchToReveal = await launchpeg.hasBatchToReveal()
+      expect(hasBatchToReveal[0]).to.equal(false)
+      expect(hasBatchToReveal[1]).to.equal(0)
+    })
+
     it('Should reveal NFTs immediately if batch reveal is disabled', async () => {
       const isBatchRevealEnabled = false
       const tokenId = 0

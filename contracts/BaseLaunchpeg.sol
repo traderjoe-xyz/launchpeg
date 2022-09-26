@@ -506,6 +506,9 @@ abstract contract BaseLaunchpeg is
 
     /// @notice Reveals the next batch if the reveal conditions are met
     function revealNextBatch() external override isEOA {
+        if (address(batchReveal) == address(0)) {
+            revert Launchpeg__BatchRevealDisabled();
+        }
         if (!batchReveal.revealNextBatch(address(this), totalSupply())) {
             revert Launchpeg__RevealNextBatchNotAvailable();
         }
@@ -515,6 +518,9 @@ abstract contract BaseLaunchpeg is
     /// @return bool Whether reveal can be triggered or not
     /// @return uint256 The number of the next batch that will be revealed
     function hasBatchToReveal() external view override returns (bool, uint256) {
+        if (address(batchReveal) == address(0)) {
+            return (false, 0);
+        }
         return batchReveal.hasBatchToReveal(address(this), totalSupply());
     }
 }
