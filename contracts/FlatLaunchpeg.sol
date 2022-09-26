@@ -246,7 +246,7 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
             allowlistStartTime == 0 ||
             publicSaleStartTime == 0 ||
             publicSaleEndTime == 0 ||
-            block.timestamp < allowlistStartTime
+            block.timestamp < preMintStartTime
         ) {
             return Phase.NotStarted;
         } else if (totalSupply() >= collectionSize) {

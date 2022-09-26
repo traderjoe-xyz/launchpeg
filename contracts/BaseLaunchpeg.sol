@@ -62,8 +62,12 @@ abstract contract BaseLaunchpeg is
     /// @notice Token URI before the collection reveal
     string public override unrevealedURI;
 
-    /// @notice The amount of NFTs each allowed address can mint during the allowlist mint
+    /// @notice The amount of NFTs each allowed address can mint during
+    /// the pre-mint or allowlist mint
     mapping(address => uint256) public override allowlist;
+
+    // @notice The no. of NFTs pre-minted by the user address
+    mapping(address => uint256) public override numberPreMinted;
 
     /// @notice Tracks the amount of NFTs minted by `projectOwner`
     uint256 public override amountMintedByDevs;
@@ -445,6 +449,7 @@ abstract contract BaseLaunchpeg is
         allowlist[msg.sender] -= _quantity;
         uint256 price = _preMintPrice();
         uint256 totalCost = price * _quantity;
+        numberPreMinted[msg.sender] += _quantity;
         amountMintedDuringPreMint += _quantity;
         amountMintedDuringAllowlist += _quantity;
         preMintQueue.push(
@@ -467,19 +472,20 @@ abstract contract BaseLaunchpeg is
         uint256 price = _preMintPrice();
         address sender;
         uint256 quantity;
-        while (preMintQueueIdx < preMintQueue.length && remQuantity > 0) {
-            PreMintData memory data = preMintQueue[preMintQueueIdx];
+        uint256 i = preMintQueueIdx;
+        uint256 length = preMintQueue.length;
+        while (i < length && remQuantity > 0) {
+            PreMintData memory data = preMintQueue[i];
             sender = data.sender;
             if (data.quantity > remQuantity) {
                 quantity = remQuantity;
-                data.quantity -= quantity;
+                preMintQueue[i].quantity -= quantity;
             } else {
                 quantity = data.quantity;
-                delete preMintQueue[preMintQueueIdx];
-                preMintQueueIdx++;
+                delete preMintQueue[i];
+                i++;
             }
             remQuantity -= quantity;
-            amountBatchMinted += quantity;
             _mint(sender, quantity, "", false);
             emit Mint(
                 sender,
@@ -489,6 +495,8 @@ abstract contract BaseLaunchpeg is
                 Phase.PreMint
             );
         }
+        amountBatchMinted += (_maxQuantity - remQuantity);
+        preMintQueueIdx = i;
     }
 
     function _preMintPrice() internal view virtual returns (uint256);
