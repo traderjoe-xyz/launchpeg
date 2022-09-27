@@ -41,10 +41,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     })
   })
 
-  if (proxyContract && proxyContract.newlyDeployed && proxyContract.implementation) {
-    // Initialize implementation contract
-    const implementationContract = await ethers.getContractAt('LaunchpegFactory', proxyContract.implementation)
-    await implementationContract.initialize(...initArgs)
+  if (proxyContract && proxyContract.implementation) {
+    try {
+      const implementationContract = await ethers.getContractAt('LaunchpegFactory', proxyContract.implementation)
+      await implementationContract.initialize(...initArgs)
+    } catch (err) {
+      console.error(err)
+    }
   }
 
   if (proxyContract && proxyContract.implementation) {
