@@ -208,7 +208,7 @@ describe('FlatLaunchpeg', () => {
     it('Should allow whitelisted user to pre-mint', async () => {
       const quantity = 1
       await flatLaunchpeg.connect(alice).preMint(quantity, { value: config.flatAllowlistSalePrice.mul(quantity) })
-      expect(await flatLaunchpeg.userAddressToAmountPreMinted(alice.address)).to.eq(quantity)
+      expect(await flatLaunchpeg.userAddressToPreMintAmount(alice.address)).to.eq(quantity)
       expect(await flatLaunchpeg.amountMintedDuringPreMint()).to.eq(quantity)
 
       await expect(flatLaunchpeg.connect(bob).preMint(1, { value: config.flatAllowlistSalePrice })).to.be.revertedWith(
@@ -219,7 +219,7 @@ describe('FlatLaunchpeg', () => {
     it('Should receive allowlist price per NFT', async () => {
       const quantity = 2
       await flatLaunchpeg.connect(alice).preMint(quantity, { value: config.flatAllowlistSalePrice.mul(quantity) })
-      expect(await flatLaunchpeg.userAddressToAmountPreMinted(alice.address)).to.eq(quantity)
+      expect(await flatLaunchpeg.userAddressToPreMintAmount(alice.address)).to.eq(quantity)
 
       await expect(flatLaunchpeg.connect(alice).preMint(1)).to.be.revertedWith('Launchpeg__NotEnoughAVAX(0)')
     })
@@ -229,7 +229,7 @@ describe('FlatLaunchpeg', () => {
       const quantity = 3
       const remQuantity = allowlistQty - quantity
       await flatLaunchpeg.connect(alice).preMint(quantity, { value: config.flatAllowlistSalePrice.mul(quantity) })
-      expect(await flatLaunchpeg.userAddressToAmountPreMinted(alice.address)).to.eq(quantity)
+      expect(await flatLaunchpeg.userAddressToPreMintAmount(alice.address)).to.eq(quantity)
       expect(await flatLaunchpeg.allowlist(alice.address)).to.eq(remQuantity)
 
       await expect(
@@ -239,7 +239,7 @@ describe('FlatLaunchpeg', () => {
       ).to.be.revertedWith('Launchpeg__NotEligibleForAllowlistMint()')
 
       await flatLaunchpeg.connect(alice).preMint(remQuantity, { value: config.flatAllowlistSalePrice.mul(remQuantity) })
-      expect(await flatLaunchpeg.userAddressToAmountPreMinted(alice.address)).to.eq(quantity + remQuantity)
+      expect(await flatLaunchpeg.userAddressToPreMintAmount(alice.address)).to.eq(quantity + remQuantity)
     })
 
     it('Should not allow 0 pre-mint amount', async () => {
@@ -248,7 +248,7 @@ describe('FlatLaunchpeg', () => {
 
     it('Should not transfer pre-minted NFT to user', async () => {
       await flatLaunchpeg.connect(alice).preMint(1, { value: config.flatAllowlistSalePrice })
-      expect(await flatLaunchpeg.userAddressToAmountPreMinted(alice.address)).to.eq(1)
+      expect(await flatLaunchpeg.userAddressToPreMintAmount(alice.address)).to.eq(1)
       expect(await flatLaunchpeg.balanceOf(alice.address)).to.eq(0)
     })
 
@@ -268,8 +268,8 @@ describe('FlatLaunchpeg', () => {
         flatLaunchpeg.connect(bob).preMint(bobQty, { value: config.flatAllowlistSalePrice.mul(bobQty) })
       ).to.be.revertedWith('Launchpeg__MaxSupplyReached()')
 
-      expect(await flatLaunchpeg.userAddressToAmountPreMinted(alice.address)).to.eq(aliceQty)
-      expect(await flatLaunchpeg.userAddressToAmountPreMinted(bob.address)).to.eq(bobQty)
+      expect(await flatLaunchpeg.userAddressToPreMintAmount(alice.address)).to.eq(aliceQty)
+      expect(await flatLaunchpeg.userAddressToPreMintAmount(bob.address)).to.eq(bobQty)
       expect(await flatLaunchpeg.amountMintedDuringPreMint()).to.eq(aliceQty + bobQty)
     })
 
@@ -368,11 +368,14 @@ describe('FlatLaunchpeg', () => {
       await flatLaunchpeg.connect(bob).batchMintPreMintedNFTs(5)
       expect(await flatLaunchpeg.balanceOf(alice.address)).to.eq(5)
       expect(await flatLaunchpeg.balanceOf(bob.address)).to.eq(0)
+
       // Alice batch mints more than available in queue
       await flatLaunchpeg.connect(alice).batchMintPreMintedNFTs(20)
       expect(await flatLaunchpeg.balanceOf(alice.address)).to.eq(10)
       expect(await flatLaunchpeg.balanceOf(bob.address)).to.eq(5)
       expect(await flatLaunchpeg.amountBatchMinted()).to.eq(15)
+      expect(await flatLaunchpeg.userAddressToPreMintAmount(alice.address)).to.eq(0)
+      expect(await flatLaunchpeg.userAddressToPreMintAmount(bob.address)).to.eq(0)
 
       await expect(flatLaunchpeg.batchMintPreMintedNFTs(5)).to.be.revertedWith(
         'Launchpeg__MaxSupplyForBatchMintReached()'
@@ -591,10 +594,12 @@ describe('FlatLaunchpeg', () => {
       // Bob batch mints
       await flatLaunchpeg.connect(bob).batchMintPreMintedNFTs(1)
       expect(await flatLaunchpeg.balanceOf(alice.address)).to.eq(1)
+      expect(await flatLaunchpeg.userAddressToPreMintAmount(alice.address)).to.eq(1)
       // Alice batch mints more than available in queue
       await flatLaunchpeg.connect(alice).batchMintPreMintedNFTs(2)
       expect(await flatLaunchpeg.balanceOf(alice.address)).to.eq(2)
       expect(await flatLaunchpeg.amountBatchMinted()).to.eq(2)
+      expect(await flatLaunchpeg.userAddressToPreMintAmount(alice.address)).to.eq(0)
 
       await expect(flatLaunchpeg.batchMintPreMintedNFTs(5)).to.be.revertedWith(
         'Launchpeg__MaxSupplyForBatchMintReached()'
