@@ -326,10 +326,8 @@ abstract contract BaseLaunchpeg is
     }
 
     /// @notice Update batch reveal
+    /// @dev Can be set to zero address to disable batch reveal
     function setBatchReveal(address _batchReveal) external override onlyOwner {
-        if (IBatchReveal(_batchReveal).baseLaunchpeg() != address(this)) {
-            revert Launchpeg__InvalidBatchReveal();
-        }
         batchReveal = IBatchReveal(_batchReveal);
     }
 
@@ -421,14 +419,18 @@ abstract contract BaseLaunchpeg is
     {
         if (address(batchReveal) == address(0)) {
             return string(abi.encodePacked(baseURI, _id.toString()));
-        } else if (_id >= batchReveal.lastTokenRevealed()) {
+        } else if (
+            _id >= batchReveal.launchpegToLastTokenReveal(address(this))
+        ) {
             return unrevealedURI;
         } else {
             return
                 string(
                     abi.encodePacked(
                         baseURI,
-                        batchReveal.getShuffledTokenId(_id).toString()
+                        batchReveal
+                            .getShuffledTokenId(address(this), _id)
+                            .toString()
                     )
                 );
         }
@@ -466,6 +468,7 @@ abstract contract BaseLaunchpeg is
         returns (bool)
     {
         return
+            _interfaceId == type(IBaseLaunchpeg).interfaceId ||
             ERC721AUpgradeable.supportsInterface(_interfaceId) ||
             ERC2981Upgradeable.supportsInterface(_interfaceId) ||
             ERC165Upgradeable.supportsInterface(_interfaceId) ||
@@ -489,7 +492,10 @@ abstract contract BaseLaunchpeg is
 
     /// @notice Reveals the next batch if the reveal conditions are met
     function revealNextBatch() external override isEOA whenNotPaused {
-        if (!batchReveal.revealNextBatch(totalSupply())) {
+        if (address(batchReveal) == address(0)) {
+            revert Launchpeg__BatchRevealDisabled();
+        }
+        if (!batchReveal.revealNextBatch(address(this), totalSupply())) {
             revert Launchpeg__RevealNextBatchNotAvailable();
         }
     }
@@ -498,6 +504,9 @@ abstract contract BaseLaunchpeg is
     /// @return bool Whether reveal can be triggered or not
     /// @return uint256 The number of the next batch that will be revealed
     function hasBatchToReveal() external view override returns (bool, uint256) {
-        return batchReveal.hasBatchToReveal(totalSupply());
+        if (address(batchReveal) == address(0)) {
+            return (false, 0);
+        }
+        return batchReveal.hasBatchToReveal(address(this), totalSupply());
     }
 }

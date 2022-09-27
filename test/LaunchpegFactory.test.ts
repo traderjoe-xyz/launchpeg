@@ -56,6 +56,7 @@ describe('LaunchpegFactory', () => {
 
   const deployBatchReveal = async () => {
     batchReveal = await batchRevealCF.deploy()
+    await batchReveal.initialize()
   }
 
   const deployLaunchpeg = async () => {
@@ -93,6 +94,7 @@ describe('LaunchpegFactory', () => {
     launchpegFactory = await upgrades.deployProxy(launchpegFactoryCF, [
       launchpeg.address,
       flatLaunchpeg.address,
+      batchReveal.address,
       200,
       royaltyReceiver.address,
     ])
@@ -109,6 +111,7 @@ describe('LaunchpegFactory', () => {
         upgrades.deployProxy(launchpegFactoryCF, [
           ethers.constants.AddressZero,
           flatLaunchpeg.address,
+          batchReveal.address,
           200,
           royaltyReceiver.address,
         ])
@@ -118,10 +121,23 @@ describe('LaunchpegFactory', () => {
         upgrades.deployProxy(launchpegFactoryCF, [
           launchpeg.address,
           ethers.constants.AddressZero,
+          batchReveal.address,
           200,
           royaltyReceiver.address,
         ])
       ).to.be.revertedWith('LaunchpegFactory__InvalidImplementation()')
+    })
+
+    it('Should revert with batch reveal zero address', async () => {
+      await expect(
+        upgrades.deployProxy(launchpegFactoryCF, [
+          launchpeg.address,
+          flatLaunchpeg.address,
+          ethers.constants.AddressZero,
+          200,
+          royaltyReceiver.address,
+        ])
+      ).to.be.revertedWith('LaunchpegFactory__InvalidBatchReveal()')
     })
 
     it('Invalid default fees should be blocked', async () => {
@@ -129,6 +145,7 @@ describe('LaunchpegFactory', () => {
         upgrades.deployProxy(launchpegFactoryCF, [
           launchpeg.address,
           flatLaunchpeg.address,
+          batchReveal.address,
           10_001,
           royaltyReceiver.address,
         ])
@@ -140,6 +157,7 @@ describe('LaunchpegFactory', () => {
         upgrades.deployProxy(launchpegFactoryCF, [
           launchpeg.address,
           flatLaunchpeg.address,
+          batchReveal.address,
           200,
           ethers.constants.AddressZero,
         ])

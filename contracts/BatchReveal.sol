@@ -19,33 +19,22 @@ contract BatchReveal is
     VRFConsumerBaseV2Upgradeable,
     OwnableUpgradeable
 {
-    /// @notice Base launchpeg address
-    address public override baseLaunchpeg;
+    /// @notice Batch reveal configuration by launchpeg
+    mapping(address => BatchRevealConfig) public override launchpegToConfig;
 
-    /// @dev Initialized on parent contract creation
-    uint256 private collectionSize;
-    int128 private intCollectionSize;
+    /// @notice VRF request ids by launchpeg
+    mapping(uint256 => address) public vrfRequestIdToLaunchpeg;
 
-    /// @notice Size of the batch reveal
-    /// @dev Must divide collectionSize
-    uint256 public override revealBatchSize;
+    /// @notice Randomized seeds used to shuffle TokenURIs by launchpeg
+    mapping(address => mapping(uint256 => uint256))
+        public
+        override launchpegToBatchToSeed;
 
-    /// @notice Randomized seeds used to shuffle TokenURIs
-    mapping(uint256 => uint256) public override batchToSeed;
+    /// @notice Last token that has been revealed by launchpeg
+    mapping(address => uint256) public override launchpegToLastTokenReveal;
 
-    /// @notice Last token that has been revealed
-    uint256 public override lastTokenRevealed = 0;
-
-    /// @dev Size of the array that will store already taken URIs numbers
-    uint256 private _rangeLength;
-
-    /// @notice Timestamp for the start of the reveal process
-    /// @dev Can be set to zero for immediate reveal after token mint
-    uint256 public override revealStartTime;
-
-    /// @notice Time interval for gradual reveal
-    /// @dev Can be set to zero in order to reveal the collection all at once
-    uint256 public override revealInterval;
+    /// @dev Size of the array that will store already taken URIs numbers by launchpeg
+    mapping(address => uint256) public launchpegToRangeLength;
 
     /// @notice Contract uses VRF or pseudo-randomness
     bool public override useVRF;
@@ -70,17 +59,19 @@ contract BatchReveal is
     /// The default is 3
     uint16 public constant override requestConfirmations = 3;
 
-    /// @notice Next batch that will be revealed by VRF, if activated
-    uint256 public override nextBatchToReveal;
+    /// @notice Next batch that will be revealed by VRF (if activated) by launchpeg
+    mapping(address => uint256) public override launchpegToNextBatchToReveal;
 
-    /// @notice Has a batch been force revealed
+    /// @notice True when force revealed has been triggered for the given launchpeg
     /// @dev VRF will not be used anymore if a batch has been force revealed
-    bool public override hasBeenForceRevealed;
+    mapping(address => bool) public override launchpegToHasBeenForceRevealed;
 
-    /// @notice Has the random number for a batch already been asked
+    /// @notice Has the random number for a batch already been asked by launchpeg
     /// @dev Prevents people from spamming the random words request
     /// and therefore reveal more batches than expected
-    mapping(uint256 => bool) public override vrfRequestedForBatch;
+    mapping(address => mapping(uint256 => bool))
+        public
+        override launchpegToVrfRequestedForBatch;
 
     struct Range {
         int128 start;
@@ -88,21 +79,25 @@ contract BatchReveal is
     }
 
     /// @dev Emitted on revealNextBatch() and forceReveal()
+    /// @param baseLaunchpeg Base launchpeg address
     /// @param batchNumber The batch revealed
     /// @param batchSeed The random number drawn
-    event Reveal(uint256 batchNumber, uint256 batchSeed);
+    event Reveal(address baseLaunchpeg, uint256 batchNumber, uint256 batchSeed);
 
     /// @dev Emitted on setRevealBatchSize()
+    /// @param baseLaunchpeg Base launchpeg address
     /// @param revealBatchSize New reveal batch size
-    event RevealBatchSizeSet(uint256 revealBatchSize);
+    event RevealBatchSizeSet(address baseLaunchpeg, uint256 revealBatchSize);
 
     /// @dev Emitted on setRevealStartTime()
+    /// @param baseLaunchpeg Base launchpeg address
     /// @param revealStartTime New reveal start time
-    event RevealStartTimeSet(uint256 revealStartTime);
+    event RevealStartTimeSet(address baseLaunchpeg, uint256 revealStartTime);
 
     /// @dev Emitted on setRevealInterval()
+    /// @param baseLaunchpeg Base launchpeg address
     /// @param revealInterval New reveal interval
-    event RevealIntervalSet(uint256 revealInterval);
+    event RevealIntervalSet(address baseLaunchpeg, uint256 revealInterval);
 
     /// @dev emitted on setVRF()
     /// @param _vrfCoordinator Chainlink coordinator address
@@ -116,109 +111,152 @@ contract BatchReveal is
         uint32 _callbackGasLimit
     );
 
-    modifier batchRevealInitialized() {
-        if (!isBatchRevealInitialized()) {
+    /// @dev Verify that batch reveal is configured for the given launchpeg
+    modifier batchRevealInitialized(address _baseLaunchpeg) {
+        if (!isBatchRevealInitialized(_baseLaunchpeg)) {
             revert Launchpeg__BatchRevealNotInitialized();
         }
         _;
     }
 
-    modifier revealNotStarted() {
-        if (lastTokenRevealed != 0) {
+    /// @dev Verify that batch reveal hasn't started for the given launchpeg
+    modifier revealNotStarted(address _baseLaunchpeg) {
+        if (launchpegToLastTokenReveal[_baseLaunchpeg] != 0) {
             revert Launchpeg__BatchRevealStarted();
         }
         _;
     }
 
-    modifier onlyBaseLaunchpeg() {
-        if (msg.sender != baseLaunchpeg) revert Launchpeg__Unauthorized();
-        _;
+    /// @notice Initialize batch reveal
+    function initialize() external override initializer {
+        __Ownable_init();
     }
 
-    /// @dev BatchReveal initialization
+    /// @dev Configure batch reveal for a given launch
     /// @param _baseLaunchpeg Base launchpeg address
-    /// @param _revealBatchSize Size of the batch reveal.
+    /// @param _revealBatchSize Size of the batch reveal
     /// @param _revealStartTime Batch reveal start time
     /// @param _revealInterval Batch reveal interval
-    function initialize(
+    function configure(
         address _baseLaunchpeg,
         uint256 _revealBatchSize,
         uint256 _revealStartTime,
         uint256 _revealInterval
-    ) external override initializer {
-        __Ownable_init();
-
-        baseLaunchpeg = _baseLaunchpeg;
+    ) external override onlyOwner revealNotStarted(_baseLaunchpeg) {
         uint256 _collectionSize = IBaseLaunchpeg(_baseLaunchpeg)
             .collectionSize();
-        collectionSize = _collectionSize;
-        intCollectionSize = int128(int256(_collectionSize));
-        setRevealBatchSize(_revealBatchSize);
-        setRevealStartTime(_revealStartTime);
-        setRevealInterval(_revealInterval);
+        launchpegToConfig[_baseLaunchpeg].collectionSize = _collectionSize;
+        launchpegToConfig[_baseLaunchpeg].intCollectionSize = int128(
+            int256(_collectionSize)
+        );
+        _setRevealBatchSize(_baseLaunchpeg, _revealBatchSize);
+        _setRevealStartTime(_baseLaunchpeg, _revealStartTime);
+        _setRevealInterval(_baseLaunchpeg, _revealInterval);
     }
 
     /// @notice Set the reveal batch size. Can only be set after
     /// batch reveal has been initialized and before a batch has
     /// been revealed.
+    /// @param _baseLaunchpeg Base launchpeg address
     /// @param _revealBatchSize New reveal batch size
-    function setRevealBatchSize(uint256 _revealBatchSize)
+    function setRevealBatchSize(
+        address _baseLaunchpeg,
+        uint256 _revealBatchSize
+    )
         public
         override
         onlyOwner
-        batchRevealInitialized
-        revealNotStarted
+        batchRevealInitialized(_baseLaunchpeg)
+        revealNotStarted(_baseLaunchpeg)
     {
+        _setRevealBatchSize(_baseLaunchpeg, _revealBatchSize);
+    }
+
+    /// @notice Set the reveal batch size
+    /// @param _baseLaunchpeg Base launchpeg address
+    /// @param _revealBatchSize New reveal batch size
+    function _setRevealBatchSize(
+        address _baseLaunchpeg,
+        uint256 _revealBatchSize
+    ) internal {
         if (_revealBatchSize == 0) {
             revert Launchpeg__InvalidBatchRevealSize();
         }
+        uint256 collectionSize = launchpegToConfig[_baseLaunchpeg]
+            .collectionSize;
         if (
             collectionSize % _revealBatchSize != 0 ||
             _revealBatchSize > collectionSize
         ) {
             revert Launchpeg__InvalidBatchRevealSize();
         }
-        _rangeLength = (collectionSize / _revealBatchSize) * 2;
-        revealBatchSize = _revealBatchSize;
-        emit RevealBatchSizeSet(_revealBatchSize);
+        launchpegToRangeLength[_baseLaunchpeg] =
+            (collectionSize / _revealBatchSize) *
+            2;
+        launchpegToConfig[_baseLaunchpeg].revealBatchSize = _revealBatchSize;
+        emit RevealBatchSizeSet(_baseLaunchpeg, _revealBatchSize);
     }
 
     /// @notice Set the batch reveal start time. Can only be set after
     /// batch reveal has been initialized and before a batch has
     /// been revealed.
+    /// @param _baseLaunchpeg Base launchpeg address
     /// @param _revealStartTime New batch reveal start time
-    function setRevealStartTime(uint256 _revealStartTime)
+    function setRevealStartTime(
+        address _baseLaunchpeg,
+        uint256 _revealStartTime
+    )
         public
         override
         onlyOwner
-        batchRevealInitialized
-        revealNotStarted
+        batchRevealInitialized(_baseLaunchpeg)
+        revealNotStarted(_baseLaunchpeg)
     {
+        _setRevealStartTime(_baseLaunchpeg, _revealStartTime);
+    }
+
+    /// @notice Set the batch reveal start time.
+    /// @param _baseLaunchpeg Base launchpeg address
+    /// @param _revealStartTime New batch reveal start time
+    function _setRevealStartTime(
+        address _baseLaunchpeg,
+        uint256 _revealStartTime
+    ) internal {
         // probably a mistake if the reveal is more than 100 days in the future
         if (_revealStartTime > block.timestamp + 8_640_000) {
             revert Launchpeg__InvalidRevealDates();
         }
-        revealStartTime = _revealStartTime;
-        emit RevealStartTimeSet(_revealStartTime);
+        launchpegToConfig[_baseLaunchpeg].revealStartTime = _revealStartTime;
+        emit RevealStartTimeSet(_baseLaunchpeg, _revealStartTime);
     }
 
     /// @notice Set the batch reveal interval. Can only be set after
     /// batch reveal has been initialized and before a batch has
     /// been revealed.
+    /// @param _baseLaunchpeg Base launchpeg address
     /// @param _revealInterval New batch reveal interval
-    function setRevealInterval(uint256 _revealInterval)
+    function setRevealInterval(address _baseLaunchpeg, uint256 _revealInterval)
         public
         override
         onlyOwner
-        batchRevealInitialized
-        revealNotStarted
+        batchRevealInitialized(_baseLaunchpeg)
+        revealNotStarted(_baseLaunchpeg)
+    {
+        _setRevealInterval(_baseLaunchpeg, _revealInterval);
+    }
+
+    /// @notice Set the batch reveal interval.
+    /// @param _baseLaunchpeg Base launchpeg address
+    /// @param _revealInterval New batch reveal interval
+    function _setRevealInterval(address _baseLaunchpeg, uint256 _revealInterval)
+        internal
     {
         // probably a mistake if reveal interval is longer than 10 days
         if (_revealInterval > 864_000) {
             revert Launchpeg__InvalidRevealDates();
         }
-        revealInterval = _revealInterval;
-        emit RevealIntervalSet(_revealInterval);
+        launchpegToConfig[_baseLaunchpeg].revealInterval = _revealInterval;
+        emit RevealIntervalSet(_baseLaunchpeg, _revealInterval);
     }
 
     /// @notice Set VRF configuration
@@ -304,12 +342,14 @@ contract BatchReveal is
     /// @param _start beginning of the array to be added
     /// @param _end end of the array to be added
     /// @param _lastIndex last position in the range array to consider
+    /// @param _intCollectionSize collection size
     /// @return newLastIndex new lastIndex to consider for the future range to be added
     function _addRange(
         Range[] memory _ranges,
         int128 _start,
         int128 _end,
-        uint256 _lastIndex
+        uint256 _lastIndex,
+        int128 _intCollectionSize
     ) private view returns (uint256) {
         uint256 positionToAssume = _lastIndex;
         for (uint256 j; j < _lastIndex; j++) {
@@ -334,69 +374,117 @@ contract BatchReveal is
         }
         _ranges[positionToAssume] = Range(
             _start,
-            _min(_end, intCollectionSize)
+            _min(_end, _intCollectionSize)
         );
         _lastIndex++;
-        if (_end > intCollectionSize) {
-            _addRange(_ranges, 0, _end - intCollectionSize, _lastIndex);
+        if (_end > _intCollectionSize) {
+            _addRange(
+                _ranges,
+                0,
+                _end - _intCollectionSize,
+                _lastIndex,
+                _intCollectionSize
+            );
             _lastIndex++;
         }
         return _lastIndex;
     }
 
     /// @dev Adds the last batch into the ranges array
+    /// @param _baseLaunchpeg Base launchpeg address
     /// @param _lastBatch Batch number to consider
+    /// @param _revealBatchSize Reveal batch size
+    /// @param _intCollectionSize Collection size
+    /// @param _rangeLength Range length
     /// @return ranges Ranges array filled with every URI taken by batches smaller or equal to lastBatch
-    function _buildJumps(uint256 _lastBatch)
-        private
-        view
-        returns (Range[] memory)
-    {
+    function _buildJumps(
+        address _baseLaunchpeg,
+        uint256 _lastBatch,
+        uint256 _revealBatchSize,
+        int128 _intCollectionSize,
+        uint256 _rangeLength
+    ) private view returns (Range[] memory) {
         Range[] memory ranges = new Range[](_rangeLength);
         uint256 lastIndex;
         for (uint256 i; i < _lastBatch; i++) {
             int128 start = int128(
-                int256(_getFreeTokenId(batchToSeed[i], ranges))
+                int256(
+                    _getFreeTokenId(
+                        _baseLaunchpeg,
+                        launchpegToBatchToSeed[_baseLaunchpeg][i],
+                        ranges,
+                        _intCollectionSize
+                    )
+                )
             );
-            int128 end = start + int128(int256(revealBatchSize));
-            lastIndex = _addRange(ranges, start, end, lastIndex);
+            int128 end = start + int128(int256(_revealBatchSize));
+            lastIndex = _addRange(
+                ranges,
+                start,
+                end,
+                lastIndex,
+                _intCollectionSize
+            );
         }
         return ranges;
     }
 
     /// @dev Gets the random token URI number from tokenId
+    /// @param _baseLaunchpeg Base launchpeg address
     /// @param _startId Token Id to consider
     /// @return uriId Revealed Token URI Id
-    function getShuffledTokenId(uint256 _startId)
+    function getShuffledTokenId(address _baseLaunchpeg, uint256 _startId)
         external
         view
         override
         returns (uint256)
     {
+        int128 intCollectionSize = launchpegToConfig[_baseLaunchpeg]
+            .intCollectionSize;
+        uint256 revealBatchSize = launchpegToConfig[_baseLaunchpeg]
+            .revealBatchSize;
         uint256 batch = _startId / revealBatchSize;
-        Range[] memory ranges = new Range[](_rangeLength);
+        Range[] memory ranges = new Range[](
+            launchpegToRangeLength[_baseLaunchpeg]
+        );
 
-        ranges = _buildJumps(batch);
+        ranges = _buildJumps(
+            _baseLaunchpeg,
+            batch,
+            revealBatchSize,
+            intCollectionSize,
+            launchpegToRangeLength[_baseLaunchpeg]
+        );
 
         uint256 positionsToMove = (_startId % revealBatchSize) +
-            batchToSeed[batch];
+            launchpegToBatchToSeed[_baseLaunchpeg][batch];
 
-        return _getFreeTokenId(positionsToMove, ranges);
+        return
+            _getFreeTokenId(
+                _baseLaunchpeg,
+                positionsToMove,
+                ranges,
+                intCollectionSize
+            );
     }
 
     /// @dev Gets the shifted URI number from tokenId and range array
+    /// @param _baseLaunchpeg Base launchpeg address
     /// @param _positionsToMoveStart Token URI offset if none of the URI Ids were taken
     /// @param _ranges Ranges array built by _buildJumps()
+    /// @param _intCollectionSize Collection size
     /// @return uriId Revealed Token URI Id
     function _getFreeTokenId(
+        address _baseLaunchpeg,
         uint256 _positionsToMoveStart,
-        Range[] memory _ranges
+        Range[] memory _ranges,
+        int128 _intCollectionSize
     ) private view returns (uint256) {
         int128 positionsToMove = int128(int256(_positionsToMoveStart));
         int128 id;
 
         for (uint256 round = 0; round < 2; round++) {
-            for (uint256 i; i < _rangeLength; i++) {
+            for (uint256 i; i < launchpegToRangeLength[_baseLaunchpeg]; i++) {
                 int128 start = _ranges[i].start;
                 int128 end = _ranges[i].end;
                 if (id < start) {
@@ -411,8 +499,8 @@ contract BatchReveal is
                     id = end;
                 }
             }
-            if ((id + positionsToMove) >= intCollectionSize) {
-                positionsToMove -= intCollectionSize - id;
+            if ((id + positionsToMove) >= _intCollectionSize) {
+                positionsToMove -= _intCollectionSize - id;
                 id = 0;
             }
         }
@@ -420,8 +508,16 @@ contract BatchReveal is
     }
 
     /// @dev Sets batch seed for specified batch number
+    /// @param _baseLaunchpeg Base launchpeg address
     /// @param _batchNumber Batch number that needs to be revealed
-    function _setBatchSeed(uint256 _batchNumber) internal {
+    /// @param _collectionSize Collection size
+    /// @param _revealBatchSize Reveal batch size
+    function _setBatchSeed(
+        address _baseLaunchpeg,
+        uint256 _batchNumber,
+        uint256 _collectionSize,
+        uint256 _revealBatchSize
+    ) internal {
         uint256 randomness = uint256(
             keccak256(
                 abi.encode(
@@ -437,21 +533,29 @@ contract BatchReveal is
         );
 
         // not perfectly random since the folding doesn't match bounds perfectly, but difference is small
-        batchToSeed[_batchNumber] =
+        launchpegToBatchToSeed[_baseLaunchpeg][_batchNumber] =
             randomness %
-            (collectionSize - (_batchNumber * revealBatchSize));
+            (_collectionSize - (_batchNumber * _revealBatchSize));
     }
 
     /// @dev Returns true if a batch can be revealed
+    /// @param _baseLaunchpeg Base launchpeg address
     /// @param _totalSupply Number of token already minted
     /// @return hasToRevealInfo Returns a bool saying whether a reveal can be triggered or not
     /// and the number of the next batch that will be revealed
-    function hasBatchToReveal(uint256 _totalSupply)
+    function hasBatchToReveal(address _baseLaunchpeg, uint256 _totalSupply)
         public
         view
         override
         returns (bool, uint256)
     {
+        uint256 revealBatchSize = launchpegToConfig[_baseLaunchpeg]
+            .revealBatchSize;
+        uint256 revealStartTime = launchpegToConfig[_baseLaunchpeg]
+            .revealStartTime;
+        uint256 revealInterval = launchpegToConfig[_baseLaunchpeg]
+            .revealInterval;
+        uint256 lastTokenRevealed = launchpegToLastTokenReveal[_baseLaunchpeg];
         uint256 batchNumber;
         unchecked {
             batchNumber = lastTokenRevealed / revealBatchSize;
@@ -461,7 +565,7 @@ contract BatchReveal is
         if (
             block.timestamp < revealStartTime + batchNumber * revealInterval ||
             _totalSupply < lastTokenRevealed + revealBatchSize ||
-            vrfRequestedForBatch[batchNumber]
+            launchpegToVrfRequestedForBatch[_baseLaunchpeg][batchNumber]
         ) {
             return (false, batchNumber);
         }
@@ -471,35 +575,55 @@ contract BatchReveal is
 
     /// @dev Reveals next batch if possible
     /// @dev If using VRF, the reveal happens on the coordinator callback call
+    /// @param _baseLaunchpeg Base launchpeg address
     /// @param _totalSupply Number of token already minted
     /// @return isRevealed Returns false if it is not possible to reveal the next batch
-    function revealNextBatch(uint256 _totalSupply)
+    function revealNextBatch(address _baseLaunchpeg, uint256 _totalSupply)
         external
         override
-        onlyBaseLaunchpeg
         returns (bool)
     {
+        if (_baseLaunchpeg != msg.sender) {
+            revert Launchpeg__Unauthorized();
+        }
+
         uint256 batchNumber;
         bool canReveal;
-        (canReveal, batchNumber) = hasBatchToReveal(_totalSupply);
+        (canReveal, batchNumber) = hasBatchToReveal(
+            _baseLaunchpeg,
+            _totalSupply
+        );
 
         if (!canReveal) {
             return false;
         }
 
         if (useVRF) {
-            VRFCoordinatorV2Interface(vrfCoordinator).requestRandomWords(
-                keyHash,
-                subscriptionId,
-                requestConfirmations,
-                callbackGasLimit,
-                1
-            );
-            vrfRequestedForBatch[batchNumber] = true;
+            uint256 requestId = VRFCoordinatorV2Interface(vrfCoordinator)
+                .requestRandomWords(
+                    keyHash,
+                    subscriptionId,
+                    requestConfirmations,
+                    callbackGasLimit,
+                    1
+                );
+            vrfRequestIdToLaunchpeg[requestId] = _baseLaunchpeg;
+            launchpegToVrfRequestedForBatch[_baseLaunchpeg][batchNumber] = true;
         } else {
-            lastTokenRevealed += revealBatchSize;
-            _setBatchSeed(batchNumber);
-            emit Reveal(batchNumber, batchToSeed[batchNumber]);
+            launchpegToLastTokenReveal[_baseLaunchpeg] += launchpegToConfig[
+                _baseLaunchpeg
+            ].revealBatchSize;
+            _setBatchSeed(
+                _baseLaunchpeg,
+                batchNumber,
+                launchpegToConfig[_baseLaunchpeg].collectionSize,
+                launchpegToConfig[_baseLaunchpeg].revealBatchSize
+            );
+            emit Reveal(
+                _baseLaunchpeg,
+                batchNumber,
+                launchpegToBatchToSeed[_baseLaunchpeg][batchNumber]
+            );
         }
 
         return true;
@@ -508,41 +632,70 @@ contract BatchReveal is
     /// @dev Callback triggered by the VRF coordinator
     /// @param _randomWords Array of random numbers provided by the VRF coordinator
     function fulfillRandomWords(
-        uint256, /* requestId */
+        uint256 _requestId,
         uint256[] memory _randomWords
     ) internal override {
-        if (hasBeenForceRevealed) {
+        address baseLaunchpeg = vrfRequestIdToLaunchpeg[_requestId];
+
+        if (launchpegToHasBeenForceRevealed[baseLaunchpeg]) {
             revert Launchpeg__HasBeenForceRevealed();
         }
 
-        uint256 _batchToReveal = nextBatchToReveal++;
+        uint256 revealBatchSize = launchpegToConfig[baseLaunchpeg]
+            .revealBatchSize;
+        uint256 collectionSize = launchpegToConfig[baseLaunchpeg]
+            .collectionSize;
+        uint256 _batchToReveal = launchpegToNextBatchToReveal[baseLaunchpeg]++;
         uint256 _revealBatchSize = revealBatchSize;
         uint256 _seed = _randomWords[0] %
             (collectionSize - (_batchToReveal * _revealBatchSize));
 
-        batchToSeed[_batchToReveal] = _seed;
-        lastTokenRevealed += _revealBatchSize;
+        launchpegToBatchToSeed[baseLaunchpeg][_batchToReveal] = _seed;
+        launchpegToLastTokenReveal[baseLaunchpeg] += _revealBatchSize;
 
-        emit Reveal(_batchToReveal, batchToSeed[_batchToReveal]);
+        emit Reveal(
+            baseLaunchpeg,
+            _batchToReveal,
+            launchpegToBatchToSeed[baseLaunchpeg][_batchToReveal]
+        );
     }
 
     /// @dev Force reveal, should be restricted to owner
-    function forceReveal() external override onlyOwner {
+    function forceReveal(address _baseLaunchpeg) external override onlyOwner {
+        uint256 revealBatchSize = launchpegToConfig[_baseLaunchpeg]
+            .revealBatchSize;
         uint256 batchNumber;
         unchecked {
-            batchNumber = lastTokenRevealed / revealBatchSize;
-            lastTokenRevealed += revealBatchSize;
+            batchNumber =
+                launchpegToLastTokenReveal[_baseLaunchpeg] /
+                revealBatchSize;
+            launchpegToLastTokenReveal[_baseLaunchpeg] += revealBatchSize;
         }
 
-        _setBatchSeed(batchNumber);
-        hasBeenForceRevealed = true;
-        emit Reveal(batchNumber, batchToSeed[batchNumber]);
+        _setBatchSeed(
+            _baseLaunchpeg,
+            batchNumber,
+            launchpegToConfig[_baseLaunchpeg].collectionSize,
+            launchpegToConfig[_baseLaunchpeg].revealBatchSize
+        );
+        launchpegToHasBeenForceRevealed[_baseLaunchpeg] = true;
+        emit Reveal(
+            _baseLaunchpeg,
+            batchNumber,
+            launchpegToBatchToSeed[_baseLaunchpeg][batchNumber]
+        );
     }
 
+    /// @notice Returns true if batch reveal is configured for the given launchpeg
     /// Since the collection size is only set on initialize()
     /// and the collection size cannot be 0, we assume a 0 value means
     /// the batch reveal configuration has not been initialized.
-    function isBatchRevealInitialized() public view override returns (bool) {
-        return collectionSize != 0;
+    function isBatchRevealInitialized(address _baseLaunchpeg)
+        public
+        view
+        override
+        returns (bool)
+    {
+        return launchpegToConfig[_baseLaunchpeg].collectionSize != 0;
     }
 }
