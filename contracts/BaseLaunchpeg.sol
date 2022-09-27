@@ -66,8 +66,8 @@ abstract contract BaseLaunchpeg is
     /// the pre-mint or allowlist mint
     mapping(address => uint256) public override allowlist;
 
-    // @notice The no. of NFTs pre-minted by the user address
-    mapping(address => uint256) public override userAddressToAmountPreMinted;
+    // @notice The remaining no. of pre-minted NFTs for the user address
+    mapping(address => uint256) public override userAddressToPreMintAmount;
 
     /// @notice Tracks the amount of NFTs minted by `projectOwner`
     uint256 public override amountMintedByDevs;
@@ -446,7 +446,7 @@ abstract contract BaseLaunchpeg is
             revert Launchpeg__MaxSupplyReached();
         }
         allowlist[msg.sender] -= _quantity;
-        userAddressToAmountPreMinted[msg.sender] += _quantity;
+        userAddressToPreMintAmount[msg.sender] += _quantity;
         amountMintedDuringPreMint += _quantity;
         preMintQueue.push(
             PreMintData({sender: msg.sender, quantity: _quantity})
@@ -484,6 +484,7 @@ abstract contract BaseLaunchpeg is
                 i++;
             }
             remQuantity -= quantity;
+            userAddressToPreMintAmount[sender] -= quantity;
             _mint(sender, quantity, "", false);
             emit Mint(
                 sender,
@@ -662,6 +663,6 @@ abstract contract BaseLaunchpeg is
         view
         returns (uint256)
     {
-        return _numberMinted(_owner) + userAddressToAmountPreMinted[_owner];
+        return _numberMinted(_owner) + userAddressToPreMintAmount[_owner];
     }
 }

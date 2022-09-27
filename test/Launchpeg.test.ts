@@ -557,7 +557,7 @@ describe('Launchpeg', () => {
     it('Should allow whitelisted user to pre-mint', async () => {
       const quantity = 1
       await launchpeg.connect(alice).preMint(quantity, { value: allowlistPrice.mul(quantity) })
-      expect(await launchpeg.userAddressToAmountPreMinted(alice.address)).to.eq(quantity)
+      expect(await launchpeg.userAddressToPreMintAmount(alice.address)).to.eq(quantity)
       expect(await launchpeg.amountMintedDuringPreMint()).to.eq(quantity)
       expect(await launchpeg.numberMinted(alice.address)).to.eq(0)
 
@@ -569,7 +569,7 @@ describe('Launchpeg', () => {
     it('Should receive allowlist price per NFT', async () => {
       const quantity = 2
       await launchpeg.connect(alice).preMint(quantity, { value: allowlistPrice.mul(quantity) })
-      expect(await launchpeg.userAddressToAmountPreMinted(alice.address)).to.eq(quantity)
+      expect(await launchpeg.userAddressToPreMintAmount(alice.address)).to.eq(quantity)
 
       await expect(launchpeg.connect(alice).preMint(1)).to.be.revertedWith('Launchpeg__NotEnoughAVAX(0)')
     })
@@ -579,7 +579,7 @@ describe('Launchpeg', () => {
       const quantity = 3
       const remQuantity = allowlistQty - quantity
       await launchpeg.connect(alice).preMint(quantity, { value: allowlistPrice.mul(quantity) })
-      expect(await launchpeg.userAddressToAmountPreMinted(alice.address)).to.eq(quantity)
+      expect(await launchpeg.userAddressToPreMintAmount(alice.address)).to.eq(quantity)
       expect(await launchpeg.allowlist(alice.address)).to.eq(remQuantity)
 
       await expect(
@@ -587,7 +587,7 @@ describe('Launchpeg', () => {
       ).to.be.revertedWith('Launchpeg__NotEligibleForAllowlistMint()')
 
       await launchpeg.connect(alice).preMint(remQuantity, { value: allowlistPrice.mul(remQuantity) })
-      expect(await launchpeg.userAddressToAmountPreMinted(alice.address)).to.eq(quantity + remQuantity)
+      expect(await launchpeg.userAddressToPreMintAmount(alice.address)).to.eq(quantity + remQuantity)
     })
 
     it('Should not allow 0 pre-mint amount', async () => {
@@ -596,7 +596,7 @@ describe('Launchpeg', () => {
 
     it('Should not transfer pre-minted NFT to user', async () => {
       await launchpeg.connect(alice).preMint(1, { value: allowlistPrice })
-      expect(await launchpeg.userAddressToAmountPreMinted(alice.address)).to.eq(1)
+      expect(await launchpeg.userAddressToPreMintAmount(alice.address)).to.eq(1)
       expect(await launchpeg.balanceOf(alice.address)).to.eq(0)
     })
 
@@ -616,8 +616,8 @@ describe('Launchpeg', () => {
         'Launchpeg__MaxSupplyReached()'
       )
 
-      expect(await launchpeg.userAddressToAmountPreMinted(alice.address)).to.eq(aliceQty)
-      expect(await launchpeg.userAddressToAmountPreMinted(bob.address)).to.eq(bobQty)
+      expect(await launchpeg.userAddressToPreMintAmount(alice.address)).to.eq(aliceQty)
+      expect(await launchpeg.userAddressToPreMintAmount(bob.address)).to.eq(bobQty)
       expect(await launchpeg.amountMintedDuringPreMint()).to.eq(aliceQty + bobQty)
     })
 
@@ -732,6 +732,8 @@ describe('Launchpeg', () => {
       expect(await launchpeg.balanceOf(alice.address)).to.eq(10)
       expect(await launchpeg.balanceOf(bob.address)).to.eq(5)
       expect(await launchpeg.amountBatchMinted()).to.eq(15)
+      expect(await launchpeg.userAddressToPreMintAmount(alice.address)).to.eq(0)
+      expect(await launchpeg.userAddressToPreMintAmount(bob.address)).to.eq(0)
 
       await expect(launchpeg.batchMintPreMintedNFTs(5)).to.be.revertedWith('Launchpeg__MaxSupplyForBatchMintReached()')
     })
@@ -877,6 +879,7 @@ describe('Launchpeg', () => {
       await launchpeg.connect(alice).batchMintPreMintedNFTs(2)
       expect(await launchpeg.balanceOf(alice.address)).to.eq(2)
       expect(await launchpeg.amountBatchMinted()).to.eq(2)
+      expect(await launchpeg.userAddressToPreMintAmount(alice.address)).to.eq(0)
 
       await expect(launchpeg.batchMintPreMintedNFTs(5)).to.be.revertedWith('Launchpeg__MaxSupplyForBatchMintReached()')
     })
