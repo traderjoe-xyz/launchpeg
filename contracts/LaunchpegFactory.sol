@@ -60,15 +60,10 @@ contract LaunchpegFactory is
 
     using EnumerableSet for EnumerableSet.AddressSet;
 
-    /// @dev Default addresses with pauser role for created collections
-    EnumerableSet.AddressSet private _defaultPausers;
-
     /// @notice Launchpeg contract to be cloned
     address public override launchpegImplementation;
     /// @notice FlatLaunchpeg contract to be cloned
     address public override flatLaunchpegImplementation;
-    /// @notice Batch reveal address
-    address public override batchReveal;
 
     /// @notice Default fee percentage
     /// @dev In basis points e.g 100 for 1%
@@ -80,6 +75,12 @@ contract LaunchpegFactory is
     mapping(uint256 => mapping(address => bool)) public override isLaunchpeg;
     /// @notice Launchpegs address list by type of Launchpeg
     mapping(uint256 => address[]) public override allLaunchpegs;
+
+    /// @notice Batch reveal address
+    address public override batchReveal;
+
+    /// @dev Default addresses with pauser role for created collections
+    EnumerableSet.AddressSet private _defaultPausers;
 
     /// @notice Initializes the Launchpeg factory
     /// @dev Uses clone factory pattern to save space
