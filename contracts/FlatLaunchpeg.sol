@@ -166,13 +166,13 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
 
     /// @notice Batch mint NFTs requested during the pre-mint
     /// @param _maxQuantity Max quantity of NFTs to mint
-    function batchMint(uint256 _maxQuantity)
+    function batchMintPreMintedNFTs(uint256 _maxQuantity)
         external
         override
         whenNotPaused
         isBatchMintAvailable
     {
-        _batchMint(_maxQuantity);
+        _batchMintPreMintedNFTs(_maxQuantity);
     }
 
     /// @notice Mint NFTs during the allowlist mint
@@ -295,7 +295,7 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
             super.supportsInterface(_interfaceId);
     }
 
-    /// @dev Returns pre-mint price. Used by _preMint() and _batchMint() methods.
+    /// @dev Returns pre-mint price. Used by _preMint() and _batchMintPreMintedNFTs() methods.
     function _preMintPrice() internal view override returns (uint256) {
         return allowlistPrice;
     }

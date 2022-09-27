@@ -95,7 +95,7 @@ interface IBaseLaunchpeg is IERC721Upgradeable, IERC721MetadataUpgradeable {
 
     function preMint(uint256 _quantity) external payable;
 
-    function batchMint(uint256 _maxQuantity) external;
+    function batchMintPreMintedNFTs(uint256 _maxQuantity) external;
 
     function allowlistMint(uint256 _quantity) external payable;
 

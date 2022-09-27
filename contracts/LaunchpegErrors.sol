@@ -2,10 +2,12 @@
 pragma solidity ^0.8.4;
 
 // LaunchpegFactory
+error LaunchpegFactory__InvalidBatchReveal();
 error LaunchpegFactory__InvalidImplementation();
 
 // Launchpeg
 error Launchpeg__AllowlistBeforePreMint();
+error Launchpeg__BatchRevealDisabled();
 error Launchpeg__BatchRevealNotInitialized();
 error Launchpeg__BatchRevealStarted();
 error Launchpeg__CanNotMintThisMany();

@@ -100,12 +100,17 @@ contract LaunchpegLens {
     /// @notice LaunchpegFactory address
     address public immutable launchpegFactory;
 
+    /// @notice BatchReveal address
+    address public immutable batchReveal;
+
     /// @dev LaunchpegLens constructor
-    /// @param _launchpegFactory Address of the LaunchpegFactory
-    constructor(address _launchpegFactory) {
+    /// @param _launchpegFactory LaunchpegFactory address
+    /// @param _batchReveal BatchReveal address
+    constructor(address _launchpegFactory, address _batchReveal) {
         launchpegInterface = type(ILaunchpeg).interfaceId;
         flatLaunchpegInterface = type(IFlatLaunchpeg).interfaceId;
         launchpegFactory = _launchpegFactory;
+        batchReveal = _batchReveal;
     }
 
     /// @notice Gets the type of Launchpeg
@@ -190,14 +195,18 @@ contract LaunchpegLens {
             .unrevealedURI();
         data.collectionData.baseURI = IBaseLaunchpeg(_launchpeg).baseURI();
 
-        data.revealData.revealBatchSize = IBatchReveal(_launchpeg)
-            .revealBatchSize();
-        data.revealData.lastTokenRevealed = IBatchReveal(_launchpeg)
-            .lastTokenRevealed();
-        data.revealData.revealStartTime = IBatchReveal(_launchpeg)
-            .revealStartTime();
-        data.revealData.revealInterval = IBatchReveal(_launchpeg)
-            .revealInterval();
+        (
+            ,
+            ,
+            uint256 revealBatchSize,
+            uint256 revealStartTime,
+            uint256 revealInterval
+        ) = IBatchReveal(batchReveal).launchpegToConfig(_launchpeg);
+        data.revealData.revealBatchSize = revealBatchSize;
+        data.revealData.revealStartTime = revealStartTime;
+        data.revealData.revealInterval = revealInterval;
+        data.revealData.lastTokenRevealed = IBatchReveal(batchReveal)
+            .launchpegToLastTokenReveal(_launchpeg);
 
         if (data.launchType == LaunchpegType.Launchpeg) {
             data.launchpegData.amountForAuction = ILaunchpeg(_launchpeg)
