@@ -3,8 +3,10 @@ pragma solidity ^0.8.4;
 
 // LaunchpegFactory
 error LaunchpegFactory__InvalidImplementation();
+error LaunchpegFactory__InvalidBatchReveal();
 
 // Launchpeg
+error Launchpeg__BatchRevealDisabled();
 error Launchpeg__BatchRevealNotInitialized();
 error Launchpeg__BatchRevealStarted();
 error Launchpeg__CanNotMintThisMany();
@@ -13,6 +15,7 @@ error Launchpeg__HasBeenForceRevealed();
 error Launchpeg__JoeFeeAlreadyInitialized();
 error Launchpeg__InvalidAuctionDropInterval();
 error Launchpeg__InvalidStartTime();
+error Launchpeg__InvalidBatchReveal();
 error Launchpeg__InvalidBatchRevealSize();
 error Launchpeg__InvalidCallbackGasLimit();
 error Launchpeg__InvalidCoordinator();
@@ -37,6 +40,7 @@ error Launchpeg__PublicSaleEndBeforePublicSaleStart();
 error Launchpeg__RevealNextBatchNotAvailable();
 error Launchpeg__TransferFailed();
 error Launchpeg__Unauthorized();
+error Launchpeg__WithdrawAVAXNotAvailable();
 error Launchpeg__WrongAddressesAndNumSlotsLength();
 error Launchpeg__WrongPhase();
 

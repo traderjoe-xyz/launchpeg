@@ -7,7 +7,7 @@ import "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
 
 import "erc721a-upgradeable/contracts/ERC721AUpgradeable.sol";
 
-import "./BatchReveal.sol";
+import "./interfaces/IBatchReveal.sol";
 import "./LaunchpegErrors.sol";
 import "./utils/SafeAccessControlEnumerableUpgradeable.sol";
 import "./interfaces/IBaseLaunchpeg.sol";
@@ -18,12 +18,13 @@ import "./interfaces/IBaseLaunchpeg.sol";
 abstract contract BaseLaunchpeg is
     IBaseLaunchpeg,
     ERC721AUpgradeable,
-    BatchReveal,
     SafeAccessControlEnumerableUpgradeable,
     ReentrancyGuardUpgradeable,
     ERC2981Upgradeable
 {
     using StringsUpgradeable for uint256;
+
+    IBatchReveal public batchReveal;
 
     /// @notice Role granted to project owners
     bytes32 public constant override PROJECT_OWNER_ROLE =
@@ -84,6 +85,9 @@ abstract contract BaseLaunchpeg is
     /// @dev A timestamp greater than the public sale start
     uint256 public override publicSaleEndTime;
 
+    /// @notice Start time when funds can be withdrawn
+    uint256 public override withdrawAVAXStartTime;
+
     /// @dev Emitted on initializeJoeFee()
     /// @param feePercent The fees collected by Joepegs on the sale benefits
     /// @param feeCollector The address to which the fees on the sale will be sent
@@ -116,18 +120,6 @@ abstract contract BaseLaunchpeg is
     /// @param feePercent Royalty fee percent in basis point
     event DefaultRoyaltySet(address indexed receiver, uint256 feePercent);
 
-    /// @dev emitted on setVRF()
-    /// @param _vrfCoordinator Chainlink coordinator address
-    /// @param _keyHash Keyhash of the gas lane wanted
-    /// @param _subscriptionId Chainlink subscription ID
-    /// @param _callbackGasLimit Max gas used by the coordinator callback
-    event VRFSet(
-        address _vrfCoordinator,
-        bytes32 _keyHash,
-        uint64 _subscriptionId,
-        uint32 _callbackGasLimit
-    );
-
     /// @dev Emitted on setAllowlistStartTime()
     /// @param allowlistStartTime New allowlist start time
     event AllowlistStartTimeSet(uint256 allowlistStartTime);
@@ -139,6 +131,10 @@ abstract contract BaseLaunchpeg is
     /// @dev Emitted on setPublicSaleEndTime()
     /// @param publicSaleEndTime New public sale end time
     event PublicSaleEndTimeSet(uint256 publicSaleEndTime);
+
+    /// @dev Emitted on setWithdrawAVAXStartTime()
+    /// @param withdrawAVAXStartTime New withdraw AVAX start time
+    event WithdrawAVAXStartTimeSet(uint256 withdrawAVAXStartTime);
 
     modifier isEOA() {
         if (tx.origin != msg.sender) {
@@ -274,74 +270,6 @@ abstract contract BaseLaunchpeg is
         emit UnrevealedURISet(unrevealedURI);
     }
 
-    /// @notice Set VRF configuration
-    /// @param _vrfCoordinator Chainlink coordinator address
-    /// @param _keyHash Keyhash of the gas lane wanted
-    /// @param _subscriptionId Chainlink subscription ID
-    /// @param _callbackGasLimit Max gas used by the coordinator callback
-    function setVRF(
-        address _vrfCoordinator,
-        bytes32 _keyHash,
-        uint64 _subscriptionId,
-        uint32 _callbackGasLimit
-    ) external override onlyOwner {
-        if (_vrfCoordinator == address(0)) {
-            revert Launchpeg__InvalidCoordinator();
-        }
-
-        (
-            ,
-            uint32 _maxGasLimit,
-            bytes32[] memory s_provingKeyHashes
-        ) = VRFCoordinatorV2Interface(_vrfCoordinator).getRequestConfig();
-
-        // 20_000 is the cost of storing one word, callback cost will never be lower than that
-        if (_callbackGasLimit > _maxGasLimit || _callbackGasLimit < 20_000) {
-            revert Launchpeg__InvalidCallbackGasLimit();
-        }
-
-        bool keyHashFound;
-        for (uint256 i; i < s_provingKeyHashes.length; i++) {
-            if (s_provingKeyHashes[i] == _keyHash) {
-                keyHashFound = true;
-                break;
-            }
-        }
-
-        if (!keyHashFound) {
-            revert Launchpeg__InvalidKeyHash();
-        }
-
-        (, , , address[] memory consumers) = VRFCoordinatorV2Interface(
-            _vrfCoordinator
-        ).getSubscription(_subscriptionId);
-
-        bool isInConsumerList;
-        for (uint256 i; i < consumers.length; i++) {
-            if (consumers[i] == address(this)) {
-                isInConsumerList = true;
-                break;
-            }
-        }
-
-        if (!isInConsumerList) {
-            revert Launchpeg__IsNotInTheConsumerList();
-        }
-
-        useVRF = true;
-        setVRFConsumer(_vrfCoordinator);
-        keyHash = _keyHash;
-        subscriptionId = _subscriptionId;
-        callbackGasLimit = _callbackGasLimit;
-
-        emit VRFSet(
-            _vrfCoordinator,
-            _keyHash,
-            _subscriptionId,
-            _callbackGasLimit
-        );
-    }
-
     /// @notice Set the public sale start time. Can only be set after phases
     /// have been initialized.
     /// @dev Only callable by owner
@@ -397,43 +325,24 @@ abstract contract BaseLaunchpeg is
         emit PublicSaleEndTimeSet(_publicSaleEndTime);
     }
 
-    /// @notice Set the reveal batch size. Can only be set after
-    /// batch reveal has been initialized and before a batch has
-    /// been revealed.
-    /// @dev Only callable by owner
-    /// @param _revealBatchSize New reveal batch size
-    function setRevealBatchSize(uint256 _revealBatchSize)
+    /// @notice Set the withdraw AVAX start time.
+    /// @param _withdrawAVAXStartTime New public sale end time
+    function setWithdrawAVAXStartTime(uint256 _withdrawAVAXStartTime)
         external
         override
         onlyOwner
     {
-        _setRevealBatchSize(_revealBatchSize);
+        if (_withdrawAVAXStartTime < block.timestamp) {
+            revert Launchpeg__InvalidStartTime();
+        }
+        withdrawAVAXStartTime = _withdrawAVAXStartTime;
+        emit WithdrawAVAXStartTimeSet(_withdrawAVAXStartTime);
     }
 
-    /// @notice Set the batch reveal start time. Can only be set after
-    /// batch reveal has been initialized and before a batch has
-    /// been revealed.
-    /// @dev Only callable by owner
-    /// @param _revealStartTime New batch reveal start time in seconds
-    function setRevealStartTime(uint256 _revealStartTime)
-        external
-        override
-        onlyOwner
-    {
-        _setRevealStartTime(_revealStartTime);
-    }
-
-    /// @notice Set the batch reveal interval. Can only be set after
-    /// batch reveal has been initialized and before a batch has
-    /// been revealed.
-    /// @dev Only callable by owner
-    /// @param _revealInterval New batch reveal interval in seconds
-    function setRevealInterval(uint256 _revealInterval)
-        external
-        override
-        onlyOwner
-    {
-        _setRevealInterval(_revealInterval);
+    /// @notice Update batch reveal
+    /// @dev Can be set to zero address to disable batch reveal
+    function setBatchReveal(address _batchReveal) external override onlyOwner {
+        batchReveal = IBatchReveal(_batchReveal);
     }
 
     /// @notice Mint NFTs to the project owner
@@ -462,14 +371,21 @@ abstract contract BaseLaunchpeg is
         emit DevMint(msg.sender, _quantity);
     }
 
-    /// @notice Withdraw AVAX to the contract owner
+    /// @notice Withdraw AVAX to the given recipient
     /// @param _to Recipient of the earned AVAX
     function withdrawAVAX(address _to)
         external
         override
-        onlyOwner
+        onlyOwnerOrRole(PROJECT_OWNER_ROLE)
         nonReentrant
     {
+        if (
+            withdrawAVAXStartTime > block.timestamp ||
+            withdrawAVAXStartTime == 0
+        ) {
+            revert Launchpeg__WithdrawAVAXNotAvailable();
+        }
+
         uint256 amount = address(this).balance;
         uint256 fee;
         bool sent;
@@ -490,25 +406,6 @@ abstract contract BaseLaunchpeg is
         }
 
         emit AvaxWithdraw(_to, amount, fee);
-    }
-
-    /// @notice Reveals the next batch if the reveal conditions are met
-    function revealNextBatch() external override isEOA {
-        if (!_revealNextBatch(totalSupply())) {
-            revert Launchpeg__RevealNextBatchNotAvailable();
-        }
-    }
-
-    /// @notice Allows Owner to reveal batches even if the conditions are not met
-    function forceReveal() external override onlyOwner {
-        _forceReveal();
-    }
-
-    /// @notice Tells you if a batch can be revealed
-    /// @return bool Whether reveal can be triggered or not
-    /// @return uint256 The number of the next batch that will be revealed
-    function hasBatchToReveal() external view override returns (bool, uint256) {
-        return _hasBatchToReveal(totalSupply());
     }
 
     /// @notice Returns the ownership data of a specific token ID
@@ -532,16 +429,20 @@ abstract contract BaseLaunchpeg is
         override(ERC721AUpgradeable, IERC721MetadataUpgradeable)
         returns (string memory)
     {
-        if (isBatchRevealInitialized() && !isBatchRevealEnabled()) {
+        if (address(batchReveal) == address(0)) {
             return string(abi.encodePacked(baseURI, _id.toString()));
-        } else if (_id >= lastTokenRevealed) {
+        } else if (
+            _id >= batchReveal.launchpegToLastTokenReveal(address(this))
+        ) {
             return unrevealedURI;
         } else {
             return
                 string(
                     abi.encodePacked(
                         baseURI,
-                        _getShuffledTokenId(_id).toString()
+                        batchReveal
+                            .getShuffledTokenId(address(this), _id)
+                            .toString()
                     )
                 );
         }
@@ -579,6 +480,7 @@ abstract contract BaseLaunchpeg is
         returns (bool)
     {
         return
+            _interfaceId == type(IBaseLaunchpeg).interfaceId ||
             ERC721AUpgradeable.supportsInterface(_interfaceId) ||
             ERC2981Upgradeable.supportsInterface(_interfaceId) ||
             ERC165Upgradeable.supportsInterface(_interfaceId) ||
@@ -600,5 +502,25 @@ abstract contract BaseLaunchpeg is
                 revert Launchpeg__TransferFailed();
             }
         }
+    }
+
+    /// @notice Reveals the next batch if the reveal conditions are met
+    function revealNextBatch() external override isEOA {
+        if (address(batchReveal) == address(0)) {
+            revert Launchpeg__BatchRevealDisabled();
+        }
+        if (!batchReveal.revealNextBatch(address(this), totalSupply())) {
+            revert Launchpeg__RevealNextBatchNotAvailable();
+        }
+    }
+
+    /// @notice Tells you if a batch can be revealed
+    /// @return bool Whether reveal can be triggered or not
+    /// @return uint256 The number of the next batch that will be revealed
+    function hasBatchToReveal() external view override returns (bool, uint256) {
+        if (address(batchReveal) == address(0)) {
+            return (false, 0);
+        }
+        return batchReveal.hasBatchToReveal(address(this), totalSupply());
     }
 }

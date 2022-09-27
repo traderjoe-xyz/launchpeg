@@ -3,11 +3,13 @@ import { expect } from 'chai'
 import { getDefaultLaunchpegConfig, Phase, LaunchpegConfig, initializePhasesFlatLaunchpeg } from './utils/helpers'
 import { ContractFactory, Contract, BigNumber } from 'ethers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
-import { duration } from './utils/time'
+import { duration, latest } from './utils/time'
 
 describe('FlatLaunchpeg', () => {
   let flatLaunchpegCF: ContractFactory
   let flatLaunchpeg: Contract
+  let batchRevealCF: ContractFactory
+  let batchReveal: Contract
 
   let config: LaunchpegConfig
 
@@ -20,6 +22,7 @@ describe('FlatLaunchpeg', () => {
 
   before(async () => {
     flatLaunchpegCF = await ethers.getContractFactory('FlatLaunchpeg')
+    batchRevealCF = await ethers.getContractFactory('BatchReveal')
 
     signers = await ethers.getSigners()
     dev = signers[0]
@@ -40,6 +43,11 @@ describe('FlatLaunchpeg', () => {
     })
   })
 
+  const deployBatchReveal = async () => {
+    batchReveal = await batchRevealCF.deploy()
+    await batchReveal.initialize()
+  }
+
   const deployFlatLaunchpeg = async () => {
     flatLaunchpeg = await flatLaunchpegCF.deploy()
     await flatLaunchpeg.initialize(
@@ -52,10 +60,18 @@ describe('FlatLaunchpeg', () => {
       config.amountForDevs,
       config.amountForAllowlist
     )
+    await flatLaunchpeg.setBatchReveal(batchReveal.address)
+    await batchReveal.configure(
+      flatLaunchpeg.address,
+      config.batchRevealSize,
+      config.batchRevealStart,
+      config.batchRevealInterval
+    )
   }
 
   beforeEach(async () => {
     config = { ...(await getDefaultLaunchpegConfig()) }
+    await deployBatchReveal()
     await deployFlatLaunchpeg()
   })
 
@@ -104,31 +120,24 @@ describe('FlatLaunchpeg', () => {
       )
     })
 
-    it('Should allow 0 batch reveal size', async () => {
+    it('Should not allow 0 batch reveal size', async () => {
       config.batchRevealSize = 0
-      await initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.NotStarted)
-      expect(await flatLaunchpeg.revealBatchSize()).to.eq(0)
+      await expect(deployFlatLaunchpeg()).to.be.revertedWith('Launchpeg__InvalidBatchRevealSize()')
     })
 
     it('Should not allow invalid reveal batch size', async () => {
       config.batchRevealSize = config.batchRevealSize + 1
-      await expect(initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.NotStarted)).to.be.revertedWith(
-        'Launchpeg__InvalidBatchRevealSize()'
-      )
+      await expect(deployFlatLaunchpeg()).to.be.revertedWith('Launchpeg__InvalidBatchRevealSize()')
     })
 
     it('Should not allow invalid reveal start time', async () => {
       config.batchRevealStart = config.batchRevealStart.add(8_640_000)
-      await expect(initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.NotStarted)).to.be.revertedWith(
-        'Launchpeg__InvalidRevealDates()'
-      )
+      await expect(deployFlatLaunchpeg()).to.be.revertedWith('Launchpeg__InvalidRevealDates()')
     })
 
     it('Should not allow invalid reveal interval', async () => {
       config.batchRevealInterval = config.batchRevealInterval.add(864_000)
-      await expect(initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.NotStarted)).to.be.revertedWith(
-        'Launchpeg__InvalidRevealDates()'
-      )
+      await expect(deployFlatLaunchpeg()).to.be.revertedWith('Launchpeg__InvalidRevealDates()')
     })
 
     it('Reverts when setting allowlist start time before phases are initialized', async () => {
@@ -280,42 +289,45 @@ describe('FlatLaunchpeg', () => {
       const invalidRevealBatchSize = 101
       const newRevealBatchSize = 100
       await initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.Allowlist)
-      await expect(flatLaunchpeg.connect(projectOwner).setRevealBatchSize(newRevealBatchSize)).to.be.revertedWith(
-        'PendingOwnableUpgradeable__NotOwner()'
-      )
-      await expect(flatLaunchpeg.setRevealBatchSize(invalidRevealBatchSize)).to.be.revertedWith(
+      await expect(
+        batchReveal.connect(projectOwner).setRevealBatchSize(flatLaunchpeg.address, newRevealBatchSize)
+      ).to.be.revertedWith('Ownable: caller is not the owner')
+      await expect(batchReveal.setRevealBatchSize(flatLaunchpeg.address, invalidRevealBatchSize)).to.be.revertedWith(
         'Launchpeg__InvalidBatchRevealSize()'
       )
-      await flatLaunchpeg.setRevealBatchSize(newRevealBatchSize)
-      expect(await flatLaunchpeg.revealBatchSize()).to.eq(newRevealBatchSize)
+      await batchReveal.setRevealBatchSize(flatLaunchpeg.address, newRevealBatchSize)
+      const batchRevealConfig = await batchReveal.launchpegToConfig(flatLaunchpeg.address)
+      expect(batchRevealConfig[2]).to.eq(newRevealBatchSize)
     })
 
     it('Should allow owner to set reveal start time', async () => {
       const invalidRevealStartTime = config.batchRevealStart.add(duration.minutes(8_640_000))
       const newRevealStartTime = config.batchRevealStart.add(duration.minutes(30))
       await initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.Allowlist)
-      await expect(flatLaunchpeg.connect(projectOwner).setRevealStartTime(newRevealStartTime)).to.be.revertedWith(
-        'PendingOwnableUpgradeable__NotOwner()'
-      )
-      await expect(flatLaunchpeg.setRevealStartTime(invalidRevealStartTime)).to.be.revertedWith(
+      await expect(
+        batchReveal.connect(projectOwner).setRevealStartTime(flatLaunchpeg.address, newRevealStartTime)
+      ).to.be.revertedWith('Ownable: caller is not the owner')
+      await expect(batchReveal.setRevealStartTime(flatLaunchpeg.address, invalidRevealStartTime)).to.be.revertedWith(
         'Launchpeg__InvalidRevealDates()'
       )
-      await flatLaunchpeg.setRevealStartTime(newRevealStartTime)
-      expect(await flatLaunchpeg.revealStartTime()).to.eq(newRevealStartTime)
+      await batchReveal.setRevealStartTime(flatLaunchpeg.address, newRevealStartTime)
+      const batchRevealConfig = await batchReveal.launchpegToConfig(flatLaunchpeg.address)
+      expect(batchRevealConfig[3]).to.eq(newRevealStartTime)
     })
 
     it('Should allow owner to set reveal interval', async () => {
       const invalidRevealInterval = 864_001
       const newRevealInterval = config.batchRevealInterval.add(10)
       await initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.Allowlist)
-      await expect(flatLaunchpeg.connect(projectOwner).setRevealInterval(newRevealInterval)).to.be.revertedWith(
-        'PendingOwnableUpgradeable__NotOwner()'
-      )
-      await expect(flatLaunchpeg.setRevealInterval(invalidRevealInterval)).to.be.revertedWith(
+      await expect(
+        batchReveal.connect(projectOwner).setRevealInterval(flatLaunchpeg.address, newRevealInterval)
+      ).to.be.revertedWith('Ownable: caller is not the owner')
+      await expect(batchReveal.setRevealInterval(flatLaunchpeg.address, invalidRevealInterval)).to.be.revertedWith(
         'Launchpeg__InvalidRevealDates()'
       )
-      await flatLaunchpeg.setRevealInterval(newRevealInterval)
-      expect(await flatLaunchpeg.revealInterval()).to.eq(newRevealInterval)
+      await batchReveal.setRevealInterval(flatLaunchpeg.address, newRevealInterval)
+      const batchRevealConfig = await batchReveal.launchpegToConfig(flatLaunchpeg.address)
+      expect(batchRevealConfig[4]).to.eq(newRevealInterval)
     })
   })
 
@@ -455,6 +467,46 @@ describe('FlatLaunchpeg', () => {
       expect(await dev.getBalance()).to.be.closeTo(
         initialDevBalance.add(config.flatPublicSalePrice.mul(9).add(initialContractBalance)),
         ethers.utils.parseEther('0.01')
+      )
+    })
+
+    it('Project owner can withdraw money', async () => {
+      await initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.PublicSale)
+      // For some reason the contract has some balance initially, for this particular test only
+      const initialContractBalance = await ethers.provider.getBalance(flatLaunchpeg.address)
+
+      await flatLaunchpeg.connect(alice).publicSaleMint(5, { value: config.flatPublicSalePrice.mul(5) })
+      await flatLaunchpeg.connect(bob).publicSaleMint(4, { value: config.flatPublicSalePrice.mul(4) })
+
+      const initialBalance = await projectOwner.getBalance()
+
+      await flatLaunchpeg.connect(projectOwner).withdrawAVAX(projectOwner.address)
+      expect(await projectOwner.getBalance()).to.be.closeTo(
+        initialBalance.add(config.flatPublicSalePrice.mul(9).add(initialContractBalance)),
+        ethers.utils.parseEther('0.01')
+      )
+    })
+
+    it("Can't withdraw before start time", async () => {
+      const blockTimestamp = await latest()
+      config.withdrawAVAXStartTime = blockTimestamp.add(duration.days(1))
+      await initializePhasesFlatLaunchpeg(flatLaunchpeg, config, Phase.PublicSale)
+
+      await expect(flatLaunchpeg.connect(projectOwner).withdrawAVAX(projectOwner.address)).to.be.revertedWith(
+        'Launchpeg__WithdrawAVAXNotAvailable()'
+      )
+    })
+
+    it("Can't set start time before current block timestamp", async () => {
+      const blockTimestamp = await latest()
+      await expect(flatLaunchpeg.setWithdrawAVAXStartTime(blockTimestamp.sub(duration.minutes(1)))).to.be.revertedWith(
+        'Launchpeg__InvalidStartTime()'
+      )
+    })
+
+    it("Can't withdraw when start time not initialized", async () => {
+      await expect(flatLaunchpeg.connect(projectOwner).withdrawAVAX(projectOwner.address)).to.be.revertedWith(
+        'Launchpeg__WithdrawAVAXNotAvailable()'
       )
     })
 

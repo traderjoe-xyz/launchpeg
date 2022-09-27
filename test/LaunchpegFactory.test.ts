@@ -8,9 +8,12 @@ describe('LaunchpegFactory', () => {
   let launchpegCF: ContractFactory
   let flatLaunchpegCF: ContractFactory
   let launchpegFactoryCF: ContractFactory
+  let batchRevealCF: ContractFactory
+
   let launchpeg: Contract
   let flatLaunchpeg: Contract
   let launchpegFactory: Contract
+  let batchReveal: Contract
 
   let config: LaunchpegConfig
 
@@ -25,6 +28,7 @@ describe('LaunchpegFactory', () => {
     launchpegCF = await ethers.getContractFactory('Launchpeg')
     flatLaunchpegCF = await ethers.getContractFactory('FlatLaunchpeg')
     launchpegFactoryCF = await ethers.getContractFactory('LaunchpegFactory')
+    batchRevealCF = await ethers.getContractFactory('BatchReveal')
 
     signers = await ethers.getSigners()
     dev = signers[0]
@@ -45,9 +49,15 @@ describe('LaunchpegFactory', () => {
     })
 
     config = { ...(await getDefaultLaunchpegConfig()) }
+    await deployBatchReveal()
     await deployLaunchpeg()
     await deployFlatLaunchpeg()
   })
+
+  const deployBatchReveal = async () => {
+    batchReveal = await batchRevealCF.deploy()
+    await batchReveal.initialize()
+  }
 
   const deployLaunchpeg = async () => {
     launchpeg = await launchpegCF.deploy()
@@ -84,6 +94,7 @@ describe('LaunchpegFactory', () => {
     launchpegFactory = await upgrades.deployProxy(launchpegFactoryCF, [
       launchpeg.address,
       flatLaunchpeg.address,
+      batchReveal.address,
       200,
       royaltyReceiver.address,
     ])
@@ -100,6 +111,7 @@ describe('LaunchpegFactory', () => {
         upgrades.deployProxy(launchpegFactoryCF, [
           ethers.constants.AddressZero,
           flatLaunchpeg.address,
+          batchReveal.address,
           200,
           royaltyReceiver.address,
         ])
@@ -109,10 +121,23 @@ describe('LaunchpegFactory', () => {
         upgrades.deployProxy(launchpegFactoryCF, [
           launchpeg.address,
           ethers.constants.AddressZero,
+          batchReveal.address,
           200,
           royaltyReceiver.address,
         ])
       ).to.be.revertedWith('LaunchpegFactory__InvalidImplementation()')
+    })
+
+    it('Should revert with batch reveal zero address', async () => {
+      await expect(
+        upgrades.deployProxy(launchpegFactoryCF, [
+          launchpeg.address,
+          flatLaunchpeg.address,
+          ethers.constants.AddressZero,
+          200,
+          royaltyReceiver.address,
+        ])
+      ).to.be.revertedWith('LaunchpegFactory__InvalidBatchReveal()')
     })
 
     it('Invalid default fees should be blocked', async () => {
@@ -120,6 +145,7 @@ describe('LaunchpegFactory', () => {
         upgrades.deployProxy(launchpegFactoryCF, [
           launchpeg.address,
           flatLaunchpeg.address,
+          batchReveal.address,
           10_001,
           royaltyReceiver.address,
         ])
@@ -131,6 +157,7 @@ describe('LaunchpegFactory', () => {
         upgrades.deployProxy(launchpegFactoryCF, [
           launchpeg.address,
           flatLaunchpeg.address,
+          batchReveal.address,
           200,
           ethers.constants.AddressZero,
         ])

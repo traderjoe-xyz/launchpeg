@@ -52,6 +52,8 @@ interface IBaseLaunchpeg is IERC721Upgradeable, IERC721MetadataUpgradeable {
 
     function publicSaleEndTime() external view returns (uint256);
 
+    function withdrawAVAXStartTime() external view returns (uint256);
+
     function initializeJoeFee(uint256 _joeFeePercent, address _joeFeeCollector)
         external;
 
@@ -66,32 +68,17 @@ interface IBaseLaunchpeg is IERC721Upgradeable, IERC721MetadataUpgradeable {
 
     function setUnrevealedURI(string calldata baseURI) external;
 
-    function setVRF(
-        address _vrfCoordinator,
-        bytes32 _keyHash,
-        uint64 _subscriptionId,
-        uint32 _callbackGasLimit
-    ) external;
-
     function setPublicSaleStartTime(uint256 _publicSaleStartTime) external;
 
     function setPublicSaleEndTime(uint256 _publicSaleEndTime) external;
 
-    function setRevealBatchSize(uint256 _revealBatchSize) external;
+    function setWithdrawAVAXStartTime(uint256 _withdrawAVAXStartTime) external;
 
-    function setRevealStartTime(uint256 _revealStartTime) external;
-
-    function setRevealInterval(uint256 _revealInterval) external;
+    function setBatchReveal(address _batchReveal) external;
 
     function devMint(uint256 quantity) external;
 
     function withdrawAVAX(address to) external;
-
-    function revealNextBatch() external;
-
-    function forceReveal() external;
-
-    function hasBatchToReveal() external view returns (bool, uint256);
 
     function getOwnershipData(uint256 tokenId)
         external
@@ -101,4 +88,8 @@ interface IBaseLaunchpeg is IERC721Upgradeable, IERC721MetadataUpgradeable {
     function numberMinted(address owner) external view returns (uint256);
 
     function currentPhase() external view returns (Phase);
+
+    function revealNextBatch() external;
+
+    function hasBatchToReveal() external view returns (bool, uint256);
 }

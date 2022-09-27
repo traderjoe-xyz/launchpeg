@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/proxy/Clones.sol";
 
 import "./interfaces/ILaunchpegFactory.sol";
 import "./interfaces/ILaunchpeg.sol";
+import "./interfaces/IBatchReveal.sol";
 import "./interfaces/IFlatLaunchpeg.sol";
 import "./interfaces/IPendingOwnableUpgradeable.sol";
 import "./LaunchpegErrors.sol";
@@ -48,6 +49,7 @@ contract LaunchpegFactory is
     event SetFlatLaunchpegImplementation(
         address indexed flatLaunchpegImplementation
     );
+    event SetBatchReveal(address indexed batchReveal);
     event SetDefaultJoeFeePercent(uint256 joeFeePercent);
     event SetDefaultJoeFeeCollector(address indexed joeFeeCollector);
 
@@ -55,6 +57,8 @@ contract LaunchpegFactory is
     address public override launchpegImplementation;
     /// @notice FlatLaunchpeg contract to be cloned
     address public override flatLaunchpegImplementation;
+    /// @notice Batch reveal address
+    address public override batchReveal;
 
     /// @notice Default fee percentage
     /// @dev In basis points e.g 100 for 1%
@@ -71,11 +75,13 @@ contract LaunchpegFactory is
     /// @dev Uses clone factory pattern to save space
     /// @param _launchpegImplementation Launchpeg contract to be cloned
     /// @param _flatLaunchpegImplementation FlatLaunchpeg contract to be cloned
+    /// @param _batchReveal Batch reveal address
     /// @param _joeFeePercent Default fee percentage
     /// @param _joeFeeCollector Default fee collector
     function initialize(
         address _launchpegImplementation,
         address _flatLaunchpegImplementation,
+        address _batchReveal,
         uint256 _joeFeePercent,
         address _joeFeeCollector
     ) public initializer {
@@ -87,6 +93,9 @@ contract LaunchpegFactory is
         if (_flatLaunchpegImplementation == address(0)) {
             revert LaunchpegFactory__InvalidImplementation();
         }
+        if (_batchReveal == address(0)) {
+            revert LaunchpegFactory__InvalidBatchReveal();
+        }
         if (_joeFeePercent > 10_000) {
             revert Launchpeg__InvalidPercent();
         }
@@ -96,6 +105,7 @@ contract LaunchpegFactory is
 
         launchpegImplementation = _launchpegImplementation;
         flatLaunchpegImplementation = _flatLaunchpegImplementation;
+        batchReveal = _batchReveal;
         joeFeePercent = _joeFeePercent;
         joeFeeCollector = _joeFeeCollector;
     }
@@ -150,6 +160,8 @@ contract LaunchpegFactory is
             _amountForAllowlist,
             _amountForDevs
         );
+
+        IBaseLaunchpeg(launchpeg).setBatchReveal(batchReveal);
 
         IBaseLaunchpeg(launchpeg).initializeJoeFee(
             joeFeePercent,
@@ -210,6 +222,8 @@ contract LaunchpegFactory is
             _amountForAllowlist
         );
 
+        IBaseLaunchpeg(flatLaunchpeg).setBatchReveal(batchReveal);
+
         IBaseLaunchpeg(flatLaunchpeg).initializeJoeFee(
             joeFeePercent,
             joeFeeCollector
@@ -258,6 +272,17 @@ contract LaunchpegFactory is
 
         flatLaunchpegImplementation = _flatLaunchpegImplementation;
         emit SetFlatLaunchpegImplementation(_flatLaunchpegImplementation);
+    }
+
+    /// @notice Set batch reveal address
+    /// @param _batchReveal New batch reveal
+    function setBatchReveal(address _batchReveal) external override onlyOwner {
+        if (_batchReveal == address(0)) {
+            revert LaunchpegFactory__InvalidBatchReveal();
+        }
+
+        batchReveal = _batchReveal;
+        emit SetBatchReveal(_batchReveal);
     }
 
     /// @notice Set percentage of protocol fees

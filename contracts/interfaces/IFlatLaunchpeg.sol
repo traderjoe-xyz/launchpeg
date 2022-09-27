@@ -32,10 +32,7 @@ interface IFlatLaunchpeg is IBaseLaunchpeg {
         uint256 _publicSaleStartTime,
         uint256 _publicSaleEndTime,
         uint256 _allowlistPrice,
-        uint256 _salePrice,
-        uint256 _batchRevealSize,
-        uint256 _revealStartTime,
-        uint256 _revealInterval
+        uint256 _salePrice
     ) external;
 
     function setAllowlistStartTime(uint256 _allowlistStartTime) external;

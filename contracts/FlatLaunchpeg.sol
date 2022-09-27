@@ -22,18 +22,12 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
     /// @param publicSaleEndTime Public sale end time in seconds
     /// @param allowlistPrice Price of the allowlist sale in Avax
     /// @param salePrice Price of the public sale in Avax
-    /// @param revealBatchSize Size of the batch reveal
-    /// @param revealStartTime Start of the token URIs reveal in seconds
-    /// @param revealInterval Interval between two batch reveals in seconds
     event Initialized(
         uint256 allowlistStartTime,
         uint256 publicSaleStartTime,
         uint256 publicSaleEndTime,
         uint256 allowlistPrice,
-        uint256 salePrice,
-        uint256 revealBatchSize,
-        uint256 revealStartTime,
-        uint256 revealInterval
+        uint256 salePrice
     );
 
     /// @dev Emitted on allowlistMint(), publicSaleMint()
@@ -94,18 +88,12 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
     /// @param _publicSaleEndTime Public sale end time in seconds
     /// @param _allowlistPrice Price of the allowlist sale in Avax
     /// @param _salePrice Price of the public sale in Avax
-    /// @param _revealBatchSize Size of the batch reveal
-    /// @param _revealStartTime Start of the token URIs reveal in seconds
-    /// @param _revealInterval Interval between two batch reveals in seconds
     function initializePhases(
         uint256 _allowlistStartTime,
         uint256 _publicSaleStartTime,
         uint256 _publicSaleEndTime,
         uint256 _allowlistPrice,
-        uint256 _salePrice,
-        uint256 _revealBatchSize,
-        uint256 _revealStartTime,
-        uint256 _revealInterval
+        uint256 _salePrice
     ) external override onlyOwner atPhase(Phase.NotStarted) {
         if (_allowlistStartTime < block.timestamp) {
             revert Launchpeg__InvalidStartTime();
@@ -127,22 +115,12 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
         publicSaleStartTime = _publicSaleStartTime;
         publicSaleEndTime = _publicSaleEndTime;
 
-        initializeBatchReveal(
-            collectionSize,
-            _revealBatchSize,
-            _revealStartTime,
-            _revealInterval
-        );
-
         emit Initialized(
             allowlistStartTime,
             publicSaleStartTime,
             publicSaleEndTime,
             allowlistPrice,
-            salePrice,
-            _revealBatchSize,
-            _revealStartTime,
-            _revealInterval
+            salePrice
         );
     }
 

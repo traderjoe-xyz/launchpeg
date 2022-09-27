@@ -62,9 +62,6 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
     /// @param publicSaleStartTime Public sale start time in seconds
     /// @param publicSaleEndTime Public sale end time in seconds
     /// @param publicSaleDiscountPercent Discount applied to the last auction price during the public sale
-    /// @param revealBatchSize Size of the batch reveal
-    /// @param revealStartTime Start of the token URIs reveal in seconds
-    /// @param revealInterval Interval between two batch reveals in seconds
     event Initialized(
         uint256 auctionSaleStartTime,
         uint256 auctionStartPrice,
@@ -74,10 +71,7 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
         uint256 allowlistDiscountPercent,
         uint256 publicSaleStartTime,
         uint256 publicSaleEndTime,
-        uint256 publicSaleDiscountPercent,
-        uint256 revealBatchSize,
-        uint256 revealStartTime,
-        uint256 revealInterval
+        uint256 publicSaleDiscountPercent
     );
 
     /// @dev Emitted on setAuctionSaleStartTime()
@@ -158,9 +152,6 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
     /// @param _publicSaleStartTime Public sale start time in seconds
     /// @param _publicSaleEndTime Public sale end time in seconds
     /// @param _publicSaleDiscountPercent Discount applied to the last auction price during the public sale
-    /// @param _revealBatchSize Size of the batch reveal
-    /// @param _revealStartTime Start of the token URIs reveal in seconds
-    /// @param _revealInterval Interval between two batch reveals in seconds
     function initializePhases(
         uint256 _auctionSaleStartTime,
         uint256 _auctionStartPrice,
@@ -170,10 +161,7 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
         uint256 _allowlistDiscountPercent,
         uint256 _publicSaleStartTime,
         uint256 _publicSaleEndTime,
-        uint256 _publicSaleDiscountPercent,
-        uint256 _revealBatchSize,
-        uint256 _revealStartTime,
-        uint256 _revealInterval
+        uint256 _publicSaleDiscountPercent
     ) external override onlyOwner atPhase(Phase.NotStarted) {
         if (_auctionSaleStartTime < block.timestamp) {
             revert Launchpeg__InvalidStartTime();
@@ -224,13 +212,6 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
         publicSaleEndTime = _publicSaleEndTime;
         publicSaleDiscountPercent = _publicSaleDiscountPercent;
 
-        initializeBatchReveal(
-            collectionSize,
-            _revealBatchSize,
-            _revealStartTime,
-            _revealInterval
-        );
-
         emit Initialized(
             auctionSaleStartTime,
             auctionStartPrice,
@@ -240,10 +221,7 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
             allowlistDiscountPercent,
             publicSaleStartTime,
             publicSaleEndTime,
-            publicSaleDiscountPercent,
-            _revealBatchSize,
-            _revealStartTime,
-            _revealInterval
+            publicSaleDiscountPercent
         );
     }
 
