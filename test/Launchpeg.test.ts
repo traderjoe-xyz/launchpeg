@@ -140,6 +140,7 @@ describe('Launchpeg', () => {
             config.startPrice,
             config.endPrice,
             config.auctionDropInterval,
+            config.preMintStartTime,
             config.allowlistStartTime,
             config.allowlistDiscount,
             config.publicSaleStartTime,
@@ -174,10 +175,17 @@ describe('Launchpeg', () => {
       )
     })
 
-    it('Allowlist must happen after auction', async () => {
-      config.allowlistStartTime = config.auctionStartTime.sub(duration.minutes(10))
+    it('Pre-mint must happen after auction', async () => {
+      config.preMintStartTime = config.auctionStartTime.sub(duration.minutes(10))
       await expect(initializePhasesLaunchpeg(launchpeg, config, Phase.DutchAuction)).to.be.revertedWith(
-        'Launchpeg__AllowlistBeforeAuction()'
+        'Launchpeg__PreMintBeforeAuction()'
+      )
+    })
+
+    it('Allowlist must happen after pre-mint', async () => {
+      config.allowlistStartTime = config.preMintStartTime.sub(duration.minutes(10))
+      await expect(initializePhasesLaunchpeg(launchpeg, config, Phase.DutchAuction)).to.be.revertedWith(
+        'Launchpeg__AllowlistBeforePreMint()'
       )
     })
 
@@ -263,6 +271,11 @@ describe('Launchpeg', () => {
       await expect(launchpeg.setAuctionSaleStartTime(newAuctionSaleStartTime)).to.be.revertedWith(
         'Launchpeg__NotInitialized()'
       )
+    })
+
+    it('Reverts when setting pre-mint start time before phases are initialized', async () => {
+      const newPreMintStartTime = config.preMintStartTime.sub(duration.minutes(30))
+      await expect(launchpeg.setPreMintStartTime(newPreMintStartTime)).to.be.revertedWith('Launchpeg__NotInitialized()')
     })
 
     it('Reverts when setting allowlist start time before phases are initialized', async () => {
@@ -410,21 +423,39 @@ describe('Launchpeg', () => {
       )
       invalidAuctionSaleStartTime = config.allowlistStartTime.add(duration.minutes(30))
       await expect(launchpeg.setAuctionSaleStartTime(invalidAuctionSaleStartTime)).to.be.revertedWith(
-        'Launchpeg__AllowlistBeforeAuction()'
+        'Launchpeg__PreMintBeforeAuction()'
       )
       await launchpeg.setAuctionSaleStartTime(newAuctionSaleStartTime)
       expect(await launchpeg.auctionSaleStartTime()).to.eq(newAuctionSaleStartTime)
     })
 
+    it('Owner can set pre-mint start time', async () => {
+      let invalidPreMintStartTime = config.auctionStartTime.sub(duration.minutes(30))
+      const newPreMintStartTime = config.preMintStartTime.sub(duration.minutes(30))
+      await initializePhasesLaunchpeg(launchpeg, config, Phase.PreMint)
+      await expect(launchpeg.connect(projectOwner).setPreMintStartTime(newPreMintStartTime)).to.be.revertedWith(
+        'PendingOwnableUpgradeable__NotOwner()'
+      )
+      await expect(launchpeg.setPreMintStartTime(invalidPreMintStartTime)).to.be.revertedWith(
+        'Launchpeg__PreMintBeforeAuction()'
+      )
+      invalidPreMintStartTime = config.allowlistStartTime.add(duration.minutes(30))
+      await expect(launchpeg.setPreMintStartTime(invalidPreMintStartTime)).to.be.revertedWith(
+        'Launchpeg__AllowlistBeforePreMint()'
+      )
+      await launchpeg.setPreMintStartTime(newPreMintStartTime)
+      expect(await launchpeg.preMintStartTime()).to.eq(newPreMintStartTime)
+    })
+
     it('Owner can set allowlist start time', async () => {
-      let invalidAllowlistStartTime = config.auctionStartTime.sub(duration.minutes(30))
+      let invalidAllowlistStartTime = config.preMintStartTime.sub(duration.minutes(30))
       const newAllowlistStartTime = config.allowlistStartTime.sub(duration.minutes(30))
       await initializePhasesLaunchpeg(launchpeg, config, Phase.DutchAuction)
       await expect(launchpeg.connect(projectOwner).setAllowlistStartTime(newAllowlistStartTime)).to.be.revertedWith(
         'PendingOwnableUpgradeable__NotOwner()'
       )
       await expect(launchpeg.setAllowlistStartTime(invalidAllowlistStartTime)).to.be.revertedWith(
-        'Launchpeg__AllowlistBeforeAuction()'
+        'Launchpeg__AllowlistBeforePreMint()'
       )
       invalidAllowlistStartTime = config.publicSaleStartTime.add(duration.minutes(30))
       await expect(launchpeg.setAllowlistStartTime(invalidAllowlistStartTime)).to.be.revertedWith(
@@ -512,6 +543,90 @@ describe('Launchpeg', () => {
     })
   })
 
+  describe('Pre-mint phase', () => {
+    let allowlistPrice: BigNumber
+
+    beforeEach(async () => {
+      await initializePhasesLaunchpeg(launchpeg, config, Phase.PreMint)
+      await launchpeg.connect(dev).seedAllowlist([alice.address], [5])
+
+      const discount = config.startPrice.mul(config.allowlistDiscount).div(10000)
+      allowlistPrice = config.startPrice.sub(discount)
+    })
+
+    it('Should allow whitelisted user to pre-mint', async () => {
+      const quantity = 1
+      await launchpeg.connect(alice).preMint(quantity, { value: allowlistPrice.mul(quantity) })
+      expect(await launchpeg.userAddressToAmountPreMinted(alice.address)).to.eq(quantity)
+      expect(await launchpeg.amountMintedDuringPreMint()).to.eq(quantity)
+      expect(await launchpeg.numberMinted(alice.address)).to.eq(0)
+
+      await expect(launchpeg.connect(bob).preMint(1, { value: allowlistPrice })).to.be.revertedWith(
+        'Launchpeg__NotEligibleForAllowlistMint'
+      )
+    })
+
+    it('Should receive allowlist price per NFT', async () => {
+      const quantity = 2
+      await launchpeg.connect(alice).preMint(quantity, { value: allowlistPrice.mul(quantity) })
+      expect(await launchpeg.userAddressToAmountPreMinted(alice.address)).to.eq(quantity)
+
+      await expect(launchpeg.connect(alice).preMint(1)).to.be.revertedWith('Launchpeg__NotEnoughAVAX(0)')
+    })
+
+    it('Should allow user to pre-mint up to allowlist allocation', async () => {
+      const allowlistQty = await launchpeg.allowlist(alice.address)
+      const quantity = 3
+      const remQuantity = allowlistQty - quantity
+      await launchpeg.connect(alice).preMint(quantity, { value: allowlistPrice.mul(quantity) })
+      expect(await launchpeg.userAddressToAmountPreMinted(alice.address)).to.eq(quantity)
+      expect(await launchpeg.allowlist(alice.address)).to.eq(remQuantity)
+
+      await expect(
+        launchpeg.connect(alice).preMint(remQuantity + 1, { value: allowlistPrice.mul(remQuantity + 1) })
+      ).to.be.revertedWith('Launchpeg__NotEligibleForAllowlistMint()')
+
+      await launchpeg.connect(alice).preMint(remQuantity, { value: allowlistPrice.mul(remQuantity) })
+      expect(await launchpeg.userAddressToAmountPreMinted(alice.address)).to.eq(quantity + remQuantity)
+    })
+
+    it('Should not allow 0 pre-mint amount', async () => {
+      await expect(launchpeg.connect(alice).preMint(0)).to.be.revertedWith('Launchpeg__InvalidQuantity()')
+    })
+
+    it('Should not transfer pre-minted NFT to user', async () => {
+      await launchpeg.connect(alice).preMint(1, { value: allowlistPrice })
+      expect(await launchpeg.userAddressToAmountPreMinted(alice.address)).to.eq(1)
+      expect(await launchpeg.balanceOf(alice.address)).to.eq(0)
+    })
+
+    it('Should allow users to pre-mint up to allowlist amount', async () => {
+      config = { ...(await getDefaultLaunchpegConfig()) }
+      config.amountForAllowlist = 5
+      await deployLaunchpeg()
+      await initializePhasesLaunchpeg(launchpeg, config, Phase.PreMint)
+      await launchpeg.connect(dev).seedAllowlist([alice.address, bob.address], [5, 4])
+
+      const aliceQty = 4
+      const bobQty = 1
+      await launchpeg.connect(alice).preMint(aliceQty, { value: allowlistPrice.mul(aliceQty) })
+      await launchpeg.connect(bob).preMint(bobQty, { value: allowlistPrice.mul(bobQty) })
+
+      await expect(launchpeg.connect(bob).preMint(bobQty, { value: allowlistPrice.mul(bobQty) })).to.be.revertedWith(
+        'Launchpeg__MaxSupplyReached()'
+      )
+
+      expect(await launchpeg.userAddressToAmountPreMinted(alice.address)).to.eq(aliceQty)
+      expect(await launchpeg.userAddressToAmountPreMinted(bob.address)).to.eq(bobQty)
+      expect(await launchpeg.amountMintedDuringPreMint()).to.eq(aliceQty + bobQty)
+    })
+
+    it('Should not allow batch mint during pre-mint phase', async () => {
+      await launchpeg.connect(alice).preMint(1, { value: allowlistPrice })
+      await expect(launchpeg.connect(bob).batchMintPreMintedNFTs(1)).to.be.revertedWith('Launchpeg__WrongPhase()')
+    })
+  })
+
   describe('Allowlist phase', () => {
     it('NFT is transfered when user is on allowlist', async () => {
       await initializePhasesLaunchpeg(launchpeg, config, Phase.Allowlist)
@@ -537,6 +652,20 @@ describe('Launchpeg', () => {
         'Launchpeg__NotEligibleForAllowlistMint()'
       )
       expect(await launchpeg.balanceOf(bob.address)).to.eq(3)
+    })
+
+    it('Mint reverts when user tries to mint more NFTs than allowlist amount', async () => {
+      config.amountForAllowlist = 5
+      await deployLaunchpeg()
+      await initializePhasesLaunchpeg(launchpeg, config, Phase.Allowlist)
+
+      const discount = config.startPrice.mul(config.allowlistDiscount).div(10000)
+      const price = config.startPrice.sub(discount)
+      await launchpeg.connect(dev).seedAllowlist([alice.address, bob.address], [5, 5])
+      await launchpeg.connect(bob).allowlistMint(5, { value: price.mul(5) })
+      await expect(launchpeg.connect(alice).allowlistMint(1, { value: price })).to.be.revertedWith(
+        'Launchpeg__MaxSupplyReached()'
+      )
     })
 
     it('Mint reverts when not started yet', async () => {
@@ -575,7 +704,42 @@ describe('Launchpeg', () => {
 
     it('Mint price is discounted', async () => {
       await initializePhasesLaunchpeg(launchpeg, config, Phase.Allowlist)
-      expect(await launchpeg.getAllowlistPrice()).to.eq(ethers.utils.parseUnits('0.9', 18))
+      expect(await launchpeg.allowlistPrice()).to.eq(ethers.utils.parseUnits('0.9', 18))
+    })
+
+    it('Should allow any user to batch mint', async () => {
+      await initializePhasesLaunchpeg(launchpeg, config, Phase.PreMint)
+      await launchpeg.connect(dev).seedAllowlist([alice.address, bob.address], [10, 5])
+
+      // Alice pre-mints
+      const discount = config.startPrice.mul(config.allowlistDiscount).div(10000)
+      const allowlistPrice = config.startPrice.sub(discount)
+      const alicePreMintQty = 10
+      const bobPreMintQty = 5
+      await launchpeg.connect(alice).preMint(alicePreMintQty, { value: allowlistPrice.mul(alicePreMintQty) })
+      await launchpeg.connect(bob).preMint(bobPreMintQty, { value: allowlistPrice.mul(alicePreMintQty) })
+      const blockTimestamp = await latest()
+      await advanceTimeAndBlock(duration.seconds(config.allowlistStartTime.sub(blockTimestamp).toNumber()))
+      expect(await launchpeg.balanceOf(alice.address)).to.eq(0)
+      expect(await launchpeg.balanceOf(bob.address)).to.eq(0)
+
+      // Bob batch mints
+      await launchpeg.connect(bob).batchMintPreMintedNFTs(5)
+      expect(await launchpeg.balanceOf(alice.address)).to.eq(5)
+      expect(await launchpeg.balanceOf(bob.address)).to.eq(0)
+      // Alice batch mints more than available in queue
+      await launchpeg.connect(alice).batchMintPreMintedNFTs(20)
+      expect(await launchpeg.balanceOf(alice.address)).to.eq(10)
+      expect(await launchpeg.balanceOf(bob.address)).to.eq(5)
+      expect(await launchpeg.amountBatchMinted()).to.eq(15)
+
+      await expect(launchpeg.batchMintPreMintedNFTs(5)).to.be.revertedWith('Launchpeg__MaxSupplyForBatchMintReached()')
+    })
+
+    it('Should revert when there are no NFTs to batch mint', async () => {
+      await initializePhasesLaunchpeg(launchpeg, config, Phase.Allowlist)
+      await expect(launchpeg.batchMintPreMintedNFTs(0)).to.be.revertedWith('Launchpeg__InvalidQuantity()')
+      await expect(launchpeg.batchMintPreMintedNFTs(5)).to.be.revertedWith('Launchpeg__MaxSupplyForBatchMintReached()')
     })
 
     it('Owner can set public sale start time', async () => {
@@ -690,22 +854,36 @@ describe('Launchpeg', () => {
 
     it('Public sale price is discounted', async () => {
       await initializePhasesLaunchpeg(launchpeg, config, Phase.PublicSale)
-      expect(await launchpeg.getPublicSalePrice()).to.eq(ethers.utils.parseUnits('0.8', 18))
+      expect(await launchpeg.salePrice()).to.eq(ethers.utils.parseUnits('0.8', 18))
     })
 
-    it('Public sale is limited by amount for dev', async () => {
-      config.collectionSize = 10
-      config.amountForAuction = 5
-      config.amountForAllowlist = 0
-      config.amountForDevs = 5
-      config.batchRevealSize = 5
-      await deployLaunchpeg()
-      await initializePhasesLaunchpeg(launchpeg, config, Phase.PublicSale)
+    it('Should allow any user to batch mint', async () => {
+      await initializePhasesLaunchpeg(launchpeg, config, Phase.PreMint)
+      await launchpeg.connect(dev).seedAllowlist([alice.address], [5])
 
-      await launchpeg.connect(alice).publicSaleMint(5, { value: config.startPrice.mul(5) })
-      await expect(launchpeg.connect(alice).publicSaleMint(5, { value: config.startPrice.mul(5) })).to.be.revertedWith(
-        'Launchpeg__MaxSupplyReached()'
-      )
+      // Alice pre-mints
+      const discount = config.startPrice.mul(config.allowlistDiscount).div(10000)
+      const allowlistPrice = config.startPrice.sub(discount)
+      const preMintQty = 2
+      await launchpeg.connect(alice).preMint(preMintQty, { value: allowlistPrice.mul(preMintQty) })
+      const blockTimestamp = await latest()
+      await advanceTimeAndBlock(duration.seconds(config.publicSaleStartTime.sub(blockTimestamp).toNumber()))
+      expect(await launchpeg.balanceOf(alice.address)).to.eq(0)
+
+      // Bob batch mints
+      await launchpeg.connect(bob).batchMintPreMintedNFTs(1)
+      expect(await launchpeg.balanceOf(alice.address)).to.eq(1)
+      // Alice batch mints more than available in queue
+      await launchpeg.connect(alice).batchMintPreMintedNFTs(2)
+      expect(await launchpeg.balanceOf(alice.address)).to.eq(2)
+      expect(await launchpeg.amountBatchMinted()).to.eq(2)
+
+      await expect(launchpeg.batchMintPreMintedNFTs(5)).to.be.revertedWith('Launchpeg__MaxSupplyForBatchMintReached()')
+    })
+
+    it('Should not allow batch mint after public sale', async () => {
+      await initializePhasesLaunchpeg(launchpeg, config, Phase.Ended)
+      await expect(launchpeg.batchMintPreMintedNFTs(5)).to.be.revertedWith('Launchpeg__WrongPhase()')
     })
 
     it('Owner can set public sale end time', async () => {

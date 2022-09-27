@@ -13,6 +13,7 @@ interface IBaseLaunchpeg is IERC721Upgradeable, IERC721MetadataUpgradeable {
     enum Phase {
         NotStarted,
         DutchAuction,
+        PreMint,
         Allowlist,
         PublicSale,
         Ended
@@ -42,9 +43,15 @@ interface IBaseLaunchpeg is IERC721Upgradeable, IERC721MetadataUpgradeable {
 
     function amountMintedByDevs() external view returns (uint256);
 
+    function amountMintedDuringPreMint() external view returns (uint256);
+
+    function amountBatchMinted() external view returns (uint256);
+
     function amountMintedDuringAllowlist() external view returns (uint256);
 
     function amountMintedDuringPublicSale() external view returns (uint256);
+
+    function preMintStartTime() external view returns (uint256);
 
     function allowlistStartTime() external view returns (uint256);
 
@@ -53,6 +60,10 @@ interface IBaseLaunchpeg is IERC721Upgradeable, IERC721MetadataUpgradeable {
     function publicSaleEndTime() external view returns (uint256);
 
     function withdrawAVAXStartTime() external view returns (uint256);
+
+    function allowlistPrice() external view returns (uint256);
+
+    function salePrice() external view returns (uint256);
 
     function initializeJoeFee(uint256 _joeFeePercent, address _joeFeeCollector)
         external;
@@ -68,6 +79,10 @@ interface IBaseLaunchpeg is IERC721Upgradeable, IERC721MetadataUpgradeable {
 
     function setUnrevealedURI(string calldata baseURI) external;
 
+    function setPreMintStartTime(uint256 _preMintStartTime) external;
+
+    function setAllowlistStartTime(uint256 _allowlistStartTime) external;
+
     function setPublicSaleStartTime(uint256 _publicSaleStartTime) external;
 
     function setPublicSaleEndTime(uint256 _publicSaleEndTime) external;
@@ -78,12 +93,25 @@ interface IBaseLaunchpeg is IERC721Upgradeable, IERC721MetadataUpgradeable {
 
     function devMint(uint256 quantity) external;
 
+    function preMint(uint256 _quantity) external payable;
+
+    function batchMintPreMintedNFTs(uint256 _maxQuantity) external;
+
+    function allowlistMint(uint256 _quantity) external payable;
+
+    function publicSaleMint(uint256 _quantity) external payable;
+
     function withdrawAVAX(address to) external;
 
     function getOwnershipData(uint256 tokenId)
         external
         view
         returns (ERC721AUpgradeable.TokenOwnership memory);
+
+    function userAddressToAmountPreMinted(address owner)
+        external
+        view
+        returns (uint256);
 
     function numberMinted(address owner) external view returns (uint256);
 

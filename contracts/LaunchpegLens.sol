@@ -241,9 +241,9 @@ contract LaunchpegLens {
             data.launchpegData.auctionPrice = ILaunchpeg(_launchpeg)
                 .getAuctionPrice(data.launchpegData.auctionSaleStartTime);
             data.launchpegData.allowlistPrice = ILaunchpeg(_launchpeg)
-                .getAllowlistPrice();
+                .allowlistPrice();
             data.launchpegData.publicSalePrice = ILaunchpeg(_launchpeg)
-                .getPublicSalePrice();
+                .salePrice();
             data.launchpegData.amountMintedDuringAuction = ILaunchpeg(
                 _launchpeg
             ).amountMintedDuringAuction();

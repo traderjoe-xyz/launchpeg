@@ -17,12 +17,14 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
     uint256 public override salePrice;
 
     /// @dev Emitted on initializePhases()
+    /// @param preMintStartTime Pre-mint start time in seconds
     /// @param allowlistStartTime Allowlist mint start time in seconds
     /// @param publicSaleStartTime Public sale start time in seconds
     /// @param publicSaleEndTime Public sale end time in seconds
     /// @param allowlistPrice Price of the allowlist sale in Avax
     /// @param salePrice Price of the public sale in Avax
     event Initialized(
+        uint256 preMintStartTime,
         uint256 allowlistStartTime,
         uint256 publicSaleStartTime,
         uint256 publicSaleEndTime,
@@ -30,20 +32,17 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
         uint256 salePrice
     );
 
-    /// @dev Emitted on allowlistMint(), publicSaleMint()
-    /// @param sender The address that minted
-    /// @param quantity Amount of NFTs minted
-    /// @param price Price in AVAX for the NFTs
-    /// @param tokenId The token ID of the first minted NFT
-    event Mint(
-        address indexed sender,
-        uint256 quantity,
-        uint256 price,
-        uint256 tokenId
-    );
-
     modifier atPhase(Phase _phase) {
         if (currentPhase() != _phase) {
+            revert Launchpeg__WrongPhase();
+        }
+        _;
+    }
+
+    /// @dev Batch mint is allowed in the allowlist and public sale phases
+    modifier isBatchMintAvailable() {
+        Phase currPhase = currentPhase();
+        if (currPhase != Phase.Allowlist && currPhase != Phase.PublicSale) {
             revert Launchpeg__WrongPhase();
         }
         _;
@@ -83,20 +82,25 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
 
     /// @notice Initialize the two phases of the sale
     /// @dev Can only be called once
+    /// @param _preMintStartTime Pre-mint start time in seconds
     /// @param _allowlistStartTime Allowlist mint start time in seconds
     /// @param _publicSaleStartTime Public sale start time in seconds
     /// @param _publicSaleEndTime Public sale end time in seconds
     /// @param _allowlistPrice Price of the allowlist sale in Avax
     /// @param _salePrice Price of the public sale in Avax
     function initializePhases(
+        uint256 _preMintStartTime,
         uint256 _allowlistStartTime,
         uint256 _publicSaleStartTime,
         uint256 _publicSaleEndTime,
         uint256 _allowlistPrice,
         uint256 _salePrice
     ) external override onlyOwner atPhase(Phase.NotStarted) {
-        if (_allowlistStartTime < block.timestamp) {
+        if (_preMintStartTime < block.timestamp) {
             revert Launchpeg__InvalidStartTime();
+        }
+        if (_allowlistStartTime < _preMintStartTime) {
+            revert Launchpeg__AllowlistBeforePreMint();
         }
         if (_publicSaleStartTime < _allowlistStartTime) {
             revert Launchpeg__PublicSaleBeforeAllowlist();
@@ -111,11 +115,13 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
         salePrice = _salePrice;
         allowlistPrice = _allowlistPrice;
 
+        preMintStartTime = _preMintStartTime;
         allowlistStartTime = _allowlistStartTime;
         publicSaleStartTime = _publicSaleStartTime;
         publicSaleEndTime = _publicSaleEndTime;
 
         emit Initialized(
+            preMintStartTime,
             allowlistStartTime,
             publicSaleStartTime,
             publicSaleEndTime,
@@ -124,26 +130,49 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
         );
     }
 
-    /// @notice Set the allowlist start time. Can only be set after phases
+    /// @notice Set the pre-mint start time. Can only be set after phases
     /// have been initialized.
     /// @dev Only callable by owner
-    /// @param _allowlistStartTime New allowlist start time
-    function setAllowlistStartTime(uint256 _allowlistStartTime)
+    /// @param _preMintStartTime New pre-mint start time
+    function setPreMintStartTime(uint256 _preMintStartTime)
         external
         override
         onlyOwner
     {
-        if (allowlistStartTime == 0) {
+        if (preMintStartTime == 0) {
             revert Launchpeg__NotInitialized();
         }
-        if (_allowlistStartTime < block.timestamp) {
+        if (_preMintStartTime < block.timestamp) {
             revert Launchpeg__InvalidStartTime();
         }
-        if (publicSaleStartTime < _allowlistStartTime) {
-            revert Launchpeg__PublicSaleBeforeAllowlist();
+        if (allowlistStartTime < _preMintStartTime) {
+            revert Launchpeg__AllowlistBeforePreMint();
         }
-        allowlistStartTime = _allowlistStartTime;
-        emit AllowlistStartTimeSet(_allowlistStartTime);
+        preMintStartTime = _preMintStartTime;
+        emit PreMintStartTimeSet(_preMintStartTime);
+    }
+
+    /// @notice Mint NFTs during the pre-mint
+    /// @param _quantity Quantity of NFTs to mint
+    function preMint(uint256 _quantity)
+        external
+        payable
+        override
+        whenNotPaused
+        atPhase(Phase.PreMint)
+    {
+        _preMint(_quantity);
+    }
+
+    /// @notice Batch mint NFTs requested during the pre-mint
+    /// @param _maxQuantity Max quantity of NFTs to mint
+    function batchMintPreMintedNFTs(uint256 _maxQuantity)
+        external
+        override
+        whenNotPaused
+        isBatchMintAvailable
+    {
+        _batchMintPreMintedNFTs(_maxQuantity);
     }
 
     /// @notice Mint NFTs during the allowlist mint
@@ -159,8 +188,11 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
             revert Launchpeg__NotEligibleForAllowlistMint();
         }
         if (
-            totalSupply() + _quantity > collectionSize ||
-            amountMintedDuringAllowlist + _quantity > amountForAllowlist
+            (_totalSupplyWithPreMint() + _quantity > collectionSize) ||
+            (amountMintedDuringPreMint +
+                amountMintedDuringAllowlist +
+                _quantity) >
+            amountForAllowlist
         ) {
             revert Launchpeg__MaxSupplyReached();
         }
@@ -173,7 +205,8 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
             msg.sender,
             _quantity,
             allowlistPrice,
-            _totalMinted() - _quantity
+            _totalMinted() - _quantity,
+            Phase.Allowlist
         );
         _refundIfOver(totalCost);
     }
@@ -188,17 +221,26 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
         whenNotPaused
         atPhase(Phase.PublicSale)
     {
-        if (numberMinted(msg.sender) + _quantity > maxPerAddressDuringMint) {
+        if (
+            _numberMintedWithPreMint(msg.sender) + _quantity >
+            maxPerAddressDuringMint
+        ) {
             revert Launchpeg__CanNotMintThisMany();
         }
-        if (totalSupply() + _quantity > collectionSize) {
+        if (_totalSupplyWithPreMint() + _quantity > collectionSize) {
             revert Launchpeg__MaxSupplyReached();
         }
         uint256 total = salePrice * _quantity;
 
         _mint(msg.sender, _quantity, "", false);
         amountMintedDuringPublicSale += _quantity;
-        emit Mint(msg.sender, _quantity, salePrice, _totalMinted() - _quantity);
+        emit Mint(
+            msg.sender,
+            _quantity,
+            salePrice,
+            _totalMinted() - _quantity,
+            Phase.PublicSale
+        );
         _refundIfOver(total);
     }
 
@@ -206,14 +248,20 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
     /// @return phase Current phase
     function currentPhase() public view override returns (Phase) {
         if (
+            preMintStartTime == 0 ||
             allowlistStartTime == 0 ||
             publicSaleStartTime == 0 ||
             publicSaleEndTime == 0 ||
-            block.timestamp < allowlistStartTime
+            block.timestamp < preMintStartTime
         ) {
             return Phase.NotStarted;
         } else if (totalSupply() >= collectionSize) {
             return Phase.Ended;
+        } else if (
+            block.timestamp >= preMintStartTime &&
+            block.timestamp < allowlistStartTime
+        ) {
+            return Phase.PreMint;
         } else if (
             block.timestamp >= allowlistStartTime &&
             block.timestamp < publicSaleStartTime
@@ -245,5 +293,10 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
         return
             _interfaceId == type(IFlatLaunchpeg).interfaceId ||
             super.supportsInterface(_interfaceId);
+    }
+
+    /// @dev Returns pre-mint price. Used by _preMint() and _batchMintPreMintedNFTs() methods.
+    function _preMintPrice() internal view override returns (uint256) {
+        return allowlistPrice;
     }
 }
