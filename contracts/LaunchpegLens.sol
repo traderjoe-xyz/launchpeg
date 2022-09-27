@@ -68,7 +68,6 @@ contract LaunchpegLens {
         uint256 allowlistStartTime;
         uint256 publicSaleStartTime;
         uint256 publicSaleEndTime;
-        uint256 preMintPrice;
         uint256 allowlistPrice;
         uint256 salePrice;
         uint256 amountMintedDuringPreMint;
