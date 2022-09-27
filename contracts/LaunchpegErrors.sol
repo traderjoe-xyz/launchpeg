@@ -46,6 +46,7 @@ error Launchpeg__WrongPhase();
 
 // PendingOwnableUpgradeable
 error PendingOwnableUpgradeable__NotOwner();
+error PendingOwnableUpgradeable__AddressZero();
 error PendingOwnableUpgradeable__NotPendingOwner();
 error PendingOwnableUpgradeable__PendingOwnerAlreadySet();
 error PendingOwnableUpgradeable__NoPendingOwner();
@@ -56,3 +57,7 @@ error SafeAccessControlEnumerableUpgradeable__SenderMissingRoleAndIsNotOwner(
     address sender
 );
 error SafeAccessControlEnumerableUpgradeable__RoleIsDefaultAdmin();
+
+// SafeAccessControlEnumerableUpgradeable
+error SafePausableUpgradeable__AlreadyPaused();
+error SafePausableUpgradeable__AlreadyUnpaused();

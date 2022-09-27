@@ -234,13 +234,6 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
         override
         onlyOwner
     {
-        _setAuctionSaleStartTime(_auctionSaleStartTime);
-    }
-
-    /// @notice Set the auction sale start time. Can only be set after phases
-    /// have been initialized.
-    /// @param _auctionSaleStartTime New auction sale start time
-    function _setAuctionSaleStartTime(uint256 _auctionSaleStartTime) private {
         if (auctionSaleStartTime == 0) {
             revert Launchpeg__NotInitialized();
         }
@@ -263,13 +256,6 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
         override
         onlyOwner
     {
-        _setAllowlistStartTime(_allowlistStartTime);
-    }
-
-    /// @notice Set the allowlist start time. Can only be set after phases
-    /// have been initialized.
-    /// @param _allowlistStartTime New allowlist start time
-    function _setAllowlistStartTime(uint256 _allowlistStartTime) private {
         if (allowlistStartTime == 0) {
             revert Launchpeg__NotInitialized();
         }
@@ -290,6 +276,7 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
         external
         payable
         override
+        whenNotPaused
         atPhase(Phase.DutchAuction)
     {
         uint256 remainingSupply = (amountForAuction + amountMintedByDevs) -
@@ -323,6 +310,7 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
         external
         payable
         override
+        whenNotPaused
         atPhase(Phase.Allowlist)
     {
         if (_quantity > allowlist[msg.sender]) {
@@ -359,6 +347,7 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
         payable
         override
         isEOA
+        whenNotPaused
         atPhase(Phase.PublicSale)
     {
         if (

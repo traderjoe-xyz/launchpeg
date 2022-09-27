@@ -1,15 +1,18 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
+import "@openzeppelin/contracts-upgradeable/access/IAccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts/proxy/Clones.sol";
+import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 import "./interfaces/ILaunchpegFactory.sol";
 import "./interfaces/ILaunchpeg.sol";
 import "./interfaces/IBatchReveal.sol";
 import "./interfaces/IFlatLaunchpeg.sol";
 import "./interfaces/IPendingOwnableUpgradeable.sol";
+import "./interfaces/ISafePausableUpgradeable.sol";
 import "./LaunchpegErrors.sol";
 
 /// @title Launchpeg Factory
@@ -52,6 +55,13 @@ contract LaunchpegFactory is
     event SetBatchReveal(address indexed batchReveal);
     event SetDefaultJoeFeePercent(uint256 joeFeePercent);
     event SetDefaultJoeFeeCollector(address indexed joeFeeCollector);
+    event AddDefaultPauser(address indexed pauser);
+    event RemoveDefaultPauser(address indexed pauser);
+
+    using EnumerableSet for EnumerableSet.AddressSet;
+
+    /// @dev Default addresses with pauser role for created collections
+    EnumerableSet.AddressSet private _defaultPausers;
 
     /// @notice Launchpeg contract to be cloned
     address public override launchpegImplementation;
@@ -108,6 +118,20 @@ contract LaunchpegFactory is
         batchReveal = _batchReveal;
         joeFeePercent = _joeFeePercent;
         joeFeeCollector = _joeFeeCollector;
+    }
+
+    function defaultPausers()
+        external
+        view
+        override
+        returns (address[] memory)
+    {
+        uint256 len = _defaultPausers.length();
+        address[] memory defaultPauserAddresses = new address[](len);
+        for (uint256 i; i < len; i++) {
+            defaultPauserAddresses[i] = _defaultPausers.at(i);
+        }
+        return defaultPauserAddresses;
     }
 
     /// @notice Returns the number of Launchpegs
@@ -170,6 +194,8 @@ contract LaunchpegFactory is
 
         IPendingOwnableUpgradeable(launchpeg).setPendingOwner(msg.sender);
 
+        _setPausers(launchpeg);
+
         emit LaunchpegCreated(
             launchpeg,
             _name,
@@ -230,6 +256,8 @@ contract LaunchpegFactory is
         );
 
         IPendingOwnableUpgradeable(flatLaunchpeg).setPendingOwner(msg.sender);
+
+        _setPausers(flatLaunchpeg);
 
         emit FlatLaunchpegCreated(
             flatLaunchpeg,
@@ -313,5 +341,46 @@ contract LaunchpegFactory is
 
         joeFeeCollector = _joeFeeCollector;
         emit SetDefaultJoeFeeCollector(_joeFeeCollector);
+    }
+
+    /// @notice Add a default address with pauser role
+    /// @param _pauser Pauser address to add
+    /// @return true if not existing pauser and successfully added, false otherwise
+    function addDefaultPauser(address _pauser)
+        external
+        override
+        onlyOwner
+        returns (bool)
+    {
+        bool success = _defaultPausers.add(_pauser);
+        if (success) {
+            emit AddDefaultPauser(_pauser);
+        }
+        return success;
+    }
+
+    /// @notice Remove a default address with pauser role
+    /// @param _pauser Pauser address to remove
+    /// @return true if existing pauser and successfully removed, false otherwise
+    function removeDefaultPauser(address _pauser)
+        external
+        override
+        onlyOwner
+        returns (bool)
+    {
+        bool success = _defaultPausers.remove(_pauser);
+        if (success) {
+            emit RemoveDefaultPauser(_pauser);
+        }
+        return success;
+    }
+
+    /// @dev Add users with pauser role to a new Launchpeg collection
+    function _setPausers(address launchpeg) private {
+        bytes32 pauserRole = ISafePausableUpgradeable(launchpeg).PAUSER_ROLE();
+        for (uint256 i; i < _defaultPausers.length(); i++) {
+            address pauser = _defaultPausers.at(i);
+            IAccessControlUpgradeable(launchpeg).grantRole(pauserRole, pauser);
+        }
     }
 }
