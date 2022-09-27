@@ -2,6 +2,8 @@
 
 pragma solidity ^0.8.4;
 
+import "@openzeppelin/contracts-upgradeable/access/IAccessControlEnumerableUpgradeable.sol";
+
 import "./interfaces/IBaseLaunchpeg.sol";
 import "./interfaces/IFlatLaunchpeg.sol";
 import "./interfaces/ILaunchpeg.sol";
@@ -25,13 +27,21 @@ contract LaunchpegLens {
         string baseURI;
     }
 
+    struct ProjectOwnerData {
+        address[] projectOwners;
+        uint256 withdrawAVAXStartTime;
+        uint256 launchpegBalanceAVAX;
+    }
+
     struct LaunchpegData {
         uint256 amountForAuction;
         uint256 amountForAllowlist;
         uint256 amountForDevs;
         uint256 auctionSaleStartTime;
+        uint256 preMintStartTime;
         uint256 allowlistStartTime;
         uint256 publicSaleStartTime;
+        uint256 publicSaleEndTime;
         uint256 auctionStartPrice;
         uint256 auctionEndPrice;
         uint256 auctionSaleDuration;
@@ -45,6 +55,7 @@ contract LaunchpegLens {
         uint256 publicSalePrice;
         uint256 amountMintedDuringAuction;
         uint256 lastAuctionPrice;
+        uint256 amountMintedDuringPreMint;
         uint256 amountMintedDuringAllowlist;
         uint256 amountMintedDuringPublicSale;
     }
@@ -53,10 +64,14 @@ contract LaunchpegLens {
         ILaunchpeg.Phase currentPhase;
         uint256 amountForAllowlist;
         uint256 amountForDevs;
+        uint256 preMintStartTime;
         uint256 allowlistStartTime;
         uint256 publicSaleStartTime;
+        uint256 publicSaleEndTime;
+        uint256 preMintPrice;
         uint256 allowlistPrice;
         uint256 salePrice;
+        uint256 amountMintedDuringPreMint;
         uint256 amountMintedDuringAllowlist;
         uint256 amountMintedDuringPublicSale;
     }
@@ -71,6 +86,7 @@ contract LaunchpegLens {
     struct UserData {
         uint256 balanceOf;
         uint256 numberMinted;
+        uint256 numberMintedWithPreMint;
         uint256 allowanceForAllowlistMint;
     }
 
@@ -83,6 +99,7 @@ contract LaunchpegLens {
         FlatLaunchpegData flatLaunchpegData;
         RevealData revealData;
         UserData userData;
+        ProjectOwnerData projectOwnerData;
     }
 
     enum LaunchpegType {
@@ -195,6 +212,11 @@ contract LaunchpegLens {
             .unrevealedURI();
         data.collectionData.baseURI = IBaseLaunchpeg(_launchpeg).baseURI();
 
+        data.projectOwnerData.projectOwners = getProjectOwners(_launchpeg);
+        data.projectOwnerData.withdrawAVAXStartTime = IBaseLaunchpeg(_launchpeg)
+            .withdrawAVAXStartTime();
+        data.projectOwnerData.launchpegBalanceAVAX = _launchpeg.balance;
+
         (
             ,
             ,
@@ -217,10 +239,14 @@ contract LaunchpegLens {
                 .amountForDevs();
             data.launchpegData.auctionSaleStartTime = ILaunchpeg(_launchpeg)
                 .auctionSaleStartTime();
+            data.launchpegData.preMintStartTime = ILaunchpeg(_launchpeg)
+                .preMintStartTime();
             data.launchpegData.allowlistStartTime = ILaunchpeg(_launchpeg)
                 .allowlistStartTime();
             data.launchpegData.publicSaleStartTime = ILaunchpeg(_launchpeg)
                 .publicSaleStartTime();
+            data.launchpegData.publicSaleEndTime = ILaunchpeg(_launchpeg)
+                .publicSaleEndTime();
             data.launchpegData.auctionStartPrice = ILaunchpeg(_launchpeg)
                 .auctionStartPrice();
             data.launchpegData.auctionEndPrice = ILaunchpeg(_launchpeg)
@@ -249,6 +275,9 @@ contract LaunchpegLens {
             ).amountMintedDuringAuction();
             data.launchpegData.lastAuctionPrice = ILaunchpeg(_launchpeg)
                 .lastAuctionPrice();
+            data.launchpegData.amountMintedDuringPreMint = IFlatLaunchpeg(
+                _launchpeg
+            ).amountMintedDuringPreMint();
             data.launchpegData.amountMintedDuringAllowlist = IBaseLaunchpeg(
                 _launchpeg
             ).amountMintedDuringAllowlist();
@@ -264,6 +293,9 @@ contract LaunchpegLens {
                 .allowlistPrice();
             data.flatLaunchpegData.salePrice = IFlatLaunchpeg(_launchpeg)
                 .salePrice();
+            data.flatLaunchpegData.amountMintedDuringPreMint = IFlatLaunchpeg(
+                _launchpeg
+            ).amountMintedDuringPreMint();
             data.flatLaunchpegData.amountMintedDuringAllowlist = IFlatLaunchpeg(
                 _launchpeg
             ).amountMintedDuringAllowlist();
@@ -276,12 +308,17 @@ contract LaunchpegLens {
             ).amountForAllowlist();
             data.flatLaunchpegData.amountForDevs = IFlatLaunchpeg(_launchpeg)
                 .amountForDevs();
+            data.flatLaunchpegData.preMintStartTime = IFlatLaunchpeg(_launchpeg)
+                .preMintStartTime();
             data.flatLaunchpegData.allowlistStartTime = IFlatLaunchpeg(
                 _launchpeg
             ).allowlistStartTime();
             data.flatLaunchpegData.publicSaleStartTime = IFlatLaunchpeg(
                 _launchpeg
             ).publicSaleStartTime();
+            data.flatLaunchpegData.publicSaleEndTime = IFlatLaunchpeg(
+                _launchpeg
+            ).publicSaleEndTime();
         }
 
         if (_user != address(0)) {
@@ -290,10 +327,28 @@ contract LaunchpegLens {
             );
             data.userData.numberMinted = IBaseLaunchpeg(_launchpeg)
                 .numberMinted(_user);
+            data.userData.numberMintedWithPreMint = IBaseLaunchpeg(_launchpeg)
+                .numberMintedWithPreMint(_user);
             data.userData.allowanceForAllowlistMint = IBaseLaunchpeg(_launchpeg)
                 .allowlist(_user);
         }
 
         return data;
+    }
+
+    function getProjectOwners(address _launchpeg)
+        internal
+        view
+        returns (address[] memory)
+    {
+        bytes32 role = IBaseLaunchpeg(_launchpeg).PROJECT_OWNER_ROLE();
+        uint256 count = IAccessControlEnumerableUpgradeable(_launchpeg)
+            .getRoleMemberCount(role);
+        address[] memory projectOwners = new address[](count);
+        for (uint256 i; i < count; i++) {
+            projectOwners[i] = IAccessControlEnumerableUpgradeable(_launchpeg)
+                .getRoleMember(role, i);
+        }
+        return projectOwners;
     }
 }

@@ -292,7 +292,7 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
             _quantity = remainingSupply;
         }
         if (
-            _numberMintedWithPreMint(msg.sender) + _quantity >
+            numberMintedWithPreMint(msg.sender) + _quantity >
             maxPerAddressDuringMint
         ) {
             revert Launchpeg__CanNotMintThisMany();
@@ -382,7 +382,7 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
         atPhase(Phase.PublicSale)
     {
         if (
-            _numberMintedWithPreMint(msg.sender) + _quantity >
+            numberMintedWithPreMint(msg.sender) + _quantity >
             maxPerAddressDuringMint
         ) {
             revert Launchpeg__CanNotMintThisMany();

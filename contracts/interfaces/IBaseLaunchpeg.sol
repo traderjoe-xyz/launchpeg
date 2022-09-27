@@ -115,6 +115,11 @@ interface IBaseLaunchpeg is IERC721Upgradeable, IERC721MetadataUpgradeable {
 
     function numberMinted(address owner) external view returns (uint256);
 
+    function numberMintedWithPreMint(address _owner)
+        external
+        view
+        returns (uint256);
+
     function currentPhase() external view returns (Phase);
 
     function revealNextBatch() external;
