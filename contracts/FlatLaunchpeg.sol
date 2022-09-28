@@ -222,7 +222,7 @@ contract FlatLaunchpeg is BaseLaunchpeg, IFlatLaunchpeg {
         atPhase(Phase.PublicSale)
     {
         if (
-            _numberMintedWithPreMint(msg.sender) + _quantity >
+            numberMintedWithPreMint(msg.sender) + _quantity >
             maxPerAddressDuringMint
         ) {
             revert Launchpeg__CanNotMintThisMany();

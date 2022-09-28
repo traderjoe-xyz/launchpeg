@@ -657,10 +657,11 @@ abstract contract BaseLaunchpeg is
         return totalSupply() + amountMintedDuringPreMint - amountBatchMinted;
     }
 
-    // @dev Number minted by user including pre-mints
-    function _numberMintedWithPreMint(address _owner)
-        internal
+    // @notice Number minted by user including pre-mints
+    function numberMintedWithPreMint(address _owner)
+        public
         view
+        override
         returns (uint256)
     {
         return _numberMinted(_owner) + userAddressToPreMintAmount[_owner];
