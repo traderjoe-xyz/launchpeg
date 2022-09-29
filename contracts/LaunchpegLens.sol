@@ -29,6 +29,7 @@ contract LaunchpegLens {
 
     struct ProjectOwnerData {
         address[] projectOwners;
+        uint256 amountMintedByDevs;
         uint256 withdrawAVAXStartTime;
         uint256 launchpegBalanceAVAX;
     }
@@ -215,6 +216,8 @@ contract LaunchpegLens {
         data.projectOwnerData.withdrawAVAXStartTime = IBaseLaunchpeg(_launchpeg)
             .withdrawAVAXStartTime();
         data.projectOwnerData.launchpegBalanceAVAX = _launchpeg.balance;
+        data.projectOwnerData.amountMintedByDevs = IBaseLaunchpeg(_launchpeg)
+            .amountMintedByDevs();
 
         (
             ,
