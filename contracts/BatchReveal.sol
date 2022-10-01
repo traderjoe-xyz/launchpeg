@@ -687,7 +687,7 @@ contract BatchReveal is
     }
 
     /// @notice Returns true if batch reveal is configured for the given launchpeg
-    /// Since the collection size is only set on initialize()
+    /// Since the collection size is set only when batch reveal is initialized,
     /// and the collection size cannot be 0, we assume a 0 value means
     /// the batch reveal configuration has not been initialized.
     function isBatchRevealInitialized(address _baseLaunchpeg)

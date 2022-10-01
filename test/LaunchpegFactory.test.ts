@@ -182,6 +182,8 @@ describe('LaunchpegFactory', () => {
       )
 
       expect(await launchpegFactory.numLaunchpegs(0)).to.equal(1)
+      const launchpegAddress = await launchpegFactory.allLaunchpegs(0, 0)
+      expect(await launchpegFactory.isLaunchpeg(0, launchpegAddress)).to.equal(true)
     })
 
     it('Should create FlatLaunchpegs as well', async () => {
@@ -199,6 +201,8 @@ describe('LaunchpegFactory', () => {
       )
 
       expect(await launchpegFactory.numLaunchpegs(1)).to.equal(1)
+      const launchpegAddress = await launchpegFactory.allLaunchpegs(1, 0)
+      expect(await launchpegFactory.isLaunchpeg(1, launchpegAddress)).to.equal(true)
     })
   })
 
@@ -221,10 +225,23 @@ describe('LaunchpegFactory', () => {
       )
     })
 
+    it('Should set the new Batch Reveal contract', async () => {
+      const newAddress = '0x44c14d53D7B7672d7fD6E4A97fDA1A5f68F62aB6'
+      await launchpegFactory.setBatchReveal(newAddress)
+      expect(await launchpegFactory.batchReveal()).to.equal(newAddress)
+      await expect(launchpegFactory.setBatchReveal(ethers.constants.AddressZero)).to.be.revertedWith(
+        'LaunchpegFactory__InvalidBatchReveal()'
+      )
+    })
+
     it('Should set the new fee configuration', async () => {
       const newFees = 499
+      const newFeeCollector = bob.address
+
       await launchpegFactory.setDefaultJoeFeePercent(newFees)
-      await launchpegFactory.setDefaultJoeFeeCollector(bob.address)
+      await launchpegFactory.setDefaultJoeFeeCollector(newFeeCollector)
+      expect(await launchpegFactory.joeFeePercent()).to.equal(newFees)
+      expect(await launchpegFactory.joeFeeCollector()).to.equal(newFeeCollector)
 
       await launchpegFactory.createLaunchpeg(
         'My new collection',
@@ -241,7 +258,7 @@ describe('LaunchpegFactory', () => {
       const launchpeg0 = await ethers.getContractAt('Launchpeg', launchpeg0Address)
 
       expect(await launchpeg0.joeFeePercent()).to.equal(newFees)
-      expect(await launchpeg0.joeFeeCollector()).to.equal(bob.address)
+      expect(await launchpeg0.joeFeeCollector()).to.equal(newFeeCollector)
 
       await expect(launchpegFactory.setDefaultJoeFeePercent(20_000)).to.be.revertedWith('Launchpeg__InvalidPercent()')
       await expect(launchpegFactory.setDefaultJoeFeeCollector(ethers.constants.AddressZero)).to.be.revertedWith(
@@ -251,8 +268,12 @@ describe('LaunchpegFactory', () => {
 
     it('Should allow owner to add and remove default pausers', async () => {
       await launchpegFactory.addDefaultPauser(alice.address)
+      // Add multiple times
+      await launchpegFactory.addDefaultPauser(alice.address)
       await launchpegFactory.addDefaultPauser(bob.address)
       expect(await launchpegFactory.defaultPausers()).to.eql([alice.address, bob.address])
+      await launchpegFactory.removeDefaultPauser(bob.address)
+      // Remove multiple times
       await launchpegFactory.removeDefaultPauser(bob.address)
       expect(await launchpegFactory.defaultPausers()).to.eql([alice.address])
 

@@ -7,10 +7,10 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts/proxy/Clones.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
-import "./interfaces/ILaunchpegFactory.sol";
-import "./interfaces/ILaunchpeg.sol";
 import "./interfaces/IBatchReveal.sol";
 import "./interfaces/IFlatLaunchpeg.sol";
+import "./interfaces/ILaunchpeg.sol";
+import "./interfaces/ILaunchpegFactory.sol";
 import "./interfaces/IPendingOwnableUpgradeable.sol";
 import "./interfaces/ISafePausableUpgradeable.sol";
 import "./LaunchpegErrors.sol";

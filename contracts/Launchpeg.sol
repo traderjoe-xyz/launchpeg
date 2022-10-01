@@ -451,6 +451,7 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
             preMintStartTime == 0 ||
             allowlistStartTime == 0 ||
             publicSaleStartTime == 0 ||
+            publicSaleEndTime == 0 ||
             block.timestamp < auctionSaleStartTime
         ) {
             return Phase.NotStarted;
