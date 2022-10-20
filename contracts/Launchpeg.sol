@@ -291,10 +291,7 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
         if (remainingSupply < _quantity) {
             _quantity = remainingSupply;
         }
-        if (
-            numberMinted(msg.sender) + _quantity >
-            maxPerAddressDuringMint
-        ) {
+        if (numberMinted(msg.sender) + _quantity > maxPerAddressDuringMint) {
             revert Launchpeg__CanNotMintThisMany();
         }
         lastAuctionPrice = getAuctionPrice(auctionSaleStartTime);
