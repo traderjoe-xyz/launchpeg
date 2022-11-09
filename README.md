@@ -108,16 +108,15 @@ yarn verify-fuji
 ```
 
 ## Test coverage
-Test coverage on commit `90c3341` is the following :
+Test coverage on current commit `fc0f3b5` is the following :
 File                   |  % Stmts | % Branch |  % Funcs |  % Lines |
 -----------------------|----------|----------|----------|----------|
-  BaseLaunchpeg.sol    |    99.19 |    94.87 |       96 |    96.84 |
+  BaseLaunchpeg.sol    |    98.61 |     91.3 |    94.74 |    94.68 |
   BatchReveal.sol      |      100 |      100 |      100 |      100 |
-  FlatLaunchpeg.sol    |    98.04 |      100 |    91.67 |    98.41 |
-  Launchpeg.sol        |    98.89 |      100 |    94.12 |    99.09 |
-  LaunchpegErrors.sol  |      100 |      100 |      100 |      100 |
+  FlatLaunchpeg.sol    |    95.24 |    91.67 |       80 |    92.59 |
+  Launchpeg.sol        |    96.97 |    92.86 |    90.91 |       95 |
   LaunchpegFactory.sol |      100 |      100 |      100 |      100 |
-  **All files**        |    99.35 |    98.41 |    96.63 |    98.75 |
+  **All files**        |    98.51 |    94.12 |    94.34 |    96.58 |
 
 Coverage was calculated by the `solidity-coverage` plugin from hardhat.
 

@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/common/ERC2981Upgradeable.sol";
 import "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
 
 import "erc721a-upgradeable/contracts/ERC721AUpgradeable.sol";
 
+import "./BatchReveal.sol";
 import "./LaunchpegErrors.sol";
 import "./interfaces/IBaseLaunchpeg.sol";
-import "./interfaces/IBatchReveal.sol";
-import "./utils/SafePausableUpgradeable.sol";
 
 /// @title BaseLaunchpeg
 /// @author Trader Joe
@@ -18,22 +18,17 @@ import "./utils/SafePausableUpgradeable.sol";
 abstract contract BaseLaunchpeg is
     IBaseLaunchpeg,
     ERC721AUpgradeable,
-    SafePausableUpgradeable,
+    BatchReveal,
+    OwnableUpgradeable,
     ReentrancyGuardUpgradeable,
     ERC2981Upgradeable
 {
     using StringsUpgradeable for uint256;
 
-    IBatchReveal public batchReveal;
-
-    /// @notice Role granted to project owners
-    bytes32 public constant override PROJECT_OWNER_ROLE =
-        keccak256("PROJECT_OWNER_ROLE");
-
     /// @notice The collection size (e.g 10000)
     uint256 public override collectionSize;
 
-    /// @notice Amount of NFTs reserved for the project owner (e.g 200)
+    /// @notice Amount of NFTs reserved for `projectOwner` (e.g 200)
     /// @dev It can be minted any time via `devMint`
     uint256 public override amountForDevs;
 
@@ -56,27 +51,21 @@ abstract contract BaseLaunchpeg is
     /// @notice Percentage base point
     uint256 public constant BASIS_POINT_PRECISION = 10_000;
 
+    /// @notice The project owner
+    /// @dev We may own the contract during the launch; this address is allowed to call `devMint`
+    address public override projectOwner;
+
     /// @notice Token URI after collection reveal
     string public override baseURI;
 
     /// @notice Token URI before the collection reveal
     string public override unrevealedURI;
 
-    /// @notice The amount of NFTs each allowed address can mint during
-    /// the pre-mint or allowlist mint
+    /// @notice The amount of NFTs each allowed address can mint during the allowlist mint
     mapping(address => uint256) public override allowlist;
-
-    // @notice The remaining no. of pre-minted NFTs for the user address
-    mapping(address => uint256) public override userAddressToPreMintAmount;
 
     /// @notice Tracks the amount of NFTs minted by `projectOwner`
     uint256 public override amountMintedByDevs;
-
-    /// @notice Tracks the amount of NFTs minted in the Pre-Mint phase
-    uint256 public override amountMintedDuringPreMint;
-
-    /// @notice Tracks the amount of NFTs batch minted
-    uint256 public override amountBatchMinted;
 
     /// @notice Tracks the amount of NFTs minted on Allowlist phase
     uint256 public override amountMintedDuringAllowlist;
@@ -84,33 +73,12 @@ abstract contract BaseLaunchpeg is
     /// @notice Tracks the amount of NFTs minted on Public Sale phase
     uint256 public override amountMintedDuringPublicSale;
 
-    /// @notice Start time of the pre-mint in seconds
-    uint256 public override preMintStartTime;
-
     /// @notice Start time of the allowlist mint in seconds
     uint256 public override allowlistStartTime;
 
     /// @notice Start time of the public sale in seconds
     /// @dev A timestamp greater than the allowlist mint start
     uint256 public override publicSaleStartTime;
-
-    /// @notice End time of the public sale in seconds
-    /// @dev A timestamp greater than the public sale start
-    uint256 public override publicSaleEndTime;
-
-    /// @notice Start time when funds can be withdrawn
-    uint256 public override withdrawAVAXStartTime;
-
-    /// @dev Queue of pre-mint requests by allowlist users
-    PreMintData[] private preMintQueue;
-
-    /// @dev Next index of the `preMintQueue` to be processed by batch mint
-    uint256 private preMintQueueIdx;
-
-    struct PreMintData {
-        address sender;
-        uint256 quantity;
-    }
 
     /// @dev Emitted on initializeJoeFee()
     /// @param feePercent The fees collected by Joepegs on the sale benefits
@@ -122,33 +90,15 @@ abstract contract BaseLaunchpeg is
     /// @param quantity Amount of NFTs minted
     event DevMint(address indexed sender, uint256 quantity);
 
-    /// @dev Emitted on preMint()
-    /// @param sender The address that minted
-    /// @param quantity Amount of NFTs minted
-    /// @param price Price of 1 NFT
-    event PreMint(address indexed sender, uint256 quantity, uint256 price);
-
-    /// @dev Emitted on auctionMint(), batchMintPreMintedNFTs(),
-    /// allowlistMint(), publicSaleMint()
-    /// @param sender The address that minted
-    /// @param quantity Amount of NFTs minted
-    /// @param price Price in AVAX for the NFTs
-    /// @param startTokenId The token ID of the first minted NFT:
-    /// if `startTokenId` = 100 and `quantity` = 2, `sender` minted 100 and 101
-    /// @param phase The phase in which the mint occurs
-    event Mint(
-        address indexed sender,
-        uint256 quantity,
-        uint256 price,
-        uint256 startTokenId,
-        Phase phase
-    );
-
     /// @dev Emitted on withdrawAVAX()
     /// @param sender The address that withdrew the tokens
     /// @param amount Amount of AVAX transfered to `sender`
     /// @param fee Amount of AVAX paid to the fee collector
     event AvaxWithdraw(address indexed sender, uint256 amount, uint256 fee);
+
+    /// @dev Emitted on setProjectOwner()
+    /// @param owner The new project owner
+    event ProjectOwnerUpdated(address indexed owner);
 
     /// @dev Emitted on setBaseURI()
     /// @param baseURI The new base URI
@@ -166,28 +116,27 @@ abstract contract BaseLaunchpeg is
     /// @param feePercent Royalty fee percent in basis point
     event DefaultRoyaltySet(address indexed receiver, uint256 feePercent);
 
-    /// @dev Emitted on setPreMintStartTime()
-    /// @param preMintStartTime New pre-mint start time
-    event PreMintStartTimeSet(uint256 preMintStartTime);
-
-    /// @dev Emitted on setAllowlistStartTime()
-    /// @param allowlistStartTime New allowlist start time
-    event AllowlistStartTimeSet(uint256 allowlistStartTime);
-
-    /// @dev Emitted on setPublicSaleStartTime()
-    /// @param publicSaleStartTime New public sale start time
-    event PublicSaleStartTimeSet(uint256 publicSaleStartTime);
-
-    /// @dev Emitted on setPublicSaleEndTime()
-    /// @param publicSaleEndTime New public sale end time
-    event PublicSaleEndTimeSet(uint256 publicSaleEndTime);
-
-    /// @dev Emitted on setWithdrawAVAXStartTime()
-    /// @param withdrawAVAXStartTime New withdraw AVAX start time
-    event WithdrawAVAXStartTimeSet(uint256 withdrawAVAXStartTime);
+    /// @dev emitted on setVRF()
+    /// @param _vrfCoordinator Chainlink coordinator address
+    /// @param _keyHash Keyhash of the gas lane wanted
+    /// @param _subscriptionId Chainlink subscription ID
+    /// @param _callbackGasLimit Max gas used by the coordinator callback
+    event VRFSet(
+        address _vrfCoordinator,
+        bytes32 _keyHash,
+        uint64 _subscriptionId,
+        uint32 _callbackGasLimit
+    );
 
     modifier isEOA() {
         if (tx.origin != msg.sender) {
+            revert Launchpeg__Unauthorized();
+        }
+        _;
+    }
+
+    modifier onlyProjectOwner() {
+        if (projectOwner != msg.sender) {
             revert Launchpeg__Unauthorized();
         }
         _;
@@ -202,6 +151,7 @@ abstract contract BaseLaunchpeg is
     /// @param _collectionSize The collection size (e.g 10000)
     /// @param _amountForDevs Amount of NFTs reserved for `projectOwner` (e.g 200)
     /// @param _amountForAllowlist Amount of NFTs available for the allowlist mint (e.g 1000)
+    /// @param _batchRevealSize Size of the batch reveal
     function initializeBaseLaunchpeg(
         string memory _name,
         string memory _symbol,
@@ -210,29 +160,39 @@ abstract contract BaseLaunchpeg is
         uint256 _maxBatchSize,
         uint256 _collectionSize,
         uint256 _amountForDevs,
-        uint256 _amountForAllowlist
+        uint256 _amountForAllowlist,
+        uint256 _batchRevealSize,
+        uint256 _revealStartTime,
+        uint256 _revealInterval
     ) internal onlyInitializing {
-        __SafePausable_init();
+        __Ownable_init();
         __ReentrancyGuard_init();
         __ERC2981_init();
+
         __ERC721A_init(_name, _symbol);
+        initializeBatchReveal(_batchRevealSize, _collectionSize);
 
         if (_projectOwner == address(0)) {
             revert Launchpeg__InvalidProjectOwner();
         }
 
-        if (
-            _collectionSize == 0 ||
-            _amountForDevs + _amountForAllowlist > _collectionSize
-        ) {
+        if (_amountForDevs + _amountForAllowlist > _collectionSize) {
             revert Launchpeg__LargerCollectionSizeNeeded();
         }
 
         if (_maxBatchSize > _collectionSize) {
             revert Launchpeg__InvalidMaxBatchSize();
         }
+        // We assume that if the reveal is more than 100 days in the future, that's a mistake
+        // Same if the reveal interval is longer than 10 days
+        if (
+            _revealStartTime > block.timestamp + 8_640_000 ||
+            _revealInterval > 864_000
+        ) {
+            revert Launchpeg__InvalidRevealDates();
+        }
 
-        grantRole(PROJECT_OWNER_ROLE, _projectOwner);
+        projectOwner = _projectOwner;
         // Default royalty is 5%
         _setDefaultRoyalty(_royaltyReceiver, 500);
 
@@ -241,6 +201,9 @@ abstract contract BaseLaunchpeg is
         maxPerAddressDuringMint = _maxBatchSize;
         amountForDevs = _amountForDevs;
         amountForAllowlist = _amountForAllowlist;
+
+        revealStartTime = _revealStartTime;
+        revealInterval = _revealInterval;
     }
 
     /// @notice Initialize the sales fee percent taken by Joepegs and address that collects the fees
@@ -320,202 +283,119 @@ abstract contract BaseLaunchpeg is
         emit UnrevealedURISet(unrevealedURI);
     }
 
-    /// @notice Set the allowlist start time. Can only be set after phases
-    /// have been initialized.
-    /// @dev Only callable by owner
-    /// @param _allowlistStartTime New allowlist start time
-    function setAllowlistStartTime(uint256 _allowlistStartTime)
+    /// @notice Set the project owner
+    /// @dev The project owner can call `devMint` any time
+    /// @param _projectOwner The project owner
+    function setProjectOwner(address _projectOwner)
         external
         override
         onlyOwner
     {
-        if (allowlistStartTime == 0) {
-            revert Launchpeg__NotInitialized();
+        if (_projectOwner == address(0)) {
+            revert Launchpeg__InvalidProjectOwner();
         }
-        if (_allowlistStartTime < preMintStartTime) {
-            revert Launchpeg__AllowlistBeforePreMint();
-        }
-        if (publicSaleStartTime < _allowlistStartTime) {
-            revert Launchpeg__PublicSaleBeforeAllowlist();
-        }
-        allowlistStartTime = _allowlistStartTime;
-        emit AllowlistStartTimeSet(_allowlistStartTime);
+
+        projectOwner = _projectOwner;
+        emit ProjectOwnerUpdated(projectOwner);
     }
 
-    /// @notice Set the public sale start time. Can only be set after phases
-    /// have been initialized.
-    /// @dev Only callable by owner
-    /// @param _publicSaleStartTime New public sale start time
-    function setPublicSaleStartTime(uint256 _publicSaleStartTime)
-        external
-        override
-        onlyOwner
-    {
-        if (publicSaleStartTime == 0) {
-            revert Launchpeg__NotInitialized();
+    /// @notice Set VRF configuration
+    /// @param _vrfCoordinator Chainlink coordinator address
+    /// @param _keyHash Keyhash of the gas lane wanted
+    /// @param _subscriptionId Chainlink subscription ID
+    /// @param _callbackGasLimit Max gas used by the coordinator callback
+    function setVRF(
+        address _vrfCoordinator,
+        bytes32 _keyHash,
+        uint64 _subscriptionId,
+        uint32 _callbackGasLimit
+    ) external override onlyOwner {
+        if (_vrfCoordinator == address(0)) {
+            revert Launchpeg__InvalidCoordinator();
         }
-        if (_publicSaleStartTime < allowlistStartTime) {
-            revert Launchpeg__PublicSaleBeforeAllowlist();
-        }
-        if (publicSaleEndTime < _publicSaleStartTime) {
-            revert Launchpeg__PublicSaleEndBeforePublicSaleStart();
-        }
-        publicSaleStartTime = _publicSaleStartTime;
-        emit PublicSaleStartTimeSet(_publicSaleStartTime);
-    }
 
-    /// @notice Set the public sale end time. Can only be set after phases
-    /// have been initialized.
-    /// @dev Only callable by owner
-    /// @param _publicSaleEndTime New public sale end time
-    function setPublicSaleEndTime(uint256 _publicSaleEndTime)
-        external
-        override
-        onlyOwner
-    {
-        if (publicSaleEndTime == 0) {
-            revert Launchpeg__NotInitialized();
-        }
-        if (_publicSaleEndTime < publicSaleStartTime) {
-            revert Launchpeg__PublicSaleEndBeforePublicSaleStart();
-        }
-        publicSaleEndTime = _publicSaleEndTime;
-        emit PublicSaleEndTimeSet(_publicSaleEndTime);
-    }
+        (
+            ,
+            uint32 _maxGasLimit,
+            bytes32[] memory s_provingKeyHashes
+        ) = VRFCoordinatorV2Interface(_vrfCoordinator).getRequestConfig();
 
-    /// @notice Set the withdraw AVAX start time.
-    /// @param _withdrawAVAXStartTime New public sale end time
-    function setWithdrawAVAXStartTime(uint256 _withdrawAVAXStartTime)
-        external
-        override
-        onlyOwner
-    {
-        if (_withdrawAVAXStartTime < block.timestamp) {
-            revert Launchpeg__InvalidStartTime();
+        // 20_000 is the cost of storing one word, callback cost will never be lower than that
+        if (_callbackGasLimit > _maxGasLimit || _callbackGasLimit < 20_000) {
+            revert Launchpeg__InvalidCallbackGasLimit();
         }
-        withdrawAVAXStartTime = _withdrawAVAXStartTime;
-        emit WithdrawAVAXStartTimeSet(_withdrawAVAXStartTime);
-    }
 
-    /// @notice Update batch reveal
-    /// @dev Can be set to zero address to disable batch reveal
-    function setBatchReveal(address _batchReveal) external override onlyOwner {
-        batchReveal = IBatchReveal(_batchReveal);
+        bool keyHashFound;
+        for (uint256 i; i < s_provingKeyHashes.length; i++) {
+            if (s_provingKeyHashes[i] == _keyHash) {
+                keyHashFound = true;
+                break;
+            }
+        }
+
+        if (!keyHashFound) {
+            revert Launchpeg__InvalidKeyHash();
+        }
+
+        (, , , address[] memory consumers) = VRFCoordinatorV2Interface(
+            _vrfCoordinator
+        ).getSubscription(_subscriptionId);
+
+        bool isInConsumerList;
+        for (uint256 i; i < consumers.length; i++) {
+            if (consumers[i] == address(this)) {
+                isInConsumerList = true;
+                break;
+            }
+        }
+
+        if (!isInConsumerList) {
+            revert Launchpeg__IsNotInTheConsumerList();
+        }
+
+        useVRF = true;
+        setVRFConsumer(_vrfCoordinator);
+        keyHash = _keyHash;
+        subscriptionId = _subscriptionId;
+        callbackGasLimit = _callbackGasLimit;
+
+        emit VRFSet(
+            _vrfCoordinator,
+            _keyHash,
+            _subscriptionId,
+            _callbackGasLimit
+        );
     }
 
     /// @notice Mint NFTs to the project owner
     /// @dev Can only mint up to `amountForDevs`
     /// @param _quantity Quantity of NFTs to mint
-    function devMint(uint256 _quantity)
-        external
-        override
-        onlyOwnerOrRole(PROJECT_OWNER_ROLE)
-        whenNotPaused
-    {
-        if (_totalSupplyWithPreMint() + _quantity > collectionSize) {
+    function devMint(uint256 _quantity) external override onlyProjectOwner {
+        if (totalSupply() + _quantity > collectionSize) {
             revert Launchpeg__MaxSupplyReached();
         }
         if (amountMintedByDevs + _quantity > amountForDevs) {
             revert Launchpeg__MaxSupplyForDevReached();
+        }
+        if (_quantity % maxBatchSize != 0) {
+            revert Launchpeg__CanOnlyMintMultipleOfMaxBatchSize();
         }
         amountMintedByDevs = amountMintedByDevs + _quantity;
         uint256 numChunks = _quantity / maxBatchSize;
         for (uint256 i; i < numChunks; i++) {
             _mint(msg.sender, maxBatchSize, "", false);
         }
-        uint256 remainingQty = _quantity % maxBatchSize;
-        if (remainingQty != 0) {
-            _mint(msg.sender, remainingQty, "", false);
-        }
         emit DevMint(msg.sender, _quantity);
     }
 
-    /// @dev Should only be called in the pre-mint phase
-    /// @param _quantity Quantity of NFTs to mint
-    function _preMint(uint256 _quantity) internal {
-        if (_quantity == 0) {
-            revert Launchpeg__InvalidQuantity();
-        }
-        if (_quantity > allowlist[msg.sender]) {
-            revert Launchpeg__NotEligibleForAllowlistMint();
-        }
-        if (
-            (_totalSupplyWithPreMint() + _quantity > collectionSize) ||
-            (amountMintedDuringPreMint + _quantity > amountForAllowlist)
-        ) {
-            revert Launchpeg__MaxSupplyReached();
-        }
-        allowlist[msg.sender] -= _quantity;
-        userAddressToPreMintAmount[msg.sender] += _quantity;
-        amountMintedDuringPreMint += _quantity;
-        preMintQueue.push(
-            PreMintData({sender: msg.sender, quantity: _quantity})
-        );
-        uint256 price = _preMintPrice();
-        uint256 totalCost = price * _quantity;
-        emit PreMint(msg.sender, _quantity, price);
-        _refundIfOver(totalCost);
-    }
-
-    /// @dev Should only be called in the allowlist and public sale phases.
-    /// @param _maxQuantity Max quantity of NFTs to mint
-    function _batchMintPreMintedNFTs(uint256 _maxQuantity) internal {
-        if (_maxQuantity == 0) {
-            revert Launchpeg__InvalidQuantity();
-        }
-        if (amountMintedDuringPreMint == amountBatchMinted) {
-            revert Launchpeg__MaxSupplyForBatchMintReached();
-        }
-        uint256 remQuantity = _maxQuantity;
-        uint256 price = _preMintPrice();
-        address sender;
-        uint256 quantity;
-        uint256 i = preMintQueueIdx;
-        uint256 length = preMintQueue.length;
-        while (i < length && remQuantity > 0) {
-            PreMintData memory data = preMintQueue[i];
-            sender = data.sender;
-            if (data.quantity > remQuantity) {
-                quantity = remQuantity;
-                preMintQueue[i].quantity -= quantity;
-            } else {
-                quantity = data.quantity;
-                delete preMintQueue[i];
-                i++;
-            }
-            remQuantity -= quantity;
-            userAddressToPreMintAmount[sender] -= quantity;
-            _mint(sender, quantity, "", false);
-            emit Mint(
-                sender,
-                quantity,
-                price,
-                _totalMinted() - quantity,
-                Phase.PreMint
-            );
-        }
-        amountBatchMinted += (_maxQuantity - remQuantity);
-        preMintQueueIdx = i;
-    }
-
-    function _preMintPrice() internal view virtual returns (uint256);
-
-    /// @notice Withdraw AVAX to the given recipient
+    /// @notice Withdraw AVAX to the contract owner
     /// @param _to Recipient of the earned AVAX
     function withdrawAVAX(address _to)
         external
         override
-        onlyOwnerOrRole(PROJECT_OWNER_ROLE)
+        onlyOwner
         nonReentrant
-        whenNotPaused
     {
-        if (
-            withdrawAVAXStartTime > block.timestamp ||
-            withdrawAVAXStartTime == 0
-        ) {
-            revert Launchpeg__WithdrawAVAXNotAvailable();
-        }
-
         uint256 amount = address(this).balance;
         uint256 fee;
         bool sent;
@@ -536,6 +416,25 @@ abstract contract BaseLaunchpeg is
         }
 
         emit AvaxWithdraw(_to, amount, fee);
+    }
+
+    /// @notice Reveals the next batch if the reveal conditions are met
+    function revealNextBatch() external override isEOA {
+        if (!_revealNextBatch(totalSupply())) {
+            revert Launchpeg__RevealNextBatchNotAvailable();
+        }
+    }
+
+    /// @notice Allows Owner to reveal batches even if the conditions are not met
+    function forceReveal() external override onlyOwner {
+        _forceReveal();
+    }
+
+    /// @notice Tells you if a batch can be revealed
+    /// @return bool Whether reveal can be triggered or not
+    /// @return uint256 The number of the next batch that will be revealed
+    function hasBatchToReveal() external view override returns (bool, uint256) {
+        return _hasBatchToReveal(totalSupply());
     }
 
     /// @notice Returns the ownership data of a specific token ID
@@ -559,20 +458,14 @@ abstract contract BaseLaunchpeg is
         override(ERC721AUpgradeable, IERC721MetadataUpgradeable)
         returns (string memory)
     {
-        if (address(batchReveal) == address(0)) {
-            return string(abi.encodePacked(baseURI, _id.toString()));
-        } else if (
-            _id >= batchReveal.launchpegToLastTokenReveal(address(this))
-        ) {
+        if (_id >= lastTokenRevealed) {
             return unrevealedURI;
         } else {
             return
                 string(
                     abi.encodePacked(
                         baseURI,
-                        batchReveal
-                            .getShuffledTokenId(address(this), _id)
-                            .toString()
+                        _getShuffledTokenId(_id).toString()
                     )
                 );
         }
@@ -601,20 +494,13 @@ abstract contract BaseLaunchpeg is
         public
         view
         virtual
-        override(
-            ERC721AUpgradeable,
-            ERC2981Upgradeable,
-            IERC165Upgradeable,
-            SafePausableUpgradeable
-        )
+        override(ERC721AUpgradeable, ERC2981Upgradeable, IERC165Upgradeable)
         returns (bool)
     {
         return
-            _interfaceId == type(IBaseLaunchpeg).interfaceId ||
             ERC721AUpgradeable.supportsInterface(_interfaceId) ||
             ERC2981Upgradeable.supportsInterface(_interfaceId) ||
             ERC165Upgradeable.supportsInterface(_interfaceId) ||
-            SafePausableUpgradeable.supportsInterface(_interfaceId) ||
             super.supportsInterface(_interfaceId);
     }
 
@@ -630,40 +516,5 @@ abstract contract BaseLaunchpeg is
                 revert Launchpeg__TransferFailed();
             }
         }
-    }
-
-    /// @notice Reveals the next batch if the reveal conditions are met
-    function revealNextBatch() external override isEOA whenNotPaused {
-        if (address(batchReveal) == address(0)) {
-            revert Launchpeg__BatchRevealDisabled();
-        }
-        if (!batchReveal.revealNextBatch(address(this), totalSupply())) {
-            revert Launchpeg__RevealNextBatchNotAvailable();
-        }
-    }
-
-    /// @notice Tells you if a batch can be revealed
-    /// @return bool Whether reveal can be triggered or not
-    /// @return uint256 The number of the next batch that will be revealed
-    function hasBatchToReveal() external view override returns (bool, uint256) {
-        if (address(batchReveal) == address(0)) {
-            return (false, 0);
-        }
-        return batchReveal.hasBatchToReveal(address(this), totalSupply());
-    }
-
-    // @dev Total supply including pre-mints
-    function _totalSupplyWithPreMint() internal view returns (uint256) {
-        return totalSupply() + amountMintedDuringPreMint - amountBatchMinted;
-    }
-
-    // @notice Number minted by user including pre-mints
-    function numberMintedWithPreMint(address _owner)
-        public
-        view
-        override
-        returns (uint256)
-    {
-        return _numberMinted(_owner) + userAddressToPreMintAmount[_owner];
     }
 }

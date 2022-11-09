@@ -57,40 +57,37 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
     /// @param auctionStartPrice Auction start price in AVAX
     /// @param auctionEndPrice Auction floor price in AVAX
     /// @param auctionDropInterval Time elapsed between each drop in price in seconds
-    /// @param preMintStartTime Pre-mint start time in seconds
     /// @param allowlistStartTime allowlist mint start time in seconds
     /// @param allowlistDiscountPercent Discount applied to the last auction price during the allowlist mint
     /// @param publicSaleStartTime Public sale start time in seconds
-    /// @param publicSaleEndTime Public sale end time in seconds
     /// @param publicSaleDiscountPercent Discount applied to the last auction price during the public sale
     event Initialized(
         uint256 auctionSaleStartTime,
         uint256 auctionStartPrice,
         uint256 auctionEndPrice,
         uint256 auctionDropInterval,
-        uint256 preMintStartTime,
         uint256 allowlistStartTime,
         uint256 allowlistDiscountPercent,
         uint256 publicSaleStartTime,
-        uint256 publicSaleEndTime,
         uint256 publicSaleDiscountPercent
     );
 
-    /// @dev Emitted on setAuctionSaleStartTime()
-    /// @param auctionSaleStartTime New auction sale start time
-    event AuctionSaleStartTimeSet(uint256 auctionSaleStartTime);
+    /// @dev Emitted on auctionMint(), allowlistMint(), publicSaleMint()
+    /// @param sender The address that minted
+    /// @param quantity Amount of NFTs minted
+    /// @param price Price in AVAX for the NFTs
+    /// @param startTokenId The token ID of the first minted NFT: if `startTokenId` = 100 and `quantity` = 2, `sender` minted 100 and 101
+    /// @param phase The phase in which the mint occurs
+    event Mint(
+        address indexed sender,
+        uint256 quantity,
+        uint256 price,
+        uint256 startTokenId,
+        Phase phase
+    );
 
     modifier atPhase(Phase _phase) {
         if (currentPhase() != _phase) {
-            revert Launchpeg__WrongPhase();
-        }
-        _;
-    }
-
-    /// @dev Batch mint is allowed in the allowlist and public sale phases
-    modifier isBatchMintAvailable() {
-        Phase currPhase = currentPhase();
-        if (currPhase != Phase.Allowlist && currPhase != Phase.PublicSale) {
             revert Launchpeg__WrongPhase();
         }
         _;
@@ -107,6 +104,9 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
     /// @param _amountForAuction Amount of NFTs available for the auction (e.g 8000)
     /// @param _amountForAllowlist Amount of NFTs available for the allowlist mint (e.g 1000)
     /// @param _amountForDevs Amount of NFTs reserved for `projectOwner` (e.g 200)
+    /// @param _batchRevealSize Size of the batch reveal
+    /// @param _revealStartTime Start of the token URIs reveal in seconds
+    /// @param _revealInterval Interval between two batch reveals in seconds
     function initialize(
         string memory _name,
         string memory _symbol,
@@ -116,7 +116,10 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
         uint256 _collectionSize,
         uint256 _amountForAuction,
         uint256 _amountForAllowlist,
-        uint256 _amountForDevs
+        uint256 _amountForDevs,
+        uint256 _batchRevealSize,
+        uint256 _revealStartTime,
+        uint256 _revealInterval
     ) external override initializer {
         initializeBaseLaunchpeg(
             _name,
@@ -126,7 +129,10 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
             _maxBatchSize,
             _collectionSize,
             _amountForDevs,
-            _amountForAllowlist
+            _amountForAllowlist,
+            _batchRevealSize,
+            _revealStartTime,
+            _revealInterval
         );
         if (
             _amountForAuction + _amountForAllowlist + _amountForDevs >
@@ -144,22 +150,18 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
     /// @param _auctionStartPrice Auction start price in AVAX
     /// @param _auctionEndPrice Auction floor price in AVAX
     /// @param _auctionDropInterval Time elapsed between each drop in price in seconds
-    /// @param _preMintStartTime Pre-mint start time in seconds
-    /// @param _allowlistStartTime Allowlist mint start time in seconds
+    /// @param _allowlistStartTime allowlist mint start time in seconds
     /// @param _allowlistDiscountPercent Discount applied to the last auction price during the allowlist mint
     /// @param _publicSaleStartTime Public sale start time in seconds
-    /// @param _publicSaleEndTime Public sale end time in seconds
     /// @param _publicSaleDiscountPercent Discount applied to the last auction price during the public sale
     function initializePhases(
         uint256 _auctionSaleStartTime,
         uint256 _auctionStartPrice,
         uint256 _auctionEndPrice,
         uint256 _auctionDropInterval,
-        uint256 _preMintStartTime,
         uint256 _allowlistStartTime,
         uint256 _allowlistDiscountPercent,
         uint256 _publicSaleStartTime,
-        uint256 _publicSaleEndTime,
         uint256 _publicSaleDiscountPercent
     ) external override onlyOwner atPhase(Phase.NotStarted) {
         if (_auctionSaleStartTime < block.timestamp) {
@@ -168,17 +170,11 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
         if (_auctionStartPrice <= _auctionEndPrice) {
             revert Launchpeg__EndPriceGreaterThanStartPrice();
         }
-        if (_preMintStartTime <= _auctionSaleStartTime) {
-            revert Launchpeg__PreMintBeforeAuction();
-        }
-        if (_allowlistStartTime < _preMintStartTime) {
-            revert Launchpeg__AllowlistBeforePreMint();
+        if (_allowlistStartTime <= _auctionSaleStartTime) {
+            revert Launchpeg__AllowlistBeforeAuction();
         }
         if (_publicSaleStartTime < _allowlistStartTime) {
             revert Launchpeg__PublicSaleBeforeAllowlist();
-        }
-        if (_publicSaleEndTime < _publicSaleStartTime) {
-            revert Launchpeg__PublicSaleEndBeforePublicSaleStart();
         }
         if (
             _allowlistDiscountPercent > BASIS_POINT_PRECISION ||
@@ -187,7 +183,7 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
             revert Launchpeg__InvalidPercent();
         }
 
-        auctionSaleDuration = _preMintStartTime - _auctionSaleStartTime;
+        auctionSaleDuration = _allowlistStartTime - _auctionSaleStartTime;
         /// Ensure auction drop interval is not too high by enforcing it
         /// is at most 1/4 of the auction sale duration.
         /// There will be at least 3 price drops.
@@ -207,12 +203,10 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
             (_auctionStartPrice - _auctionEndPrice) /
             (auctionSaleDuration / _auctionDropInterval);
 
-        preMintStartTime = _preMintStartTime;
         allowlistStartTime = _allowlistStartTime;
         allowlistDiscountPercent = _allowlistDiscountPercent;
 
         publicSaleStartTime = _publicSaleStartTime;
-        publicSaleEndTime = _publicSaleEndTime;
         publicSaleDiscountPercent = _publicSaleDiscountPercent;
 
         emit Initialized(
@@ -220,57 +214,11 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
             auctionStartPrice,
             auctionEndPrice,
             auctionDropInterval,
-            preMintStartTime,
             allowlistStartTime,
             allowlistDiscountPercent,
             publicSaleStartTime,
-            publicSaleEndTime,
             publicSaleDiscountPercent
         );
-    }
-
-    /// @notice Set the auction sale start time. Can only be set after phases
-    /// have been initialized.
-    /// @dev Only callable by owner
-    /// @param _auctionSaleStartTime New auction sale start time
-    function setAuctionSaleStartTime(uint256 _auctionSaleStartTime)
-        external
-        override
-        onlyOwner
-    {
-        if (auctionSaleStartTime == 0) {
-            revert Launchpeg__NotInitialized();
-        }
-        if (_auctionSaleStartTime < block.timestamp) {
-            revert Launchpeg__InvalidStartTime();
-        }
-        if (preMintStartTime <= _auctionSaleStartTime) {
-            revert Launchpeg__PreMintBeforeAuction();
-        }
-        auctionSaleStartTime = _auctionSaleStartTime;
-        emit AuctionSaleStartTimeSet(_auctionSaleStartTime);
-    }
-
-    /// @notice Set the pre-mint start time. Can only be set after phases
-    /// have been initialized.
-    /// @dev Only callable by owner
-    /// @param _preMintStartTime New pre-mint start time
-    function setPreMintStartTime(uint256 _preMintStartTime)
-        external
-        override
-        onlyOwner
-    {
-        if (preMintStartTime == 0) {
-            revert Launchpeg__NotInitialized();
-        }
-        if (_preMintStartTime <= auctionSaleStartTime) {
-            revert Launchpeg__PreMintBeforeAuction();
-        }
-        if (allowlistStartTime < _preMintStartTime) {
-            revert Launchpeg__AllowlistBeforePreMint();
-        }
-        preMintStartTime = _preMintStartTime;
-        emit PreMintStartTimeSet(_preMintStartTime);
     }
 
     /// @notice Mint NFTs during the dutch auction
@@ -280,7 +228,6 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
         external
         payable
         override
-        whenNotPaused
         atPhase(Phase.DutchAuction)
     {
         uint256 remainingSupply = (amountForAuction + amountMintedByDevs) -
@@ -291,10 +238,7 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
         if (remainingSupply < _quantity) {
             _quantity = remainingSupply;
         }
-        if (
-            numberMintedWithPreMint(msg.sender) + _quantity >
-            maxPerAddressDuringMint
-        ) {
+        if (numberMinted(msg.sender) + _quantity > maxPerAddressDuringMint) {
             revert Launchpeg__CanNotMintThisMany();
         }
         lastAuctionPrice = getAuctionPrice(auctionSaleStartTime);
@@ -311,52 +255,27 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
         _refundIfOver(totalCost);
     }
 
-    /// @notice Mint NFTs during the pre-mint
-    /// @param _quantity Quantity of NFTs to mint
-    function preMint(uint256 _quantity)
-        external
-        payable
-        override
-        whenNotPaused
-        atPhase(Phase.PreMint)
-    {
-        _preMint(_quantity);
-    }
-
-    /// @notice Batch mint NFTs requested during the pre-mint
-    /// @param _maxQuantity Max quantity of NFTs to mint
-    function batchMintPreMintedNFTs(uint256 _maxQuantity)
-        external
-        override
-        whenNotPaused
-        isBatchMintAvailable
-    {
-        _batchMintPreMintedNFTs(_maxQuantity);
-    }
-
     /// @notice Mint NFTs during the allowlist mint
     /// @param _quantity Quantity of NFTs to mint
     function allowlistMint(uint256 _quantity)
         external
         payable
         override
-        whenNotPaused
         atPhase(Phase.Allowlist)
     {
         if (_quantity > allowlist[msg.sender]) {
             revert Launchpeg__NotEligibleForAllowlistMint();
         }
+        uint256 remainingAuctionSupply = amountForAuction -
+            amountMintedDuringAuction;
         if (
-            (_totalSupplyWithPreMint() + _quantity > collectionSize) ||
-            (amountMintedDuringPreMint +
-                amountMintedDuringAllowlist +
-                _quantity >
-                amountForAllowlist)
+            totalSupply() + remainingAuctionSupply + _quantity >
+            amountForAuction + amountForAllowlist + amountMintedByDevs
         ) {
             revert Launchpeg__MaxSupplyReached();
         }
         allowlist[msg.sender] -= _quantity;
-        uint256 price = allowlistPrice();
+        uint256 price = getAllowlistPrice();
         uint256 totalCost = price * _quantity;
 
         _mint(msg.sender, _quantity, "", false);
@@ -378,19 +297,18 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
         payable
         override
         isEOA
-        whenNotPaused
         atPhase(Phase.PublicSale)
     {
         if (
-            numberMintedWithPreMint(msg.sender) + _quantity >
-            maxPerAddressDuringMint
+            totalSupply() + _quantity >
+            collectionSize - (amountForDevs - amountMintedByDevs)
         ) {
-            revert Launchpeg__CanNotMintThisMany();
-        }
-        if (_totalSupplyWithPreMint() + _quantity > collectionSize) {
             revert Launchpeg__MaxSupplyReached();
         }
-        uint256 price = salePrice();
+        if (numberMinted(msg.sender) + _quantity > maxPerAddressDuringMint) {
+            revert Launchpeg__CanNotMintThisMany();
+        }
+        uint256 price = getPublicSalePrice();
 
         _mint(msg.sender, _quantity, "", false);
         amountMintedDuringPublicSale += _quantity;
@@ -427,7 +345,7 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
 
     /// @notice Returns the price of the allowlist mint
     /// @return allowlistSalePrice Mint List sale price
-    function allowlistPrice() public view override returns (uint256) {
+    function getAllowlistPrice() public view override returns (uint256) {
         return
             lastAuctionPrice -
             (lastAuctionPrice * allowlistDiscountPercent) /
@@ -436,7 +354,7 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
 
     /// @notice Returns the price of the public sale
     /// @return publicSalePrice Public sale price
-    function salePrice() public view override returns (uint256) {
+    function getPublicSalePrice() public view override returns (uint256) {
         return
             lastAuctionPrice -
             (lastAuctionPrice * publicSaleDiscountPercent) /
@@ -448,37 +366,23 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
     function currentPhase() public view override returns (Phase) {
         if (
             auctionSaleStartTime == 0 ||
-            preMintStartTime == 0 ||
             allowlistStartTime == 0 ||
             publicSaleStartTime == 0 ||
-            publicSaleEndTime == 0 ||
             block.timestamp < auctionSaleStartTime
         ) {
             return Phase.NotStarted;
-        } else if (totalSupply() >= collectionSize) {
-            return Phase.Ended;
         } else if (
             block.timestamp >= auctionSaleStartTime &&
-            block.timestamp < preMintStartTime
-        ) {
-            return Phase.DutchAuction;
-        } else if (
-            block.timestamp >= preMintStartTime &&
             block.timestamp < allowlistStartTime
         ) {
-            return Phase.PreMint;
+            return Phase.DutchAuction;
         } else if (
             block.timestamp >= allowlistStartTime &&
             block.timestamp < publicSaleStartTime
         ) {
             return Phase.Allowlist;
-        } else if (
-            block.timestamp >= publicSaleStartTime &&
-            block.timestamp < publicSaleEndTime
-        ) {
-            return Phase.PublicSale;
         }
-        return Phase.Ended;
+        return Phase.PublicSale;
     }
 
     /// @dev Returns true if this contract implements the interface defined by
@@ -498,10 +402,5 @@ contract Launchpeg is BaseLaunchpeg, ILaunchpeg {
         return
             _interfaceId == type(ILaunchpeg).interfaceId ||
             super.supportsInterface(_interfaceId);
-    }
-
-    /// @dev Returns pre-mint price. Used by _preMint() and _batchMintPreMintedNFTs() methods.
-    function _preMintPrice() internal view override returns (uint256) {
-        return allowlistPrice();
     }
 }

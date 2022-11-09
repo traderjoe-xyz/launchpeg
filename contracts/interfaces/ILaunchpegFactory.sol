@@ -5,17 +5,19 @@ pragma solidity ^0.8.4;
 /// @author Trader Joe
 /// @notice Defines the basic interface of LaunchpegFactory
 interface ILaunchpegFactory {
+    struct BatchReveal {
+        uint256 batchRevealSize;
+        uint256 revealStartTime;
+        uint256 revealInterval;
+    }
+
     function launchpegImplementation() external view returns (address);
 
     function flatLaunchpegImplementation() external view returns (address);
 
-    function batchReveal() external view returns (address);
-
     function joeFeePercent() external view returns (uint256);
 
     function joeFeeCollector() external view returns (address);
-
-    function defaultPausers() external view returns (address[] memory);
 
     function isLaunchpeg(uint256 _type, address _contract)
         external
@@ -41,7 +43,8 @@ interface ILaunchpegFactory {
         uint256 _collectionSize,
         uint256 _amountForAuction,
         uint256 _amountForAllowlist,
-        uint256 _amountForDevs
+        uint256 _amountForDevs,
+        BatchReveal calldata _batchRevealData
     ) external returns (address);
 
     function createFlatLaunchpeg(
@@ -52,7 +55,8 @@ interface ILaunchpegFactory {
         uint256 _maxBatchSize,
         uint256 _collectionSize,
         uint256 _amountForDevs,
-        uint256 _amountForAllowlist
+        uint256 _amountForAllowlist,
+        BatchReveal calldata _batchRevealData
     ) external returns (address);
 
     function setLaunchpegImplementation(address _launchpegImplementation)
@@ -62,13 +66,7 @@ interface ILaunchpegFactory {
         address _flatLaunchpegImplementation
     ) external;
 
-    function setBatchReveal(address _batchReveal) external;
-
     function setDefaultJoeFeePercent(uint256 _joeFeePercent) external;
 
     function setDefaultJoeFeeCollector(address _joeFeeCollector) external;
-
-    function addDefaultPauser(address _pauser) external returns (bool);
-
-    function removeDefaultPauser(address _pauser) external returns (bool);
 }

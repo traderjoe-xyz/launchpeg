@@ -8,12 +8,9 @@ describe('LaunchpegFactory', () => {
   let launchpegCF: ContractFactory
   let flatLaunchpegCF: ContractFactory
   let launchpegFactoryCF: ContractFactory
-  let batchRevealCF: ContractFactory
-
   let launchpeg: Contract
   let flatLaunchpeg: Contract
   let launchpegFactory: Contract
-  let batchReveal: Contract
 
   let config: LaunchpegConfig
 
@@ -28,7 +25,6 @@ describe('LaunchpegFactory', () => {
     launchpegCF = await ethers.getContractFactory('Launchpeg')
     flatLaunchpegCF = await ethers.getContractFactory('FlatLaunchpeg')
     launchpegFactoryCF = await ethers.getContractFactory('LaunchpegFactory')
-    batchRevealCF = await ethers.getContractFactory('BatchReveal')
 
     signers = await ethers.getSigners()
     dev = signers[0]
@@ -49,15 +45,9 @@ describe('LaunchpegFactory', () => {
     })
 
     config = { ...(await getDefaultLaunchpegConfig()) }
-    await deployBatchReveal()
     await deployLaunchpeg()
     await deployFlatLaunchpeg()
   })
-
-  const deployBatchReveal = async () => {
-    batchReveal = await batchRevealCF.deploy()
-    await batchReveal.initialize()
-  }
 
   const deployLaunchpeg = async () => {
     launchpeg = await launchpegCF.deploy()
@@ -71,7 +61,10 @@ describe('LaunchpegFactory', () => {
       config.collectionSize,
       config.amountForAuction,
       config.amountForAllowlist,
-      config.amountForDevs
+      config.amountForDevs,
+      config.batchRevealSize,
+      config.batchRevealStart,
+      config.batchRevealInterval
     )
   }
 
@@ -86,7 +79,10 @@ describe('LaunchpegFactory', () => {
       config.maxBatchSize,
       config.collectionSize,
       config.amountForDevs,
-      config.amountForAllowlist
+      config.amountForAllowlist,
+      config.batchRevealSize,
+      config.batchRevealStart,
+      config.batchRevealInterval
     )
   }
 
@@ -94,7 +90,6 @@ describe('LaunchpegFactory', () => {
     launchpegFactory = await upgrades.deployProxy(launchpegFactoryCF, [
       launchpeg.address,
       flatLaunchpeg.address,
-      batchReveal.address,
       200,
       royaltyReceiver.address,
     ])
@@ -111,7 +106,6 @@ describe('LaunchpegFactory', () => {
         upgrades.deployProxy(launchpegFactoryCF, [
           ethers.constants.AddressZero,
           flatLaunchpeg.address,
-          batchReveal.address,
           200,
           royaltyReceiver.address,
         ])
@@ -121,23 +115,10 @@ describe('LaunchpegFactory', () => {
         upgrades.deployProxy(launchpegFactoryCF, [
           launchpeg.address,
           ethers.constants.AddressZero,
-          batchReveal.address,
           200,
           royaltyReceiver.address,
         ])
       ).to.be.revertedWith('LaunchpegFactory__InvalidImplementation()')
-    })
-
-    it('Should revert with batch reveal zero address', async () => {
-      await expect(
-        upgrades.deployProxy(launchpegFactoryCF, [
-          launchpeg.address,
-          flatLaunchpeg.address,
-          ethers.constants.AddressZero,
-          200,
-          royaltyReceiver.address,
-        ])
-      ).to.be.revertedWith('LaunchpegFactory__InvalidBatchReveal()')
     })
 
     it('Invalid default fees should be blocked', async () => {
@@ -145,7 +126,6 @@ describe('LaunchpegFactory', () => {
         upgrades.deployProxy(launchpegFactoryCF, [
           launchpeg.address,
           flatLaunchpeg.address,
-          batchReveal.address,
           10_001,
           royaltyReceiver.address,
         ])
@@ -157,7 +137,6 @@ describe('LaunchpegFactory', () => {
         upgrades.deployProxy(launchpegFactoryCF, [
           launchpeg.address,
           flatLaunchpeg.address,
-          batchReveal.address,
           200,
           ethers.constants.AddressZero,
         ])
@@ -178,12 +157,11 @@ describe('LaunchpegFactory', () => {
         config.collectionSize,
         config.amountForAuction,
         config.amountForAllowlist,
-        config.amountForDevs
+        config.amountForDevs,
+        [config.batchRevealSize, config.batchRevealStart, config.batchRevealInterval]
       )
 
       expect(await launchpegFactory.numLaunchpegs(0)).to.equal(1)
-      const launchpegAddress = await launchpegFactory.allLaunchpegs(0, 0)
-      expect(await launchpegFactory.isLaunchpeg(0, launchpegAddress)).to.equal(true)
     })
 
     it('Should create FlatLaunchpegs as well', async () => {
@@ -197,12 +175,11 @@ describe('LaunchpegFactory', () => {
         config.maxBatchSize,
         config.collectionSize,
         config.amountForDevs,
-        config.amountForAllowlist
+        config.amountForAllowlist,
+        [config.batchRevealSize, config.batchRevealStart, config.batchRevealInterval]
       )
 
       expect(await launchpegFactory.numLaunchpegs(1)).to.equal(1)
-      const launchpegAddress = await launchpegFactory.allLaunchpegs(1, 0)
-      expect(await launchpegFactory.isLaunchpeg(1, launchpegAddress)).to.equal(true)
     })
   })
 
@@ -225,23 +202,10 @@ describe('LaunchpegFactory', () => {
       )
     })
 
-    it('Should set the new Batch Reveal contract', async () => {
-      const newAddress = '0x44c14d53D7B7672d7fD6E4A97fDA1A5f68F62aB6'
-      await launchpegFactory.setBatchReveal(newAddress)
-      expect(await launchpegFactory.batchReveal()).to.equal(newAddress)
-      await expect(launchpegFactory.setBatchReveal(ethers.constants.AddressZero)).to.be.revertedWith(
-        'LaunchpegFactory__InvalidBatchReveal()'
-      )
-    })
-
     it('Should set the new fee configuration', async () => {
       const newFees = 499
-      const newFeeCollector = bob.address
-
       await launchpegFactory.setDefaultJoeFeePercent(newFees)
-      await launchpegFactory.setDefaultJoeFeeCollector(newFeeCollector)
-      expect(await launchpegFactory.joeFeePercent()).to.equal(newFees)
-      expect(await launchpegFactory.joeFeeCollector()).to.equal(newFeeCollector)
+      await launchpegFactory.setDefaultJoeFeeCollector(bob.address)
 
       await launchpegFactory.createLaunchpeg(
         'My new collection',
@@ -252,52 +216,18 @@ describe('LaunchpegFactory', () => {
         config.collectionSize,
         config.amountForAuction,
         config.amountForAllowlist,
-        config.amountForDevs
+        config.amountForDevs,
+        [config.batchRevealSize, config.batchRevealStart, config.batchRevealInterval]
       )
       const launchpeg0Address = await launchpegFactory.allLaunchpegs(0, 0)
       const launchpeg0 = await ethers.getContractAt('Launchpeg', launchpeg0Address)
 
       expect(await launchpeg0.joeFeePercent()).to.equal(newFees)
-      expect(await launchpeg0.joeFeeCollector()).to.equal(newFeeCollector)
+      expect(await launchpeg0.joeFeeCollector()).to.equal(bob.address)
 
       await expect(launchpegFactory.setDefaultJoeFeePercent(20_000)).to.be.revertedWith('Launchpeg__InvalidPercent()')
       await expect(launchpegFactory.setDefaultJoeFeeCollector(ethers.constants.AddressZero)).to.be.revertedWith(
         'Launchpeg__InvalidJoeFeeCollector()'
-      )
-    })
-
-    it('Should allow owner to add and remove default pausers', async () => {
-      await launchpegFactory.addDefaultPauser(alice.address)
-      // Add multiple times
-      await launchpegFactory.addDefaultPauser(alice.address)
-      await launchpegFactory.addDefaultPauser(bob.address)
-      expect(await launchpegFactory.defaultPausers()).to.eql([alice.address, bob.address])
-      await launchpegFactory.removeDefaultPauser(bob.address)
-      // Remove multiple times
-      await launchpegFactory.removeDefaultPauser(bob.address)
-      expect(await launchpegFactory.defaultPausers()).to.eql([alice.address])
-
-      const launchpegAddress = await launchpegFactory.createLaunchpeg(
-        'My new collection',
-        'JOEPEG',
-        projectOwner.address,
-        royaltyReceiver.address,
-        config.maxBatchSize,
-        config.collectionSize,
-        config.amountForAuction,
-        config.amountForAllowlist,
-        config.amountForDevs
-      )
-      const launchpeg0Address = await launchpegFactory.allLaunchpegs(0, 0)
-      const launchpeg = await ethers.getContractAt('Launchpeg', launchpeg0Address)
-
-      await launchpeg.connect(alice).pause()
-      expect(await launchpeg.paused()).to.eq(true)
-      await expect(launchpeg.connect(bob).pause()).to.be.revertedWith(
-        'SafeAccessControlEnumerableUpgradeable__SenderMissingRoleAndIsNotOwner'
-      )
-      await expect(launchpeg.connect(alice).unpause()).to.be.revertedWith(
-        'SafeAccessControlEnumerableUpgradeable__SenderMissingRoleAndIsNotOwner'
       )
     })
   })
