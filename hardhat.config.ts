@@ -46,6 +46,12 @@ const config: HardhatUserConfig = {
       chainId: 43114,
       accounts: process.env.DEPLOY_PRIVATE_KEY ? [process.env.DEPLOY_PRIVATE_KEY] : [],
     },
+    bscTestnet: {
+      url: process.env.BNB_RPC_ENDPOINT ? process.env.BNB_RPC_ENDPOINT : '',
+      gasPrice: 20_000_000_000,
+      chainId: 97,
+      accounts: process.env.BNB_TESTNET_DEPLOYER ? [process.env.BNB_TESTNET_DEPLOYER] : [],
+    },
   },
   contractSizer: {
     strict: true,
@@ -57,6 +63,7 @@ const config: HardhatUserConfig = {
     apiKey: {
       avalanche: process.env.SNOWTRACE_API_KEY,
       avalancheFujiTestnet: process.env.SNOWTRACE_API_KEY,
+      bscTestnet: process.env.BNB_API_KEY,
     },
   },
 }

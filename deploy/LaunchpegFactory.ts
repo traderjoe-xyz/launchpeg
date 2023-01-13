@@ -17,7 +17,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       execute: {
         init: {
           methodName: 'initialize',
-          args: [launchpegAddress, flatLaunchpegAddress, 500, deployer],
+          args: [launchpegAddress, flatLaunchpegAddress, 750, deployer],
         },
       },
     },
